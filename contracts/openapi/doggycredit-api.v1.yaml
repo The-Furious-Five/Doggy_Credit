@@ -1,0 +1,181 @@
+openapi: 3.1.0
+info:
+  title: DoggyCredit API
+  version: "1.0.0"
+  description: >
+    API pública de DoggyCredit v1. Contract-first: este archivo es la fuente
+    de verdad; el controlador Spring y el cliente TypeScript se generan desde
+    aquí (SPIKE-5). No se agregan endpoints al código sin agregarlos primero
+    aquí. Ver el capítulo 4 de la guía de inducción del Sprint 1.
+servers:
+  - url: https://localhost/api/v1
+    description: Local (Compose, vía Caddy)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: consentimientos
+  - name: evaluaciones
+
+paths:
+  /consentimientos:
+    post:
+      tags: [consentimientos]
+      operationId: crearConsentimiento
+      summary: Registra el consentimiento de un titular para una o más fuentes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentimientoNuevo"
+      responses:
+        "201":
+          description: Consentimiento creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consentimiento"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "422":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /credit-assessments:
+    post:
+      tags: [evaluaciones]
+      operationId: crearEvaluacion
+      summary: Solicita una evaluación de crédito para un titular
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluacionNueva"
+      responses:
+        "201":
+          description: Evaluación creada (o PARCIAL si faltó una fuente no obligatoria)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Evaluacion"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "422":
+          $ref: "#/components/responses/ErrorNegocio"
+        "429":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /credit-assessments/{id}:
+    get:
+      tags: [evaluaciones]
+      operationId: obtenerEvaluacion
+      summary: Consulta una evaluación por id (aislada por tenant; 404 si es de otro tenant)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Evaluación encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Evaluacion"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 128 }
+
+  responses:
+    NoAutenticado:
+      description: Token ausente, expirado o inválido
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    ErrorNegocio:
+      description: Error de negocio (ver el campo `code` del catálogo único)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+
+  schemas:
+    ProblemDetail:
+      type: object
+      description: RFC 9457. El `code` sale siempre de contracts/errors/catalog.yaml.
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        correlationId: { type: string }
+        timestamp: { type: string, format: date-time }
+      required: [type, title, status, code, correlationId]
+
+    ConsentimientoNuevo:
+      type: object
+      properties:
+        titularDocumento: { type: string }
+        fuentes:
+          type: array
+          items: { type: string, enum: [BURO, BANCO, WALLET] }
+        finalidad: { type: string }
+        vigenciaDias: { type: integer, default: 90 }
+      required: [titularDocumento, fuentes, finalidad]
+
+    Consentimiento:
+      allOf:
+        - $ref: "#/components/schemas/ConsentimientoNuevo"
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            estado: { type: string, enum: [ACTIVO, REVOCADO, EXPIRADO] }
+            creadoEn: { type: string, format: date-time }
+
+    EvaluacionNueva:
+      type: object
+      properties:
+        titularDocumento: { type: string }
+        consentId: { type: string, format: uuid }
+        proposito: { type: string }
+        montoSolicitado: { type: string, description: "Decimal como string" }
+        plazoMeses: { type: integer }
+      required: [titularDocumento, consentId]
+
+    Evaluacion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        estado:
+          type: string
+          enum: [PENDIENTE, PARCIAL, PREAPROBADO, REVISION_MANUAL, FALLIDA]
+        score: { type: integer }
+        banda: { type: string, enum: [A, B, C, D, E] }
+        razones:
+          type: array
+          items: { type: string }
+        modelVersion: { type: string }
+        simulado: { type: boolean, default: true }
+        correlationId: { type: string }

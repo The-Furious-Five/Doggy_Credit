@@ -1,0 +1,62 @@
+# =============================================================================
+# contracts/errors/catalog.yaml — catálogo ÚNICO de códigos de error
+# =============================================================================
+# Todo error 4xx/5xx de cualquier componente (doggycredit-api, ml-scoring)
+# usa un `code` que sale de aquí, nunca un texto libre. De este archivo se
+# genera el enum Java (shared.error.ErrorCode) y, cuando exista, la unión
+# TypeScript del cliente generado. Lección 6 de MedicalSys: un solo formato
+# de error, un solo catálogo.
+#
+# type = sufijo de la URL https://docs.doggycredit.example/errors/<type>
+# =============================================================================
+
+version: 1
+
+errors:
+  - code: CONSENT_REQUIRED
+    type: consent-required
+    status: 422
+    title: "Consentimiento requerido"
+    detail_template: "No hay consentimiento vigente para la fuente {fuente}."
+
+  - code: QUOTA_EXCEEDED
+    type: quota-exceeded
+    status: 429
+    title: "Cuota mensual agotada"
+    detail_template: "El plan {plan} alcanzó su límite mensual de evaluaciones."
+
+  - code: RATE_LIMITED
+    type: rate-limited
+    status: 429
+    title: "Límite de solicitudes por minuto excedido"
+    detail_template: "Se superó el límite de solicitudes por minuto del plan {plan}."
+
+  - code: FEATURE_NOT_IN_PLAN
+    type: feature-not-in-plan
+    status: 403
+    title: "Función no disponible en el plan actual"
+    detail_template: "La función {feature} requiere el plan Pro."
+
+  - code: PLAN_LIMIT_REACHED
+    type: plan-limit-reached
+    status: 409
+    title: "Límite del plan alcanzado"
+    detail_template: "El plan {plan} permite un máximo de {limite} integraciones activas."
+
+  - code: PROVIDER_UNAVAILABLE
+    type: provider-unavailable
+    status: 502
+    title: "Fuente externa no disponible"
+    detail_template: "Todas las fuentes obligatorias fallaron para esta evaluación."
+
+  - code: IDEMPOTENCY_KEY_REUSED
+    type: idempotency-key-reused
+    status: 422
+    title: "Clave de idempotencia reutilizada con un cuerpo distinto"
+    detail_template: "La Idempotency-Key ya se usó con una solicitud diferente."
+
+  - code: VALIDATION_ERROR
+    type: validation-error
+    status: 400
+    title: "Error de validación"
+    detail_template: "Uno o más campos no son válidos."

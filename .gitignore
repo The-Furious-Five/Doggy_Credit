@@ -1,0 +1,33 @@
+# --- Secretos, nunca al repositorio ---
+.env
+*.env.local
+
+# --- Java / Maven ---
+backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# --- Node / Angular ---
+web/node_modules/
+web/dist/
+web/.angular/
+npm-debug.log*
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# --- Docker / datos locales ---
+infra/**/data/
+pgdata/
+
+# --- ML ---
+ml/**/__pycache__/
+ml/**/*.onnx
+ml/.venv/
+
+# --- Logs ---
+*.log

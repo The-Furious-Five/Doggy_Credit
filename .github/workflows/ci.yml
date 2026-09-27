@@ -1,0 +1,49 @@
+name: CI
+
+# Pipeline inicial (HAB-01). Corre el build y los tests del backend, que ya
+# incluyen ApplicationModulesTest (FF-01/FF-02). El resto de los gates del
+# capítulo 10 del informe (oasdiff, gate de tests omitidos, ZAP, Trivy,
+# gitleaks) es la ampliación de HAB-02 (Alvaro) — no están aquí todavía a
+# propósito, para no fingir gates que aún no existen.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Build y tests (incluye ApplicationModulesTest)
+        working-directory: backend
+        run: ./mvnw -B verify
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Instalar y construir la SPA
+        working-directory: web
+        run: |
+          npm ci
+          npm run build

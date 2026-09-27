@@ -1,0 +1,98 @@
+# =============================================================================
+# seed/tenants.yaml — ÚNICA fuente de verdad de tenants, usuarios e IDs de demo
+# =============================================================================
+# Lección 2 de MedicalSys: dos generadores de semilla produjeron dos UUID de
+# organización distintos entre Identidad y Tenencia. Aquí NO se repite: este
+# archivo alimenta a la vez el realm de Keycloak (SPIKE-2) y la semilla SQL de
+# la base de datos. Nadie escribe un tenant_id de demo a mano en ningún otro
+# lugar del repositorio.
+#
+# Todos los datos de este archivo son SINTÉTICOS. Ninguna institución, persona
+# o documento es real (RN-20).
+# =============================================================================
+
+version: 1
+
+tenants:
+  - key: progreso-andino
+    tenant_id: "9c7e7c1a-0000-4000-8000-000000000001"
+    nombre: "Progreso Andino"
+    nit: "1000000010"
+    tipo: "IMF"
+    plan: FREE
+    pais: BO
+    moneda: BOB
+
+    usuarios:
+      - key: admin
+        username: admin.progreso
+        email: admin.progreso@doggycredit.invalid
+        nombre_completo: "Rosa Mamani (demo)"
+        roles: [TENANT_ADMIN]
+        # la contraseña real de Keycloak la fija Nicole en su .env local
+        password_env: DC_SEED_ADMIN_PASSWORD
+
+      - key: analista
+        username: analista.progreso
+        email: analista.progreso@doggycredit.invalid
+        nombre_completo: "Marcelo Quispe (demo)"
+        roles: [ANALYST]
+        password_env: DC_SEED_ANALYST_PASSWORD
+
+    clientes_m2m:
+      - key: integrador
+        client_id: progreso-andino-m2m
+        scopes: ["assessments:write", "assessments:read", "consents:write"]
+        # el client secret real lo genera Nicole (Keycloak lo emite al crear el cliente)
+        secret_env: DC_SEED_M2M_SECRET
+
+  - key: banco-b
+    tenant_id: "9c7e7c1a-0000-4000-8000-000000000002"
+    nombre: "Fintech Vecina"
+    nit: "1000000020"
+    tipo: "FINTECH"
+    plan: PRO
+    pais: BO
+    moneda: BOB
+    usuarios:
+      - key: admin
+        username: admin.vecina
+        email: admin.vecina@doggycredit.invalid
+        nombre_completo: "Paola Fernández (demo)"
+        roles: [TENANT_ADMIN]
+        password_env: DC_SEED_ADMIN_PASSWORD_2
+    clientes_m2m:
+      - key: integrador
+        client_id: fintech-vecina-m2m
+        scopes: ["assessments:write", "assessments:read", "consents:write"]
+        secret_env: DC_SEED_M2M_SECRET_2
+
+# -----------------------------------------------------------------------------
+# Roles válidos en el MVP (idénticos en Keycloak, backend y UI — capítulo 6
+# de la guía de inducción). Nadie inventa un rol nuevo sin agregarlo aquí primero.
+# -----------------------------------------------------------------------------
+roles:
+  - TENANT_ADMIN
+  - ANALYST
+  - API_CLIENT
+  - PLATFORM_ADMIN
+
+# -----------------------------------------------------------------------------
+# Titulares sintéticos de referencia para el Sprint 1 (perfil "buen pagador").
+# El generador sintético completo (SPIKE-4) produce ~50 de estos; estos dos
+# son fijos para que las pruebas manuales del Día 1 sean reproducibles.
+# -----------------------------------------------------------------------------
+titulares_demo:
+  - key: justina-buen-pagador
+    documento: "CI-DEMO-0001001"
+    tipo: PERSONA
+    nombre: "Justina Choque (demo, ficticia)"
+    tenant: progreso-andino
+    perfil_sintetico: buen_pagador
+
+  - key: talleres-mamani-pyme
+    documento: "NIT-DEMO-9001001"
+    tipo: PYME
+    nombre: "Talleres Mamani SRL (demo, ficticia)"
+    tenant: progreso-andino
+    perfil_sintetico: pyme_verde

@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: doggycredit-api
+
+  datasource:
+    url: jdbc:postgresql://${DC_DB_HOST:localhost}:${DC_DB_PORT:5432}/${DC_DB_NAME:doggycredit}
+    username: ${DC_DB_USER:doggy_app}
+    password: ${DC_DB_PASSWORD:doggy_app}
+    hikari:
+      maximum-pool-size: 10
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # DEBT-015 (temporal): Spring Modulith no distribuye el SQL de su
+      # propia tabla interna `event_publication` para Flyway. Mientras el
+      # equipo no escriba esa migración a mano, se deja en `update` para no
+      # bloquear el arranque; en cuanto exista una entidad de negocio real
+      # esto vuelve a `validate` y el esquema lo maneja solo Flyway.
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  # SPIKE-2 (Franco, con Nicole) fija el issuer real cuando el realm exista.
+  # Sin esta propiedad configurada, el resource server no arranca: es
+  # intencional (deny-by-default también en el arranque).
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${DC_KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/doggycredit}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,modulith
+
+logging:
+  pattern:
+    # el id de correlación (RF-API-02.1) se agrega al MDC como "correlationId"
+    level: "%5p [%X{correlationId:-}]"

@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/bureau/v1/informe/.*"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/xml" },
+    "bodyFileName": "informe-buen-pagador.xml",
+    "fixedDelayMilliseconds": 300
+  }
+}

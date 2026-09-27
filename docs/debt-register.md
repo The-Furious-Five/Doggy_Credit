@@ -1,0 +1,30 @@
+# Registro de deuda técnica — DoggyCredit MVP
+
+Cada deuda lleva: descripción, riesgo si no se paga, **disparador de pago**
+(el evento que obliga a pagarla) y dueño. Se revisa en cada retro. En el
+código se marca con `// DEBT-NNN` para poder buscarla con grep.
+
+Fuente: `DoggyCredit — Visión, Requerimientos y Arquitectura v1`, §17.3.
+
+| ID | Deuda aceptada | Disparador de pago |
+|---|---|---|
+| DEBT-001 | Una VM y una réplica, sin alta disponibilidad; respaldos manuales | Primer cliente piloto |
+| DEBT-002 | Sin broker: eventos en proceso con outbox de Spring Modulith | Primer consumidor externo (webhooks, analítica, ML en línea) |
+| DEBT-003 | Rate limit en memoria (Bucket4j local) y jobs sin bloqueo distribuido | Segunda réplica de la API |
+| DEBT-004 | Fuentes simuladas (WireMock); consentimiento sin validez legal verificada | Convenio con la primera fuente real |
+| DEBT-005 | Modelo de scoring con datos sintéticos, sin monitoreo de deriva (PSI) | Antes de cualquier decisión con datos reales |
+| DEBT-006 | Clave maestra en secreto de Docker/`.env`, sin KMS ni rotación | Antes de cargar datos personales reales |
+| DEBT-008 | Analítica sobre vistas de la base transaccional | p95 de analítica > 1 s o más de 1 M de filas |
+| DEBT-009 | Cadena de auditoría sin ancla WORM externa | Primer piloto o auditor externo |
+| DEBT-010 | Sin autoservicio de registro ni facturación real | Salida comercial |
+| DEBT-011 | Java 21 en lugar de 25 | Después del MVP |
+| DEBT-012 | El logout no revoca los access tokens vigentes (5 min) | Requisito de revocación inmediata |
+| DEBT-013 | Los payloads crudos de las fuentes no se persisten (solo hash) | Primer reclamo o disputa que necesite reprocesar |
+| DEBT-014 | 4 roles en el MVP: `TENANT_ADMIN` concentra política, usuarios y auditoría | Primera entidad supervisada exigente |
+| DEBT-015 | `ddl-auto: update` temporal (no `validate`), porque Spring Modulith no distribuye el SQL de su tabla interna `event_publication` para Flyway | Cuando exista la primera entidad de negocio real, escribir la migración del registro de eventos a mano y volver a `validate` |
+
+**Deuda que no se acepta** (lecciones de MedicalSys): pruebas omitidas
+contadas como aprobadas, endpoints sin prueba de aislamiento de tenant,
+contratos escritos a mano en vez de generados, "modos locales" que
+esconden una integración real, un segundo formato de error, IDs de
+demo duplicados entre Keycloak y la base de datos.

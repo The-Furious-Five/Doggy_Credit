@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.doggycredit.example/schemas/perfil-financiero/v1.json",
+  "title": "PerfilFinanciero",
+  "version": 1,
+  "description": "Modelo canónico 'Perfil Financiero 360' v1 (HAB-07). Snapshot inmutable consolidado a partir de las fuentes activas del tenant. Ver §11.2 del informe de arquitectura. Cambios que rompan compatibilidad van en perfil-financiero.v2.schema.json, nunca sobre este archivo.",
+  "type": "object",
+  "required": ["id", "hash", "versionEsquema", "creadoEn", "titular", "linaje"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "hash": { "type": "string", "description": "SHA-256 del contenido del snapshot" },
+    "versionEsquema": { "const": 1 },
+    "creadoEn": { "type": "string", "format": "date-time" },
+
+    "titular": {
+      "type": "object",
+      "required": ["ref", "tipo"],
+      "properties": {
+        "ref": { "type": "string", "description": "HMAC por tenant del documento normalizado, nunca el documento en claro" },
+        "tipo": { "type": "string", "enum": ["PERSONA", "PYME"] },
+        "antiguedadSistemaFinancieroMeses": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "endeudamiento": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fuente", "tipoCredito", "saldo", "cuota", "diasMoraMax12m"],
+        "properties": {
+          "fuente": { "type": "string", "enum": ["BURO", "BANCO"] },
+          "entidadRef": { "type": "string" },
+          "tipoCredito": { "type": "string" },
+          "saldo": { "$ref": "#/$defs/Dinero" },
+          "cuota": { "$ref": "#/$defs/Dinero" },
+          "diasMoraMax12m": { "type": "integer", "minimum": 0 },
+          "calificacion": { "type": "string" },
+          "fechaCorte": { "type": "string", "format": "date" }
+        }
+      }
+    },
+
+    "cuentas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fuente": { "type": "string", "enum": ["BANCO"] },
+          "tipo": { "type": "string" },
+          "moneda": { "type": "string" },
+          "saldoPromedio3m": { "$ref": "#/$defs/Dinero" }
+        }
+      }
+    },
+
+    "flujos": {
+      "type": "object",
+      "properties": {
+        "ingresosMensuales": { "type": "array", "items": { "$ref": "#/$defs/Dinero" }, "maxItems": 12 },
+        "egresosMensuales": { "type": "array", "items": { "$ref": "#/$defs/Dinero" }, "maxItems": 12 },
+        "origen": { "type": "string", "enum": ["BANCO", "WALLET", "DECLARADO"] }
+      }
+    },
+
+    "wallet": {
+      "type": "object",
+      "properties": {
+        "transaccionesMensuales": { "type": "integer" },
+        "saldoPromedio": { "$ref": "#/$defs/Dinero" },
+        "antiguedadMeses": { "type": "integer" }
+      }
+    },
+
+    "pyme": {
+      "type": "object",
+      "properties": {
+        "ventasMensuales": { "$ref": "#/$defs/Dinero" },
+        "sector": { "type": "string" },
+        "antiguedadNegocioMeses": { "type": "integer" }
+      }
+    },
+
+    "necesidad": {
+      "type": "object",
+      "properties": {
+        "proposito": { "type": "string" },
+        "monto": { "$ref": "#/$defs/Dinero" },
+        "plazoMeses": { "type": "integer" },
+        "destinoVerde": {
+          "type": "string",
+          "description": "Código de la lista cerrada de §6.6 del informe (VER-SOL, VER-EFI, VER-MOV, VER-AGU, VER-AGR, VER-RES)",
+          "enum": ["VER-SOL", "VER-EFI", "VER-MOV", "VER-AGU", "VER-AGR", "VER-RES"]
+        }
+      }
+    },
+
+    "calidad": {
+      "type": "object",
+      "properties": {
+        "completitudPorcentaje": { "type": "number", "minimum": 0, "maximum": 100 },
+        "frescuraPorFuente": { "type": "object", "additionalProperties": { "type": "string", "format": "date-time" } },
+        "conflictosDetectados": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "linaje": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fuente", "conectorVersion", "mapeoVersion", "fetchId", "sha256Crudo", "obtenidoEn"],
+        "properties": {
+          "fuente": { "type": "string", "enum": ["BURO", "BANCO", "WALLET"] },
+          "conectorVersion": { "type": "string" },
+          "mapeoVersion": { "type": "string" },
+          "fetchId": { "type": "string" },
+          "sha256Crudo": { "type": "string", "description": "Los payloads crudos no se persisten; solo su hash (ADR-016)." },
+          "obtenidoEn": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "Dinero": {
+      "type": "object",
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": { "type": "string", "description": "Decimal como string, nunca float" },
+        "currency": { "type": "string", "enum": ["BOB", "USD"] }
+      }
+    }
+  }
+}
