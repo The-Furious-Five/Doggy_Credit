@@ -60,6 +60,14 @@ La calificación sale de la mora máxima: ≤5 A, ≤30 B, ≤60 C, ≤90 D, ≤
 
 Estos dos documentos de falla **no** son personas y no están en el JSON.
 
+## Contrato y conector
+
+Contrato publicado: [`contracts/connectors/bureau.v1.yaml`](../../../contracts/connectors/bureau.v1.yaml).
+Lo consume `integration.BureauConnector` (URL en `DC_INTEGRATION_BUREAU_URL`,
+por defecto `http://localhost:8089`). `BureauConnectorContractTests` levanta
+este mismo directorio en `wiremock/wiremock:3.9.1` y verifica las 50 personas
+del JSON contra el conector: si cambian el generador, esas pruebas avisan.
+
 ## Prueba rápida
 
 ```bash
