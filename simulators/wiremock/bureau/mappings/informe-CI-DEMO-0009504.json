@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/bureau/v1/informe/CI-DEMO-0009504"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/xml"
+    },
+    "status": 200,
+    "fixedDelayMilliseconds": 15000,
+    "body": "<ErrorBuro><Codigo>RESPUESTA_TARDIA</Codigo></ErrorBuro>"
+  }
+}
