@@ -22,6 +22,12 @@ spring:
       hibernate:
         format_sql: false
 
+  mvc:
+    problemdetails:
+      # RFC 9457 nativo de Spring (ErrorResponseException -> application/problem+json).
+      # El manejador único con correlationId es RF-API-02.1.
+      enabled: true
+
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -37,6 +43,15 @@ spring:
 
 server:
   port: 8080
+
+doggycredit:
+  integration:
+    # Conector del buró (RF-INT-02.1, contracts/connectors/bureau.v1.yaml). Sin modo local:
+    # siempre HTTP. read-timeout muy por debajo del presupuesto de 2 s de la evaluación (HAB-04).
+    bureau:
+      url: ${DC_INTEGRATION_BUREAU_URL:http://localhost:8089}
+      connect-timeout: ${DC_INTEGRATION_BUREAU_CONNECT_TIMEOUT:500ms}
+      read-timeout: ${DC_INTEGRATION_BUREAU_READ_TIMEOUT:1500ms}
 
 management:
   endpoints:

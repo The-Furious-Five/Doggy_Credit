@@ -1,0 +1,14 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/bureau/v1/informe/.*"
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "Content-Type": "application/xml"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ErrorBuro><Codigo>DOCUMENTO_NO_ENCONTRADO</Codigo><Documento>{{request.path.[3]}}</Documento></ErrorBuro>\n"
+  }
+}

@@ -1,0 +1,145 @@
+openapi: 3.1.0
+info:
+  title: Buró de crédito (simulado) — informe crediticio
+  version: "1.0.0"
+  description: >
+    Contrato del proveedor EXTERNO de buró tal como lo expone su simulador
+    (simulators/wiremock/bureau, generado por seed/generate_synthetic.py).
+    No es API de DoggyCredit: documenta lo que consume el conector del módulo
+    `integration` (RF-INT-02.1). El vocabulario del proveedor (XML, códigos de
+    calificación, nombres de elementos) no pasa de la capa anticorrupción
+    `integration.internal.BureauXml`; lo que sale del conector es el fragmento
+    canónico `BureauReport` (Perfil Financiero 360 v1).
+
+    Verificado por `BureauConnectorContractTests` contra el simulador real
+    (imagen wiremock/wiremock:3.9.1, la misma de infra/compose.yaml) para las
+    50 personas de seed/personas-sinteticas.json.
+
+    Tiempos: toda respuesta 200 llega tras ~300 ms. El conector corta a los
+    1500 ms (`DC_INTEGRATION_BUREAU_READ_TIMEOUT`), muy por debajo del
+    presupuesto de 2 s de una evaluación (HAB-04).
+servers:
+  - url: http://localhost:8089
+    description: Simulador en Compose, publicado al host (DC_WIREMOCK_BUREAU_HOST_PORT)
+  - url: http://wiremock-bureau:8080
+    description: Simulador dentro de la red de Compose
+
+paths:
+  /bureau/v1/informe/{documento}:
+    get:
+      operationId: obtenerInforme
+      summary: Informe crediticio consolidado de un titular
+      description: >
+        Match exacto de URL: el simulador responde solo al documento
+        normalizado (trim → MAYÚSCULAS → sin espacios ni puntos,
+        `shared.DocumentNumber`). El conector normaliza antes de llamar.
+        Documentos especiales para pruebas: `CI-DEMO-0009503` responde 503;
+        `CI-DEMO-0009504` responde 200 recién a los 15 s (prueba de timeout).
+      parameters:
+        - name: documento
+          in: path
+          required: true
+          description: Documento normalizado del titular.
+          schema:
+            type: string
+            examples: [CI-DEMO-0001001, NIT-DEMO-9001001]
+      responses:
+        "200":
+          description: Informe del titular (tras ~300 ms).
+          content:
+            application/xml:
+              schema: { $ref: "#/components/schemas/InformeCrediticio" }
+              example: |
+                <InformeCrediticio>
+                  <Documento>CI-DEMO-0001001</Documento>
+                  <TipoTitular>PERSONA</TipoTitular>
+                  <Calificacion codigo="A">Sin mora reportada</Calificacion>
+                  <DeudaVigente moneda="BOB">8580.00</DeudaVigente>
+                  <CuotaMensual moneda="BOB">1930.00</CuotaMensual>
+                  <MoraMaximaUltimos12Meses dias="0"/>
+                  <AntiguedadSistemaFinancieroMeses>92</AntiguedadSistemaFinancieroMeses>
+                  <FechaCorte>2026-09-01</FechaCorte>
+                </InformeCrediticio>
+        "404":
+          description: >
+            El buró no tiene registro del documento (`DOCUMENTO_NO_ENCONTRADO`).
+            Es un resultado válido ("titular sin registro"), distinto de una
+            caída y distinto de la calificación `N` (registrado sin historial).
+          content:
+            application/xml:
+              schema: { $ref: "#/components/schemas/ErrorBuro" }
+              example: |
+                <ErrorBuro><Codigo>DOCUMENTO_NO_ENCONTRADO</Codigo><Documento>CI-DEMO-0009999</Documento></ErrorBuro>
+        "503":
+          description: Servicio no disponible (`SERVICIO_NO_DISPONIBLE`).
+          content:
+            application/xml:
+              schema: { $ref: "#/components/schemas/ErrorBuro" }
+              example: |
+                <ErrorBuro><Codigo>SERVICIO_NO_DISPONIBLE</Codigo></ErrorBuro>
+
+components:
+  schemas:
+    Dinero:
+      type: string
+      description: Decimal con 2 cifras, en el texto del elemento; la moneda va en el atributo.
+      pattern: '^\d+\.\d{2}$'
+
+    InformeCrediticio:
+      type: object
+      xml: { name: InformeCrediticio }
+      required: [Documento, TipoTitular, Calificacion, DeudaVigente, CuotaMensual,
+        MoraMaximaUltimos12Meses, AntiguedadSistemaFinancieroMeses, FechaCorte]
+      properties:
+        Documento:
+          type: string
+          description: Documento normalizado; siempre igual al pedido.
+        TipoTitular:
+          type: string
+          enum: [PERSONA, PYME]
+        Calificacion:
+          type: object
+          description: >
+            Calificación por mora máxima (≤5 días A, ≤30 B, ≤60 C, ≤90 D,
+            ≤120 E, resto F). `N` = registrado sin historial crediticio (deuda
+            y cuota 0). El texto del elemento es descriptivo y no se usa.
+          properties:
+            codigo:
+              type: string
+              enum: [A, B, C, D, E, F, N]
+              xml: { attribute: true }
+        DeudaVigente:
+          type: object
+          description: Saldo total adeudado (valor en el texto del elemento).
+          properties:
+            moneda: { type: string, enum: [BOB, USD], xml: { attribute: true } }
+            valor: { $ref: "#/components/schemas/Dinero" }
+        CuotaMensual:
+          type: object
+          description: Suma de cuotas mensuales (valor en el texto del elemento).
+          properties:
+            moneda: { type: string, enum: [BOB, USD], xml: { attribute: true } }
+            valor: { $ref: "#/components/schemas/Dinero" }
+        MoraMaximaUltimos12Meses:
+          type: object
+          description: Elemento vacío; el dato va en el atributo.
+          properties:
+            dias: { type: integer, minimum: 0, xml: { attribute: true } }
+        AntiguedadSistemaFinancieroMeses:
+          type: integer
+          minimum: 0
+        FechaCorte:
+          type: string
+          format: date
+
+    ErrorBuro:
+      type: object
+      xml: { name: ErrorBuro }
+      required: [Codigo]
+      properties:
+        Codigo:
+          type: string
+          enum: [DOCUMENTO_NO_ENCONTRADO, SERVICIO_NO_DISPONIBLE]
+        Documento:
+          type: string
+          description: Solo en DOCUMENTO_NO_ENCONTRADO; el documento pedido.

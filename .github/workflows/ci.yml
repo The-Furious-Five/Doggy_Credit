@@ -1,9 +1,14 @@
 name: CI
 
-# Pipeline inicial (HAB-01). Corre el build y los tests del backend, que ya
-# incluyen ApplicationModulesTest (FF-01/FF-02). El resto de los gates del
-# capítulo 10 del informe (oasdiff, gate de tests omitidos, ZAP, Trivy,
-# gitleaks) es la ampliación de HAB-02 (Alvaro) — no están aquí todavía a
+# Gates del backend (HAB-01 + HAB-02):
+#   1. Docker disponible: si no hay Docker, el pipeline falla (los tests con
+#      Testcontainers no se saltan en silencio).
+#   2. `mvnw verify`: build + ArchitectureRulesTest (ArchUnit) +
+#      ApplicationModulesTest (Spring Modulith, FF-01/FF-02) + resto de tests.
+#   3. Gate de tests omitidos (ci/check_skipped_tests.py): un test omitido
+#      solo pasa si está en ci/skipped-tests-allowlist.json y no venció.
+#      Ver docs/runbooks/tests-omitidos.md.
+# oasdiff es de SPIKE-5; ZAP, Trivy y gitleaks todavía no están — a
 # propósito, para no fingir gates que aún no existen.
 
 on:
@@ -26,9 +31,23 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
 
-      - name: Build y tests (incluye ApplicationModulesTest)
+      - name: Docker disponible (Testcontainers no se salta)
+        run: docker info
+
+      - name: Build + ArchUnit + Modulith + tests
         working-directory: backend
         run: ./mvnw -B verify
+
+      - name: Gate de tests omitidos
+        run: python3 ci/check_skipped_tests.py
+
+      - name: Reportes de tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
+          if-no-files-found: ignore
 
   web:
     runs-on: ubuntu-latest
