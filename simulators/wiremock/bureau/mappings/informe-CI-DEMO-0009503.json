@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/bureau/v1/informe/CI-DEMO-0009503"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/xml"
+    },
+    "status": 503,
+    "body": "<ErrorBuro><Codigo>SERVICIO_NO_DISPONIBLE</Codigo></ErrorBuro>"
+  }
+}

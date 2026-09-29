@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Respuesta sintética del simulador del buró (RN-20: todo dato es ficticio). Generado por seed/generate_synthetic.py. -->
+<InformeCrediticio>
+  <Documento>NIT-DEMO-9001010</Documento>
+  <TipoTitular>PYME</TipoTitular>
+  <Calificacion codigo="C">Mora reportada</Calificacion>
+  <DeudaVigente moneda="BOB">194200.00</DeudaVigente>
+  <CuotaMensual moneda="BOB">10890.00</CuotaMensual>
+  <MoraMaximaUltimos12Meses dias="36"/>
+  <AntiguedadSistemaFinancieroMeses>23</AntiguedadSistemaFinancieroMeses>
+  <FechaCorte>2026-09-01</FechaCorte>
+</InformeCrediticio>

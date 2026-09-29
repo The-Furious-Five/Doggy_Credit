@@ -1,0 +1,898 @@
+{
+  "_comentario": "GENERADO por seed/generate_synthetic.py; no editar a mano. Datos ficticios (RN-20).",
+  "version": 1,
+  "semilla": 20260928,
+  "fecha_corte": "2026-09-01",
+  "personas": [
+    {
+      "documento": "CI-DEMO-0001001",
+      "tipo": "PERSONA",
+      "nombre": "Justina Choque (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "9040.00",
+        "egreso_mensual": "7020.00",
+        "deuda_vigente": "8580.00",
+        "cuota_mensual": "1930.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 92,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001002",
+      "tipo": "PERSONA",
+      "nombre": "Justina Apaza Colque (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "11260.00",
+        "egreso_mensual": "9090.00",
+        "deuda_vigente": "88870.00",
+        "cuota_mensual": "3880.00",
+        "mora_max_12m_dias": 73,
+        "antiguedad_sf_meses": 6,
+        "calificacion": "D"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001003",
+      "tipo": "PERSONA",
+      "nombre": "Rene Huanca Colque (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "7880.00",
+        "egreso_mensual": "3330.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001004",
+      "tipo": "PERSONA",
+      "nombre": "Ariel Condori Ticona (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "11680.00",
+        "egreso_mensual": "13660.00",
+        "deuda_vigente": "348960.00",
+        "cuota_mensual": "6480.00",
+        "mora_max_12m_dias": 20,
+        "antiguedad_sf_meses": 103,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001005",
+      "tipo": "PERSONA",
+      "nombre": "Paola Vargas Choque (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "7750.00",
+        "egreso_mensual": "6540.00",
+        "deuda_vigente": "11030.00",
+        "cuota_mensual": "1770.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 8,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001006",
+      "tipo": "PERSONA",
+      "nombre": "Teodoro Apaza Arce (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "6280.00",
+        "egreso_mensual": "5040.00",
+        "deuda_vigente": "13710.00",
+        "cuota_mensual": "1920.00",
+        "mora_max_12m_dias": 68,
+        "antiguedad_sf_meses": 61,
+        "calificacion": "D"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001007",
+      "tipo": "PERSONA",
+      "nombre": "Hernan Arce Apaza (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "4190.00",
+        "egreso_mensual": "2330.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001008",
+      "tipo": "PERSONA",
+      "nombre": "Teodoro Rojas Villca (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "11340.00",
+        "egreso_mensual": "14580.00",
+        "deuda_vigente": "426810.00",
+        "cuota_mensual": "8350.00",
+        "mora_max_12m_dias": 2,
+        "antiguedad_sf_meses": 48,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001009",
+      "tipo": "PERSONA",
+      "nombre": "Rolando Quispe Guarachi (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "8200.00",
+        "egreso_mensual": "4880.00",
+        "deuda_vigente": "8690.00",
+        "cuota_mensual": "1290.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 91,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001010",
+      "tipo": "PERSONA",
+      "nombre": "Rene Arce Arce (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "6650.00",
+        "egreso_mensual": "5430.00",
+        "deuda_vigente": "40150.00",
+        "cuota_mensual": "2460.00",
+        "mora_max_12m_dias": 107,
+        "antiguedad_sf_meses": 116,
+        "calificacion": "E"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001011",
+      "tipo": "PERSONA",
+      "nombre": "Mauricio Flores Condori (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "10190.00",
+        "egreso_mensual": "4230.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001012",
+      "tipo": "PERSONA",
+      "nombre": "Paola Ticona Mamani (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "4640.00",
+        "egreso_mensual": "6400.00",
+        "deuda_vigente": "219300.00",
+        "cuota_mensual": "3770.00",
+        "mora_max_12m_dias": 16,
+        "antiguedad_sf_meses": 117,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001013",
+      "tipo": "PERSONA",
+      "nombre": "Sonia Huanca Quispe (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "8640.00",
+        "egreso_mensual": "7240.00",
+        "deuda_vigente": "9320.00",
+        "cuota_mensual": "1920.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 119,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001014",
+      "tipo": "PERSONA",
+      "nombre": "Teodoro Rojas Apaza (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "8800.00",
+        "egreso_mensual": "7710.00",
+        "deuda_vigente": "32480.00",
+        "cuota_mensual": "3520.00",
+        "mora_max_12m_dias": 100,
+        "antiguedad_sf_meses": 54,
+        "calificacion": "E"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001015",
+      "tipo": "PERSONA",
+      "nombre": "Celia Limachi Colque (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "6930.00",
+        "egreso_mensual": "3650.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001016",
+      "tipo": "PERSONA",
+      "nombre": "Rene Limachi Paz (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "11190.00",
+        "egreso_mensual": "13700.00",
+        "deuda_vigente": "246270.00",
+        "cuota_mensual": "7690.00",
+        "mora_max_12m_dias": 8,
+        "antiguedad_sf_meses": 73,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001017",
+      "tipo": "PERSONA",
+      "nombre": "Hernan Choque Ticona (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "8290.00",
+        "egreso_mensual": "6580.00",
+        "deuda_vigente": "31090.00",
+        "cuota_mensual": "1990.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 32,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001018",
+      "tipo": "PERSONA",
+      "nombre": "Hernan Limachi Guarachi (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "7740.00",
+        "egreso_mensual": "6880.00",
+        "deuda_vigente": "39660.00",
+        "cuota_mensual": "2690.00",
+        "mora_max_12m_dias": 135,
+        "antiguedad_sf_meses": 66,
+        "calificacion": "F"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001019",
+      "tipo": "PERSONA",
+      "nombre": "Mauricio Mamani Rojas (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "9690.00",
+        "egreso_mensual": "4760.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001020",
+      "tipo": "PERSONA",
+      "nombre": "Gonzalo Quispe Quispe (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "9680.00",
+        "egreso_mensual": "13150.00",
+        "deuda_vigente": "288350.00",
+        "cuota_mensual": "7170.00",
+        "mora_max_12m_dias": 16,
+        "antiguedad_sf_meses": 18,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001021",
+      "tipo": "PERSONA",
+      "nombre": "Rolando Mamani Condori (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "2640.00",
+        "egreso_mensual": "1810.00",
+        "deuda_vigente": "5270.00",
+        "cuota_mensual": "340.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 53,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001022",
+      "tipo": "PERSONA",
+      "nombre": "Rolando Guarachi Colque (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "11080.00",
+        "egreso_mensual": "10920.00",
+        "deuda_vigente": "49760.00",
+        "cuota_mensual": "4080.00",
+        "mora_max_12m_dias": 95,
+        "antiguedad_sf_meses": 24,
+        "calificacion": "E"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001023",
+      "tipo": "PERSONA",
+      "nombre": "Lourdes Choque Choque (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "10860.00",
+        "egreso_mensual": "5780.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001024",
+      "tipo": "PERSONA",
+      "nombre": "Hernan Arce Villca (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "4280.00",
+        "egreso_mensual": "4920.00",
+        "deuda_vigente": "97560.00",
+        "cuota_mensual": "2680.00",
+        "mora_max_12m_dias": 19,
+        "antiguedad_sf_meses": 81,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001025",
+      "tipo": "PERSONA",
+      "nombre": "Mauricio Flores Colque (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "6970.00",
+        "egreso_mensual": "4090.00",
+        "deuda_vigente": "17370.00",
+        "cuota_mensual": "1250.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 113,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001026",
+      "tipo": "PERSONA",
+      "nombre": "Rene Paz Villca (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "10260.00",
+        "egreso_mensual": "8120.00",
+        "deuda_vigente": "72960.00",
+        "cuota_mensual": "3050.00",
+        "mora_max_12m_dias": 132,
+        "antiguedad_sf_meses": 68,
+        "calificacion": "F"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001027",
+      "tipo": "PERSONA",
+      "nombre": "Celia Colque Ticona (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "6600.00",
+        "egreso_mensual": "3490.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001028",
+      "tipo": "PERSONA",
+      "nombre": "Efrain Choque Paz (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "7950.00",
+        "egreso_mensual": "9540.00",
+        "deuda_vigente": "180760.00",
+        "cuota_mensual": "4930.00",
+        "mora_max_12m_dias": 6,
+        "antiguedad_sf_meses": 82,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001029",
+      "tipo": "PERSONA",
+      "nombre": "Lourdes Arce Mamani (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "11860.00",
+        "egreso_mensual": "7270.00",
+        "deuda_vigente": "23950.00",
+        "cuota_mensual": "2260.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 87,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001030",
+      "tipo": "PERSONA",
+      "nombre": "Ximena Villca Flores (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "10340.00",
+        "egreso_mensual": "10170.00",
+        "deuda_vigente": "49590.00",
+        "cuota_mensual": "3750.00",
+        "mora_max_12m_dias": 31,
+        "antiguedad_sf_meses": 33,
+        "calificacion": "C"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001031",
+      "tipo": "PERSONA",
+      "nombre": "Hernan Rojas Paz (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "10380.00",
+        "egreso_mensual": "6440.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001032",
+      "tipo": "PERSONA",
+      "nombre": "Celia Flores Paz (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "3520.00",
+        "egreso_mensual": "4490.00",
+        "deuda_vigente": "100280.00",
+        "cuota_mensual": "2710.00",
+        "mora_max_12m_dias": 10,
+        "antiguedad_sf_meses": 66,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001033",
+      "tipo": "PERSONA",
+      "nombre": "Gonzalo Rojas Limachi (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "10290.00",
+        "egreso_mensual": "6370.00",
+        "deuda_vigente": "34830.00",
+        "cuota_mensual": "1990.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 43,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001034",
+      "tipo": "PERSONA",
+      "nombre": "Paola Arce Limachi (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "6920.00",
+        "egreso_mensual": "6360.00",
+        "deuda_vigente": "42510.00",
+        "cuota_mensual": "2420.00",
+        "mora_max_12m_dias": 95,
+        "antiguedad_sf_meses": 91,
+        "calificacion": "E"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001035",
+      "tipo": "PERSONA",
+      "nombre": "Delia Mamani Limachi (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "7620.00",
+        "egreso_mensual": "4790.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001036",
+      "tipo": "PERSONA",
+      "nombre": "Rene Vargas Flores (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "8550.00",
+        "egreso_mensual": "10980.00",
+        "deuda_vigente": "201740.00",
+        "cuota_mensual": "6460.00",
+        "mora_max_12m_dias": 3,
+        "antiguedad_sf_meses": 103,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001037",
+      "tipo": "PERSONA",
+      "nombre": "Delia Rojas Guarachi (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "buen_pagador",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "11990.00",
+        "egreso_mensual": "8080.00",
+        "deuda_vigente": "21740.00",
+        "cuota_mensual": "2520.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 34,
+        "calificacion": "A"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001038",
+      "tipo": "PERSONA",
+      "nombre": "Sonia Huanca Guarachi (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "moroso",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "4430.00",
+        "egreso_mensual": "3870.00",
+        "deuda_vigente": "23970.00",
+        "cuota_mensual": "1760.00",
+        "mora_max_12m_dias": 144,
+        "antiguedad_sf_meses": 86,
+        "calificacion": "F"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001039",
+      "tipo": "PERSONA",
+      "nombre": "Sonia Mamani Guarachi (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "sin_historial",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "6000.00",
+        "egreso_mensual": "3670.00",
+        "deuda_vigente": "0.00",
+        "cuota_mensual": "0.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 0,
+        "calificacion": "N"
+      }
+    },
+    {
+      "documento": "CI-DEMO-0001040",
+      "tipo": "PERSONA",
+      "nombre": "Celia Mamani Limachi (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "sobreendeudado",
+      "moneda": "BOB",
+      "finanzas": {
+        "ingreso_mensual": "8720.00",
+        "egreso_mensual": "10950.00",
+        "deuda_vigente": "188710.00",
+        "cuota_mensual": "5430.00",
+        "mora_max_12m_dias": 10,
+        "antiguedad_sf_meses": 109,
+        "calificacion": "B"
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001001",
+      "tipo": "PYME",
+      "nombre": "Talleres Mamani SRL (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "pyme_verde",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "53200.00",
+        "antiguedad_negocio_meses": 111,
+        "ingreso_mensual": "9800.00",
+        "egreso_mensual": "7300.00",
+        "deuda_vigente": "22920.00",
+        "cuota_mensual": "1470.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 29,
+        "calificacion": "A",
+        "sector": "agricultura_sostenible",
+        "destino_verde": "VER-AGR"
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001002",
+      "tipo": "PYME",
+      "nombre": "Alimentos Quispe SRL (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "pyme_morosa",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "26500.00",
+        "antiguedad_negocio_meses": 113,
+        "ingreso_mensual": "7180.00",
+        "egreso_mensual": "6410.00",
+        "deuda_vigente": "76610.00",
+        "cuota_mensual": "3020.00",
+        "mora_max_12m_dias": 58,
+        "antiguedad_sf_meses": 109,
+        "calificacion": "C",
+        "sector": "alimentos",
+        "destino_verde": null
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001003",
+      "tipo": "PYME",
+      "nombre": "Reciclaje Villca SRL (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "pyme_verde",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "29300.00",
+        "antiguedad_negocio_meses": 137,
+        "ingreso_mensual": "6320.00",
+        "egreso_mensual": "4100.00",
+        "deuda_vigente": "22560.00",
+        "cuota_mensual": "1090.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 61,
+        "calificacion": "A",
+        "sector": "reciclaje",
+        "destino_verde": "VER-RES"
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001004",
+      "tipo": "PYME",
+      "nombre": "Comercio Huanca SRL (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "pyme_morosa",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "50500.00",
+        "antiguedad_negocio_meses": 35,
+        "ingreso_mensual": "14780.00",
+        "egreso_mensual": "11290.00",
+        "deuda_vigente": "116120.00",
+        "cuota_mensual": "4840.00",
+        "mora_max_12m_dias": 62,
+        "antiguedad_sf_meses": 112,
+        "calificacion": "D",
+        "sector": "comercio",
+        "destino_verde": null
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001005",
+      "tipo": "PYME",
+      "nombre": "Eficiencia energetica Huanca SRL (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "pyme_verde",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "20300.00",
+        "antiguedad_negocio_meses": 77,
+        "ingreso_mensual": "5430.00",
+        "egreso_mensual": "3870.00",
+        "deuda_vigente": "12050.00",
+        "cuota_mensual": "730.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 27,
+        "calificacion": "A",
+        "sector": "eficiencia_energetica",
+        "destino_verde": "VER-EFI"
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001006",
+      "tipo": "PYME",
+      "nombre": "Comercio Huanca SRL (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "pyme_morosa",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "103900.00",
+        "antiguedad_negocio_meses": 20,
+        "ingreso_mensual": "30180.00",
+        "egreso_mensual": "23980.00",
+        "deuda_vigente": "210960.00",
+        "cuota_mensual": "10400.00",
+        "mora_max_12m_dias": 47,
+        "antiguedad_sf_meses": 46,
+        "calificacion": "C",
+        "sector": "comercio",
+        "destino_verde": null
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001007",
+      "tipo": "PYME",
+      "nombre": "Movilidad electrica Ticona SRL (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "pyme_verde",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "97000.00",
+        "antiguedad_negocio_meses": 177,
+        "ingreso_mensual": "27270.00",
+        "egreso_mensual": "19060.00",
+        "deuda_vigente": "51240.00",
+        "cuota_mensual": "3600.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 56,
+        "calificacion": "A",
+        "sector": "movilidad_electrica",
+        "destino_verde": "VER-MOV"
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001008",
+      "tipo": "PYME",
+      "nombre": "Metalmecanica Colque SRL (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "pyme_morosa",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "57500.00",
+        "antiguedad_negocio_meses": 57,
+        "ingreso_mensual": "11000.00",
+        "egreso_mensual": "9060.00",
+        "deuda_vigente": "50550.00",
+        "cuota_mensual": "4270.00",
+        "mora_max_12m_dias": 36,
+        "antiguedad_sf_meses": 41,
+        "calificacion": "C",
+        "sector": "metalmecanica",
+        "destino_verde": null
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001009",
+      "tipo": "PYME",
+      "nombre": "Movilidad electrica Flores SRL (demo, ficticia)",
+      "tenant": "banco-b",
+      "perfil_sintetico": "pyme_verde",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "87900.00",
+        "antiguedad_negocio_meses": 74,
+        "ingreso_mensual": "24170.00",
+        "egreso_mensual": "16920.00",
+        "deuda_vigente": "82360.00",
+        "cuota_mensual": "4330.00",
+        "mora_max_12m_dias": 0,
+        "antiguedad_sf_meses": 86,
+        "calificacion": "A",
+        "sector": "movilidad_electrica",
+        "destino_verde": "VER-MOV"
+      }
+    },
+    {
+      "documento": "NIT-DEMO-9001010",
+      "tipo": "PYME",
+      "nombre": "Transporte Huanca SRL (demo, ficticia)",
+      "tenant": "progreso-andino",
+      "perfil_sintetico": "pyme_morosa",
+      "moneda": "BOB",
+      "finanzas": {
+        "ventas_mensuales": "118100.00",
+        "antiguedad_negocio_meses": 159,
+        "ingreso_mensual": "34970.00",
+        "egreso_mensual": "27090.00",
+        "deuda_vigente": "194200.00",
+        "cuota_mensual": "10890.00",
+        "mora_max_12m_dias": 36,
+        "antiguedad_sf_meses": 23,
+        "calificacion": "C",
+        "sector": "transporte",
+        "destino_verde": null
+      }
+    }
+  ]
+}

@@ -22,6 +22,12 @@ spring:
       hibernate:
         format_sql: false
 
+  mvc:
+    problemdetails:
+      # RFC 9457 nativo de Spring (ErrorResponseException -> application/problem+json).
+      # El manejador único con correlationId es RF-API-02.1.
+      enabled: true
+
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -33,10 +39,24 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${DC_KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/doggycredit}
+          issuer-uri: ${DC_KEYCLOAK_ISSUER_URI:https://localhost/auth/realms/doggycredit}
 
 server:
   port: 8080
+
+doggycredit:
+  correlation:
+    header: ${DC_CORRELATION_HEADER:X-Correlation-Id}
+  integration:
+    # Conector del buró (RF-INT-02.1, contracts/connectors/bureau.v1.yaml). Sin modo local:
+    # siempre HTTP. read-timeout muy por debajo del presupuesto de 2 s de la evaluación (HAB-04).
+    bureau:
+      url: ${DC_INTEGRATION_BUREAU_URL:http://localhost:8089}
+      connect-timeout: ${DC_INTEGRATION_BUREAU_CONNECT_TIMEOUT:500ms}
+      read-timeout: ${DC_INTEGRATION_BUREAU_READ_TIMEOUT:1500ms}
+
+  encryption:
+    master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
 
 management:
   endpoints:

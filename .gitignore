@@ -31,3 +31,8 @@ ml/.venv/
 
 # --- Logs ---
 *.log
+
+# Herramientas locales
+**/__pycache__/
+.venv/
+web/out-tsc/

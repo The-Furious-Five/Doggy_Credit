@@ -1,11 +1,11 @@
 name: doggycredit
 
-# Perfil `core` para el Día 1: Postgres + Keycloak + el simulador de buró +
-# observabilidad. `doggycredit-api` se agrega cuando el backend compile
-# (SPIKE-1/HAB-01 en adelante); Caddy y la SPA cuando exista `web/dist`.
+# Stack completo del Sprint 1 (guía de inducción §3.4). Generar el realm antes
+# de iniciar: `python scripts/generate_realm.py`.
 #
-# Solo Caddy publica un puerto público (RNF de la arquitectura, §9.4 y §10.4
-# de la guía de inducción). Todo lo demás es red interna.
+# Entrada única: Caddy en HTTPS (443), sirve la SPA y enruta /auth (Keycloak)
+# y /api/v1 (doggycredit-api). La API y Postgres nunca publican puerto al host.
+# Grafana y el simulador del buró quedan expuestos solo para diagnóstico local.
 
 x-logging: &dc-logging
   driver: local
@@ -35,16 +35,23 @@ services:
     # --health-enabled=true (endpoint /health/ready oficial) provocó una
     # re-augmentación de Quarkus que se colgaba de forma reproducible en esta
     # máquina; se deja fuera y el healthcheck usa una conexión TCP simple.
-    command: ["start-dev", "--http-port=8080"]
+    # La consola de administración se usa a través de Caddy: https://localhost/auth/admin
+    command: ["start-dev", "--http-port=8080", "--import-realm"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${DC_KEYCLOAK_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${DC_KEYCLOAK_ADMIN_PASSWORD:?falta DC_KEYCLOAK_ADMIN_PASSWORD en .env}
-    ports:
-      # el único puerto no-Caddy expuesto: consola de administración local del Día 1.
-      # Se retira cuando Caddy enrute /auth/* (según avance SPIKE-2).
-      - "${DC_KEYCLOAK_HOST_PORT:-8081}:8080"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT: "false"
+      # Referencias ${DC_SEED_*} del realm generado desde seed/tenants.yaml.
+      DC_SEED_ADMIN_PASSWORD: ${DC_SEED_ADMIN_PASSWORD:?falta DC_SEED_ADMIN_PASSWORD en .env}
+      DC_SEED_ANALYST_PASSWORD: ${DC_SEED_ANALYST_PASSWORD:?falta DC_SEED_ANALYST_PASSWORD en .env}
+      DC_SEED_ADMIN_PASSWORD_2: ${DC_SEED_ADMIN_PASSWORD_2:?falta DC_SEED_ADMIN_PASSWORD_2 en .env}
+      DC_SEED_M2M_SECRET: ${DC_SEED_M2M_SECRET:?falta DC_SEED_M2M_SECRET en .env}
+      DC_SEED_M2M_SECRET_2: ${DC_SEED_M2M_SECRET_2:?falta DC_SEED_M2M_SECRET_2 en .env}
     volumes:
-      - ./keycloak:/opt/keycloak/data/import
+      - ./keycloak/doggycredit-realm.json:/opt/keycloak/data/import/doggycredit-realm.json:ro
+      - keycloak_data:/opt/keycloak/data
     healthcheck:
       test: ["CMD-SHELL", "bash -c '(exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null'"]
       interval: 10s
@@ -59,8 +66,7 @@ services:
     volumes:
       - ../simulators/wiremock/bureau:/home/wiremock
     ports:
-      # expuesto en el Día 1 para probar el conector desde fuera de Compose;
-      # cuando el backend esté armado, se accede solo por la red interna.
+      # para probar el conector desde fuera de Compose (mvn spring-boot:run).
       - "${DC_WIREMOCK_BUREAU_HOST_PORT:-8089}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/__admin/health || exit 1"]
@@ -73,8 +79,63 @@ services:
   otel-lgtm:
     image: grafana/otel-lgtm:0.11.5
     ports:
+      # Grafana: trazas, métricas y logs por X-Correlation-Id (guía §10.5).
       - "${DC_GRAFANA_HOST_PORT:-3300}:3000"
+    logging: *dc-logging
+
+  doggycredit-api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      DC_DB_HOST: postgres
+      DC_DB_NAME: ${DC_DB_NAME:-doggycredit}
+      DC_DB_USER: ${DC_DB_USER:-doggy_app}
+      DC_DB_PASSWORD: ${DC_DB_PASSWORD:?falta DC_DB_PASSWORD en .env}
+      # El issuer es la URL pública (la que ve el navegador); las claves se
+      # descargan por la red interna para no depender del certificado de Caddy.
+      DC_KEYCLOAK_ISSUER_URI: ${DC_KEYCLOAK_ISSUER_URI:-https://localhost/auth/realms/doggycredit}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/doggycredit/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: doggycredit-api
+      DC_INTEGRATION_BUREAU_URL: http://wiremock-bureau:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health > /dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    logging: *dc-logging
+
+  caddy:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    ports:
+      - "${DC_HTTP_PORT:-443}:443"
+    depends_on:
+      doggycredit-api:
+        condition: service_healthy
+    volumes:
+      # caddy_data conserva la CA local: se confía una sola vez (ver runbook).
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      # Puerto HTTPS escuchando. Vale igual en localhost (CA interna) y en la VM
+      # (certificado público), donde https://localhost no tiene certificado.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 443 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
     logging: *dc-logging
 
 volumes:
   postgres_data:
+  keycloak_data:
+  caddy_data:
+  caddy_config:

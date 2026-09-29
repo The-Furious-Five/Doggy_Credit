@@ -55,6 +55,12 @@ errors:
     title: "Clave de idempotencia reutilizada con un cuerpo distinto"
     detail_template: "La Idempotency-Key ya se usó con una solicitud diferente."
 
+  - code: TENANT_NOT_FOUND
+    type: tenant-not-found
+    status: 403
+    title: "Tenant no registrado"
+    detail_template: "El tenant {tenantId} no está registrado."
+
   - code: VALIDATION_ERROR
     type: validation-error
     status: 400

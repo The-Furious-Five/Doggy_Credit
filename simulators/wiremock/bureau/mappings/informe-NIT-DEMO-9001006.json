@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/bureau/v1/informe/NIT-DEMO-9001006"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/xml"
+    },
+    "status": 200,
+    "bodyFileName": "informe-NIT-DEMO-9001006.xml",
+    "fixedDelayMilliseconds": 300
+  }
+}
