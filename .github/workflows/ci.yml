@@ -97,7 +97,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           git show "$BASE_SHA:contracts/openapi/doggycredit-api.v1.yaml" > contracts/openapi/base.yaml
-          docker run --rm -v "$PWD/contracts/openapi:/spec:ro" tufin/oasdiff:1.11.7 breaking /spec/base.yaml /spec/doggycredit-api.v1.yaml --fail-on ERR
+          docker run --rm -v "$PWD/contracts/openapi:/spec:ro" tufin/oasdiff:v1.32.1 breaking /spec/base.yaml /spec/doggycredit-api.v1.yaml --fail-on ERR
 
   identity:
     runs-on: ubuntu-latest
