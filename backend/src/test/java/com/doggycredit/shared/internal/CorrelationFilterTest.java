@@ -32,6 +32,18 @@ class CorrelationFilterTest {
     }
 
     @Test
+    void reemplazaCorrelationIdMaliciosoOEnorme() throws Exception {
+        String inyeccion = "abc\r\nINFO falso: acceso concedido";
+        String enorme = "a".repeat(10_000);
+        for (String malo : new String[] { inyeccion, enorme }) {
+            mvc.perform(get("/actuator/health").header("X-Correlation-Id", malo))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("X-Correlation-Id",
+                            org.hamcrest.Matchers.matchesPattern("[0-9a-f-]{36}")));
+        }
+    }
+
+    @Test
     void propagaCorrelationIdSiViene() throws Exception {
         String myId = "test-correlation-123";
         mvc.perform(get("/actuator/health").header("X-Correlation-Id", myId))

@@ -29,6 +29,7 @@ import com.doggycredit.TestcontainersConfiguration;
 import com.doggycredit.consent.ConsentRequiredException;
 import com.doggycredit.consent.Source;
 import com.doggycredit.integration.BureauReport.TipoTitular;
+import com.doggycredit.shared.TenantContext;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -50,6 +51,18 @@ class BureauConnectorContractTests {
 
 	static {
 		WIREMOCK.start();
+		// El 404 es la única respuesta con plantilla ({{request.path.[3]}}), y
+		// WireMock inicializa Handlebars en frío con la primera que la usa:
+		// medido, ~1,6 s contra un read-timeout de 1,5 s — el primer documento
+		// desconocido salía como "fuente caída". Se calienta una vez aquí,
+		// igual que lo hace el healthcheck del simulador en infra/compose.yaml.
+		RestClient.builder()
+			.baseUrl(wiremockUrl())
+			.requestFactory(new SimpleClientHttpRequestFactory())
+			.build()
+			.get()
+			.uri("/bureau/v1/informe/CALENTAMIENTO")
+			.exchange((request, response) -> response.getStatusCode());
 	}
 
 	@DynamicPropertySource
@@ -150,13 +163,23 @@ class BureauConnectorContractTests {
 		String documento = "CI-DEMO-0001005";
 		long antes = requests(documento);
 
-		assertThatThrownBy(() -> gateway.fetch(bureau, TENANT, documento)).isInstanceOf(ConsentRequiredException.class);
-		assertThat(requests(documento)).isEqualTo(antes);
+		// SPIKE-1 (RLS): gateway.fetch lee consent.consents; sin TenantContext
+		// (esta prueba llama al gateway directo, sin petición HTTP real de
+		// por medio) la política lo filtra a cero filas siempre, sin importar
+		// si el consentimiento existe. Se declara "esto corre como TENANT"
+		// a mano, tal como lo haría TenantClaimFilter en una petición real.
+		TenantContext.set(TENANT);
+		try {
+			assertThatThrownBy(() -> gateway.fetch(bureau, TENANT, documento)).isInstanceOf(ConsentRequiredException.class);
+			assertThat(requests(documento)).isEqualTo(antes);
 
-		insertConsent(TENANT, documento);
-		Optional<BureauReport> report = gateway.fetch(bureau, TENANT, documento);
-		assertThat(report).isPresent();
-		assertThat(requests(documento)).isEqualTo(antes + 1);
+			insertConsent(TENANT, documento);
+			Optional<BureauReport> report = gateway.fetch(bureau, TENANT, documento);
+			assertThat(report).isPresent();
+			assertThat(requests(documento)).isEqualTo(antes + 1);
+		} finally {
+			TenantContext.clear();
+		}
 	}
 
 	private void assertUnavailable(String documento) {

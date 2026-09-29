@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,7 +22,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(IdentitySecurityTests.Probe.class)
-@Import({IdentitySecurityConfiguration.class, IdentitySecurityTests.Probe.class, IdentitySecurityTests.DecoderFixture.class})
+@Import({IdentitySecurityConfiguration.class, SecurityProblemDetailWriter.class,
+        ProblemDetailAuthenticationEntryPoint.class, ProblemDetailAccessDeniedHandler.class,
+        IdentitySecurityTests.Probe.class, IdentitySecurityTests.DecoderFixture.class})
 class IdentitySecurityTests {
     @Autowired MockMvc mvc;
     @TestConfiguration(proxyBeanMethods = false)
@@ -70,6 +73,11 @@ class IdentitySecurityTests {
     @Test
     void rejectsMalformedTenant() throws Exception {
         mvc.perform(get("/identity-test").header("Authorization", "Bearer malformed"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                // RF-API-02.1: el 403 de la capa de seguridad también es RFC 9457.
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("INVALID_TENANT_CLAIM"))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.correlationId").isNotEmpty());
     }
 }

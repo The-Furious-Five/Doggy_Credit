@@ -69,7 +69,11 @@ services:
       # para probar el conector desde fuera de Compose (mvn spring-boot:run).
       - "${DC_WIREMOCK_BUREAU_HOST_PORT:-8089}:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/__admin/health || exit 1"]
+      # La segunda petición (404 esperado, su resultado no cuenta) calienta el
+      # motor de plantillas: medido, el primer 404 con plantilla tarda ~1,6 s,
+      # más que el read-timeout de 1,5 s del conector, y el primer documento
+      # desconocido de la demo se reportaba como "fuente caída".
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/__admin/health || exit 1; wget -q -O /dev/null http://127.0.0.1:8080/bureau/v1/informe/CALENTAMIENTO; exit 0"]
       interval: 5s
       timeout: 5s
       retries: 20

@@ -61,6 +61,18 @@ errors:
     title: "Tenant no registrado"
     detail_template: "El tenant {tenantId} no está registrado."
 
+  - code: UNAUTHENTICATED
+    type: unauthenticated
+    status: 401
+    title: "Autenticación requerida"
+    detail_template: "La solicitud no trae un token válido."
+
+  - code: INVALID_TENANT_CLAIM
+    type: invalid-tenant-claim
+    status: 403
+    title: "Reclamo de tenant inválido"
+    detail_template: "El tenant_id del token falta o no es un UUID válido."
+
   - code: VALIDATION_ERROR
     type: validation-error
     status: 400

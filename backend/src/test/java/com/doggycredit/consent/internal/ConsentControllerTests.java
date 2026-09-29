@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.sql.ResultSet;
 import java.util.Map;
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -78,9 +80,29 @@ class ConsentControllerTests {
 			.getContentAsString();
 
 		UUID id = UUID.fromString(response.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1"));
-		Map<String, Object> row = jdbc.queryForMap("""
-				select tenant_id, otorgado_por, payload_sha256, expira_en - otorgado_en = interval '90 days' as vigencia_ok
-				from consent.consents where id = ?""", id);
+		// SPIKE-1: fuera de una petición autenticada no hay tenant en contexto,
+		// y RLS (V2026_09_29_1400) devuelve cero filas sin él. Se fija a mano,
+		// en la MISMA conexión que la lectura (ConnectionCallback: el pool
+		// podría entregar una conexión distinta a dos llamadas sueltas de
+		// JdbcTemplate, y TenantAwareDataSource le haría RESET a esa otra).
+		Map<String, Object> row = jdbc.execute((ConnectionCallback<Map<String, Object>>) con -> {
+			try (var set = con.createStatement()) {
+				set.execute("SET app.tenant_id = '" + TENANT + "'");
+			}
+			try (var ps = con.prepareStatement("""
+					select tenant_id, otorgado_por, payload_sha256, expira_en - otorgado_en = interval '90 days' as vigencia_ok
+					from consent.consents where id = ?""")) {
+				ps.setObject(1, id);
+				try (ResultSet rs = ps.executeQuery()) {
+					rs.next();
+					return Map.of(
+							"tenant_id", rs.getObject("tenant_id"),
+							"otorgado_por", rs.getString("otorgado_por"),
+							"payload_sha256", rs.getString("payload_sha256"),
+							"vigencia_ok", rs.getBoolean("vigencia_ok"));
+				}
+			}
+		});
 		assertThat(row.get("tenant_id")).isEqualTo(UUID.fromString(TENANT));
 		assertThat(row.get("otorgado_por")).isEqualTo("analista-1");
 		assertThat((String) row.get("payload_sha256")).hasSize(64);

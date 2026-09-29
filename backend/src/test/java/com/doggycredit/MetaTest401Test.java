@@ -1,6 +1,8 @@
 package com.doggycredit;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -79,7 +82,14 @@ class MetaTest401Test {
 							mvc.perform(request(httpMethod, resolvePath(pattern))
 									.contentType("application/json")
 									.content("{}"))
-								.andExpect(status().isUnauthorized())));
+								.andExpect(status().isUnauthorized())
+								// RF-API-02.1: el 401 también sigue RFC 9457, con
+								// correlationId — antes lo saltaba (sendError salta
+								// ProblemDetailAdvice); este meta-test solo veía el
+								// código de estado y no lo detectaba.
+								.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+								.andExpect(jsonPath("$.code").value("UNAUTHENTICATED"))
+								.andExpect(jsonPath("$.correlationId").isNotEmpty())));
 				}
 			}
 		}

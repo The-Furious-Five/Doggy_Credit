@@ -12,12 +12,9 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      # DEBT-015 (temporal): Spring Modulith no distribuye el SQL de su
-      # propia tabla interna `event_publication` para Flyway. Mientras el
-      # equipo no escriba esa migración a mano, se deja en `update` para no
-      # bloquear el arranque; en cuanto exista una entidad de negocio real
-      # esto vuelve a `validate` y el esquema lo maneja solo Flyway.
-      ddl-auto: update
+      # DEBT-015 pagada (V2026_09_29_1402): event_publication ya tiene su
+      # propia migración escrita a mano. El esquema lo maneja solo Flyway.
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: false

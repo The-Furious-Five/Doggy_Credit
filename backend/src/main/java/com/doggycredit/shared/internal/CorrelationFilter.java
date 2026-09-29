@@ -25,6 +25,14 @@ public final class CorrelationFilter extends OncePerRequestFilter {
 
     static final String MDC_KEY = "correlationId";
 
+    /**
+     * El header lo controla el cliente y termina en cada línea de log y en la
+     * respuesta: sin límite, alguien podría inyectar saltos de línea (líneas
+     * de log falsas) o un valor enorme. Cubre UUID y trace-id W3C.
+     */
+    private static final java.util.regex.Pattern VALID_ID =
+            java.util.regex.Pattern.compile("[A-Za-z0-9._-]{1,64}");
+
     private final String headerName;
 
     public CorrelationFilter(String headerName) {
@@ -36,7 +44,7 @@ public final class CorrelationFilter extends OncePerRequestFilter {
             HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String correlationId = request.getHeader(headerName);
-        if (correlationId == null || correlationId.isBlank()) {
+        if (correlationId == null || !VALID_ID.matcher(correlationId).matches()) {
             correlationId = UUID.randomUUID().toString();
         }
         MDC.put(MDC_KEY, correlationId);

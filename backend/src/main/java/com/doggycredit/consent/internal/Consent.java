@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.TenantId;
 import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
@@ -25,6 +26,13 @@ public class Consent {
 	@Id
 	private UUID id;
 
+	/**
+	 * SPIKE-1: discriminador de Hibernate. Se asigna solo al insertar, desde
+	 * {@code TenantIdentifierResolver}; no lo toca el constructor pese a
+	 * recibir {@code tenantId} (queda como defensa redundante: si algún día
+	 * este valor y el del JWT difirieran, Hibernate impone el del contexto).
+	 */
+	@TenantId
 	@Column(name = "tenant_id", nullable = false)
 	private UUID tenantId;
 
