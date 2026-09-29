@@ -1,0 +1,119 @@
+@use './design-system/breakpoints' as screen;
+
+.access {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+// Panel de marca
+.access-brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-10);
+  padding: var(--ds-space-10) var(--ds-space-16);
+}
+.access-home {
+  align-self: flex-start;
+}
+.access-brand__content {
+  container-type: inline-size;
+  margin-block: auto;
+  max-width: var(--ds-reading-width);
+  gap: var(--ds-space-8);
+}
+.access-title {
+  font-size: var(--ds-display-fit);
+}
+.access-lead {
+  max-width: var(--ds-form-width);
+}
+.access-points {
+  display: grid;
+  gap: var(--ds-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.access-points li {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-4);
+  font-weight: var(--ds-weight-medium);
+}
+.access-points__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--ds-space-10);
+  height: var(--ds-space-10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-muted);
+  color: var(--ds-accent-text);
+}
+
+// Panel de acceso
+.access-panel {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ds-space-8) var(--ds-space-12);
+  background: var(--ds-surface);
+}
+.access-header {
+  display: flex;
+  justify-content: flex-end;
+}
+.access-main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding-block: var(--ds-space-10);
+}
+.access-form {
+  width: 100%;
+  max-width: var(--ds-form-width);
+}
+.access-form h2 {
+  font-size: var(--ds-title);
+  letter-spacing: var(--ds-tracking-display);
+}
+.access-tenant {
+  padding: var(--ds-space-4) var(--ds-space-5);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-muted);
+}
+.access-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@include screen.compact {
+  .access {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .access-brand {
+    gap: var(--ds-space-8);
+    padding: var(--ds-space-6) var(--ds-space-5) var(--ds-space-8);
+  }
+  .access-brand__content {
+    gap: var(--ds-space-4);
+  }
+  .access-points,
+  .access-legal,
+  .access-logo {
+    display: none;
+  }
+  .access-panel {
+    padding: var(--ds-space-6) var(--ds-space-5);
+  }
+  .access-header {
+    justify-content: flex-start;
+  }
+  .access-main {
+    place-items: start stretch;
+    padding-block: var(--ds-space-6) var(--ds-space-8);
+  }
+  .access-footer {
+    justify-content: flex-start;
+  }
+}

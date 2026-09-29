@@ -31,3 +31,8 @@ ml/data/generated/   # reproducible desde generate_synthetic.py + la semilla fij
 
 # --- Logs ---
 *.log
+
+# Herramientas locales
+**/__pycache__/
+.venv/
+web/out-tsc/

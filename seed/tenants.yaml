@@ -79,7 +79,8 @@ roles:
 
 # -----------------------------------------------------------------------------
 # Titulares sintéticos de referencia para el Sprint 1 (perfil "buen pagador").
-# El generador sintético completo (SPIKE-4) produce ~50 de estos; estos dos
+# El generador sintético (seed/generate_synthetic.py, SPIKE-4) los lee y produce
+# 50 en seed/personas-sinteticas.json; estos dos
 # son fijos para que las pruebas manuales del Día 1 sean reproducibles.
 # -----------------------------------------------------------------------------
 titulares_demo:

@@ -1,59 +1,34 @@
-# Web
+# DoggyCredit Web
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.0.
-
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+SPA Angular 22 con login OIDC Authorization Code + PKCE contra Keycloak.
+Paleta tomada del logo, en colores sólidos: pino #10403C, bosque #1A5149,
+salvia #377766, miel #D59132, arena #F7DDA0, marfil #FFFEFD. Sin degradados.
+Diseño adaptable, estados de carga/error y aviso Datos simulados.
 
 ```bash
-ng generate component component-name
+npm ci
+npm test -- --watch=false
+npm run build
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Usar Compose desde `infra/` y abrir http://localhost:8080 para el login integrado. La SPA deriva authority
+y API del origen; un `ng serve` aislado no incluye el proxy de Keycloak.
+El código en `src/app/api` se genera desde OpenAPI con
+`bash ../scripts/generate_clients.sh` y no se modifica manualmente.
+
+[Arranque, certificados, pruebas y despliegue](../docs/runbooks/franco-sprint1.md).
+
+## Design System obligatorio
+
+Catálogo interactivo: `/design-system` (no requiere Keycloak). Ejecutar `npm start`
+y abrir `http://localhost:4200/design-system` para desarrollar el catálogo.
+El login integrado sigue requiriendo todos los servicios de Compose.
+
+Toda pantalla utiliza `src/app/design-system/index.ts` y sus tokens. El build
+comprueba automáticamente su uso. Antes de contribuir, leer el
+[contrato de diseño](../docs/design-system/README.md).
 
 ```bash
-ng generate --help
+npm run ds:check
+npm run ds:test
 ```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

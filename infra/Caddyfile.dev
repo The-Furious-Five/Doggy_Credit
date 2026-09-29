@@ -1,0 +1,42 @@
+# Perfil local en HTTP (compose.override.yaml): sin certificados.
+# `:80` acepta cualquier Host (localhost:8080, 127.0.0.1:8080, ...).
+{
+	auto_https off
+}
+
+(routes) {
+	handle /auth/* {
+		reverse_proxy keycloak:8080
+	}
+
+	handle_path /api/v1/* {
+		reverse_proxy doggycredit-api:8080 {
+			# Nunca reenviar una cabecera de tenant entrante: el tenant sale solo del token.
+			header_up -X-Tenant-*
+		}
+	}
+
+	handle /actuator/health {
+		reverse_proxy doggycredit-api:8080
+	}
+
+	handle /actuator/* {
+		respond 404
+	}
+
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Frame-Options DENY
+	}
+}
+
+:80 {
+	import routes
+}

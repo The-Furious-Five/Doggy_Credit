@@ -1,18 +1,10 @@
+# Entrada pública única: Caddy. Generar el realm antes de iniciar.
 name: doggycredit
-
-# Perfil `core` para el Día 1: Postgres + Keycloak + el simulador de buró +
-# observabilidad. `doggycredit-api` se agrega cuando el backend compile
-# (SPIKE-1/HAB-01 en adelante); Caddy y la SPA cuando exista `web/dist`.
-#
-# Solo Caddy publica un puerto público (RNF de la arquitectura, §9.4 y §10.4
-# de la guía de inducción). Todo lo demás es red interna.
-
-x-logging: &dc-logging
+x-logging: &id001
   driver: local
   options:
-    max-size: "10m"
-    max-file: "3"
-
+    max-size: 10m
+    max-file: '3'
 services:
   postgres:
     image: postgres:17-alpine
@@ -21,60 +13,112 @@ services:
       POSTGRES_USER: ${DC_DB_USER:-doggy_app}
       POSTGRES_PASSWORD: ${DC_DB_PASSWORD:?falta DC_DB_PASSWORD en .env}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+    - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test:
+      - CMD-SHELL
+      - pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 10s
-    logging: *dc-logging
-
+    logging: *id001
   keycloak:
     image: quay.io/keycloak/keycloak:26.4
-    # --health-enabled=true (endpoint /health/ready oficial) provocó una
-    # re-augmentación de Quarkus que se colgaba de forma reproducible en esta
-    # máquina; se deja fuera y el healthcheck usa una conexión TCP simple.
-    command: ["start-dev", "--http-port=8080"]
+    command:
+    - start-dev
+    - --http-port=8080
+    - --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${DC_KEYCLOAK_ADMIN_USER:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${DC_KEYCLOAK_ADMIN_PASSWORD:?falta DC_KEYCLOAK_ADMIN_PASSWORD en .env}
-    ports:
-      # el único puerto no-Caddy expuesto: consola de administración local del Día 1.
-      # Se retira cuando Caddy enrute /auth/* (según avance SPIKE-2).
-      - "${DC_KEYCLOAK_HOST_PORT:-8081}:8080"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${DC_KEYCLOAK_ADMIN_PASSWORD:?falta DC_KEYCLOAK_ADMIN_PASSWORD
+        en .env}
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT: 'false'
+      DC_SEED_ADMIN_PASSWORD: ${DC_SEED_ADMIN_PASSWORD:?falta DC_SEED_ADMIN_PASSWORD}
+      DC_SEED_ANALYST_PASSWORD: ${DC_SEED_ANALYST_PASSWORD:?falta DC_SEED_ANALYST_PASSWORD}
+      DC_SEED_ADMIN_PASSWORD_2: ${DC_SEED_ADMIN_PASSWORD_2:?falta DC_SEED_ADMIN_PASSWORD_2}
+      DC_SEED_M2M_SECRET: ${DC_SEED_M2M_SECRET:?falta DC_SEED_M2M_SECRET}
+      DC_SEED_M2M_SECRET_2: ${DC_SEED_M2M_SECRET_2:?falta DC_SEED_M2M_SECRET_2}
     volumes:
-      - ./keycloak:/opt/keycloak/data/import
+    - ./keycloak/doggycredit-realm.json:/opt/keycloak/data/import/doggycredit-realm.json:ro
+    - keycloak_data:/opt/keycloak/data
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '(exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null'"]
+      test:
+      - CMD-SHELL
+      - bash -c '(exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null'
       interval: 10s
       timeout: 10s
       retries: 30
       start_period: 30s
-    logging: *dc-logging
-
+    logging: *id001
   wiremock-bureau:
     image: wiremock/wiremock:3.9.1
-    command: ["--global-response-templating", "--verbose"]
+    command:
+    - --global-response-templating
+    - --verbose
     volumes:
-      - ../simulators/wiremock/bureau:/home/wiremock
-    ports:
-      # expuesto en el Día 1 para probar el conector desde fuera de Compose;
-      # cuando el backend esté armado, se accede solo por la red interna.
-      - "${DC_WIREMOCK_BUREAU_HOST_PORT:-8089}:8080"
+    - ../simulators/wiremock/bureau:/home/wiremock
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/__admin/health || exit 1"]
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://127.0.0.1:8080/__admin/health || exit 1
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 5s
-    logging: *dc-logging
-
+    logging: *id001
   otel-lgtm:
     image: grafana/otel-lgtm:0.11.5
+    logging: *id001
+  doggycredit-api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      DC_DB_HOST: postgres
+      DC_DB_NAME: ${DC_DB_NAME:-doggycredit}
+      DC_DB_USER: ${DC_DB_USER:-doggy_app}
+      DC_DB_PASSWORD: ${DC_DB_PASSWORD:?falta DC_DB_PASSWORD}
+      DC_KEYCLOAK_ISSUER_URI: ${DC_KEYCLOAK_ISSUER_URI:-https://localhost/auth/realms/doggycredit}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/doggycredit/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: doggycredit-api
+      DC_INTEGRATION_BUREAU_URL: http://wiremock-bureau:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
+  caddy:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
     ports:
-      - "${DC_GRAFANA_HOST_PORT:-3300}:3000"
-    logging: *dc-logging
-
+    - ${DC_HTTP_PORT:-443}:443
+    depends_on:
+    - doggycredit-api
+    volumes:
+    - caddy_data:/data
+    - caddy_config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null --header='Host: localhost' http://127.0.0.1/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
 volumes:
-  postgres_data:
+  postgres_data: null
+  keycloak_data: null
+  caddy_data: null
+  caddy_config: null
