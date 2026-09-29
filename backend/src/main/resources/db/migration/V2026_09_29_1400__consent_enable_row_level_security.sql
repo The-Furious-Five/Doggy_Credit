@@ -26,6 +26,6 @@
 ALTER TABLE consent.consents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE consent.consents FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY consents_tenant_isolation ON consent.consents
+CREATE POLICY tenant_isolation ON consent.consents
     USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
     WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
