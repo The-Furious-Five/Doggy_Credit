@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(IdentitySecurityTests.Probe.class)
-@Import({IdentitySecurityConfiguration.class, IdentitySecurityTests.Probe.class, IdentitySecurityTests.DecoderFixture.class})
+@Import({SecurityConfig.class, IdentitySecurityTests.Probe.class, IdentitySecurityTests.DecoderFixture.class})
 class IdentitySecurityTests {
     @Autowired MockMvc mvc;
     @TestConfiguration(proxyBeanMethods = false)
