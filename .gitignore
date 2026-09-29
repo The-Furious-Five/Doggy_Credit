@@ -26,8 +26,8 @@ pgdata/
 
 # --- ML ---
 ml/**/__pycache__/
-ml/**/*.onnx
 ml/.venv/
+ml/data/generated/   # reproducible desde generate_synthetic.py + la semilla fija
 
 # --- Logs ---
 *.log

@@ -22,6 +22,7 @@ Fuente: `DoggyCredit — Visión, Requerimientos y Arquitectura v1`, §17.3.
 | DEBT-013 | Los payloads crudos de las fuentes no se persisten (solo hash) | Primer reclamo o disputa que necesite reprocesar |
 | DEBT-014 | 4 roles en el MVP: `TENANT_ADMIN` concentra política, usuarios y auditoría | Primera entidad supervisada exigente |
 | DEBT-015 | `ddl-auto: update` temporal (no `validate`), porque Spring Modulith no distribuye el SQL de su tabla interna `event_publication` para Flyway | Cuando exista la primera entidad de negocio real, escribir la migración del registro de eventos a mano y volver a `validate` |
+| DEBT-016 | El artefacto `scoring-v1.onnx` y `golden_set.json` se copian a mano de `ml/model/` a `backend/src/main/resources/` y `backend/src/test/resources/` después de cada entrenamiento; el CI no los regenera ni los valida entre sí | Cuando el pipeline de `ml/` entre al CI (Sprint 2/3): un paso que reentrene, copie y verifique que el `.onnx` en `backend/` coincide con el de `ml/model/` (por hash) |
 
 **Deuda que no se acepta** (lecciones de MedicalSys): pruebas omitidas
 contadas como aprobadas, endpoints sin prueba de aislamiento de tenant,

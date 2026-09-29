@@ -1,0 +1,562 @@
+[
+  {
+    "id": 0,
+    "features": {
+      "dti": 0.37247005105018616,
+      "mora_max_12m_dias": 90.0,
+      "num_acreedores": 0.0,
+      "peor_calificacion_24m": 1.0,
+      "antiguedad_sistema_financiero_meses": 73.0,
+      "ingreso_promedio_6m_bob": 2018.5899658203125,
+      "ingreso_volatilidad_6m": 0.3186396658420563,
+      "actividad_wallet_90d": 26.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.37247005105018616,
+      90.0,
+      0.0,
+      1.0,
+      73.0,
+      2018.5899658203125,
+      0.3186396658420563,
+      26.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.2802106440067291
+  },
+  {
+    "id": 1,
+    "features": {
+      "dti": 0.3410417437553406,
+      "mora_max_12m_dias": 60.0,
+      "num_acreedores": 0.0,
+      "peor_calificacion_24m": 2.0,
+      "antiguedad_sistema_financiero_meses": 67.0,
+      "ingreso_promedio_6m_bob": 1948.3499755859375,
+      "ingreso_volatilidad_6m": 0.19270765781402588,
+      "actividad_wallet_90d": 25.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.3410417437553406,
+      60.0,
+      0.0,
+      2.0,
+      67.0,
+      1948.3499755859375,
+      0.19270765781402588,
+      25.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.18058063089847565
+  },
+  {
+    "id": 2,
+    "features": {
+      "dti": 0.24254456162452698,
+      "mora_max_12m_dias": 15.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 4.0,
+      "antiguedad_sistema_financiero_meses": 58.0,
+      "ingreso_promedio_6m_bob": 958.4000244140625,
+      "ingreso_volatilidad_6m": 0.21885503828525543,
+      "actividad_wallet_90d": 24.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.24254456162452698,
+      15.0,
+      1.0,
+      4.0,
+      58.0,
+      958.4000244140625,
+      0.21885503828525543,
+      24.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.16872648894786835
+  },
+  {
+    "id": 3,
+    "features": {
+      "dti": 0.2240406572818756,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 0.0,
+      "antiguedad_sistema_financiero_meses": 106.0,
+      "ingreso_promedio_6m_bob": 6164.7900390625,
+      "ingreso_volatilidad_6m": 0.18700990080833435,
+      "actividad_wallet_90d": 7.0,
+      "es_pyme": 1.0,
+      "ventas_pyme_promedio_bob": 8458.7001953125
+    },
+    "featuresOrdered": [
+      0.2240406572818756,
+      0.0,
+      1.0,
+      0.0,
+      106.0,
+      6164.7900390625,
+      0.18700990080833435,
+      7.0,
+      1.0,
+      8458.7001953125
+    ],
+    "expectedPd": 0.015368652530014515
+  },
+  {
+    "id": 4,
+    "features": {
+      "dti": 0.46725818514823914,
+      "mora_max_12m_dias": 15.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 3.0,
+      "antiguedad_sistema_financiero_meses": 66.0,
+      "ingreso_promedio_6m_bob": 493.95001220703125,
+      "ingreso_volatilidad_6m": 0.10549803823232651,
+      "actividad_wallet_90d": 22.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.46725818514823914,
+      15.0,
+      1.0,
+      3.0,
+      66.0,
+      493.95001220703125,
+      0.10549803823232651,
+      22.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.25024157762527466
+  },
+  {
+    "id": 5,
+    "features": {
+      "dti": 0.33347368240356445,
+      "mora_max_12m_dias": 30.0,
+      "num_acreedores": 0.0,
+      "peor_calificacion_24m": 4.0,
+      "antiguedad_sistema_financiero_meses": 11.0,
+      "ingreso_promedio_6m_bob": 884.8300170898438,
+      "ingreso_volatilidad_6m": 0.1257346123456955,
+      "actividad_wallet_90d": 16.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.33347368240356445,
+      30.0,
+      0.0,
+      4.0,
+      11.0,
+      884.8300170898438,
+      0.1257346123456955,
+      16.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.3420953154563904
+  },
+  {
+    "id": 6,
+    "features": {
+      "dti": 0.29837000370025635,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 2.0,
+      "peor_calificacion_24m": 2.0,
+      "antiguedad_sistema_financiero_meses": 26.0,
+      "ingreso_promedio_6m_bob": 2933.550048828125,
+      "ingreso_volatilidad_6m": 0.28082412481307983,
+      "actividad_wallet_90d": 10.0,
+      "es_pyme": 1.0,
+      "ventas_pyme_promedio_bob": 7741.91015625
+    },
+    "featuresOrdered": [
+      0.29837000370025635,
+      0.0,
+      2.0,
+      2.0,
+      26.0,
+      2933.550048828125,
+      0.28082412481307983,
+      10.0,
+      1.0,
+      7741.91015625
+    ],
+    "expectedPd": 0.16367821395397186
+  },
+  {
+    "id": 7,
+    "features": {
+      "dti": 0.39914971590042114,
+      "mora_max_12m_dias": 90.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 1.0,
+      "antiguedad_sistema_financiero_meses": 44.0,
+      "ingreso_promedio_6m_bob": 875.9199829101562,
+      "ingreso_volatilidad_6m": 0.7628968954086304,
+      "actividad_wallet_90d": 23.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.39914971590042114,
+      90.0,
+      1.0,
+      1.0,
+      44.0,
+      875.9199829101562,
+      0.7628968954086304,
+      23.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.7272094488143921
+  },
+  {
+    "id": 8,
+    "features": {
+      "dti": 0.3758595883846283,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 3.0,
+      "peor_calificacion_24m": 4.0,
+      "antiguedad_sistema_financiero_meses": 47.0,
+      "ingreso_promedio_6m_bob": 3344.68994140625,
+      "ingreso_volatilidad_6m": 0.2640397548675537,
+      "actividad_wallet_90d": 23.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.3758595883846283,
+      0.0,
+      3.0,
+      4.0,
+      47.0,
+      3344.68994140625,
+      0.2640397548675537,
+      23.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.2555200457572937
+  },
+  {
+    "id": 9,
+    "features": {
+      "dti": 0.2622995376586914,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 2.0,
+      "antiguedad_sistema_financiero_meses": 97.0,
+      "ingreso_promedio_6m_bob": 1057.3399658203125,
+      "ingreso_volatilidad_6m": 0.4135138988494873,
+      "actividad_wallet_90d": 23.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.2622995376586914,
+      0.0,
+      1.0,
+      2.0,
+      97.0,
+      1057.3399658203125,
+      0.4135138988494873,
+      23.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.09447012096643448
+  },
+  {
+    "id": 10,
+    "features": {
+      "dti": 0.4266909658908844,
+      "mora_max_12m_dias": 120.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 3.0,
+      "antiguedad_sistema_financiero_meses": 39.0,
+      "ingreso_promedio_6m_bob": 4381.0,
+      "ingreso_volatilidad_6m": 0.47353968024253845,
+      "actividad_wallet_90d": 28.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.4266909658908844,
+      120.0,
+      1.0,
+      3.0,
+      39.0,
+      4381.0,
+      0.47353968024253845,
+      28.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.7009962797164917
+  },
+  {
+    "id": 11,
+    "features": {
+      "dti": 0.2869136929512024,
+      "mora_max_12m_dias": 60.0,
+      "num_acreedores": 2.0,
+      "peor_calificacion_24m": 1.0,
+      "antiguedad_sistema_financiero_meses": 66.0,
+      "ingreso_promedio_6m_bob": 1883.239990234375,
+      "ingreso_volatilidad_6m": 0.39453062415122986,
+      "actividad_wallet_90d": 18.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.2869136929512024,
+      60.0,
+      2.0,
+      1.0,
+      66.0,
+      1883.239990234375,
+      0.39453062415122986,
+      18.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.27489662170410156
+  },
+  {
+    "id": 12,
+    "features": {
+      "dti": 0.5349627137184143,
+      "mora_max_12m_dias": 30.0,
+      "num_acreedores": 3.0,
+      "peor_calificacion_24m": 1.0,
+      "antiguedad_sistema_financiero_meses": 87.0,
+      "ingreso_promedio_6m_bob": 985.02001953125,
+      "ingreso_volatilidad_6m": 0.2251165807247162,
+      "actividad_wallet_90d": 16.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.5349627137184143,
+      30.0,
+      3.0,
+      1.0,
+      87.0,
+      985.02001953125,
+      0.2251165807247162,
+      16.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.36088529229164124
+  },
+  {
+    "id": 13,
+    "features": {
+      "dti": 0.713777482509613,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 2.0,
+      "peor_calificacion_24m": 1.0,
+      "antiguedad_sistema_financiero_meses": 49.0,
+      "ingreso_promedio_6m_bob": 575.3499755859375,
+      "ingreso_volatilidad_6m": 0.3053281307220459,
+      "actividad_wallet_90d": 16.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.713777482509613,
+      0.0,
+      2.0,
+      1.0,
+      49.0,
+      575.3499755859375,
+      0.3053281307220459,
+      16.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.5255464911460876
+  },
+  {
+    "id": 14,
+    "features": {
+      "dti": 0.3702325224876404,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 0.0,
+      "peor_calificacion_24m": 0.0,
+      "antiguedad_sistema_financiero_meses": 63.0,
+      "ingreso_promedio_6m_bob": 11758.3701171875,
+      "ingreso_volatilidad_6m": 0.23622280359268188,
+      "actividad_wallet_90d": 7.0,
+      "es_pyme": 1.0,
+      "ventas_pyme_promedio_bob": 19714.779296875
+    },
+    "featuresOrdered": [
+      0.3702325224876404,
+      0.0,
+      0.0,
+      0.0,
+      63.0,
+      11758.3701171875,
+      0.23622280359268188,
+      7.0,
+      1.0,
+      19714.779296875
+    ],
+    "expectedPd": 0.017056049779057503
+  },
+  {
+    "id": 15,
+    "features": {
+      "dti": 0.3857823312282562,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 3.0,
+      "antiguedad_sistema_financiero_meses": 29.0,
+      "ingreso_promedio_6m_bob": 880.280029296875,
+      "ingreso_volatilidad_6m": 0.3049871623516083,
+      "actividad_wallet_90d": 22.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.3857823312282562,
+      0.0,
+      1.0,
+      3.0,
+      29.0,
+      880.280029296875,
+      0.3049871623516083,
+      22.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.26870012283325195
+  },
+  {
+    "id": 16,
+    "features": {
+      "dti": 0.42220810055732727,
+      "mora_max_12m_dias": 15.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 2.0,
+      "antiguedad_sistema_financiero_meses": 50.0,
+      "ingreso_promedio_6m_bob": 834.760009765625,
+      "ingreso_volatilidad_6m": 0.34786370396614075,
+      "actividad_wallet_90d": 20.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.42220810055732727,
+      15.0,
+      1.0,
+      2.0,
+      50.0,
+      834.760009765625,
+      0.34786370396614075,
+      20.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.2909054458141327
+  },
+  {
+    "id": 17,
+    "features": {
+      "dti": 0.4340461790561676,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 2.0,
+      "antiguedad_sistema_financiero_meses": 23.0,
+      "ingreso_promedio_6m_bob": 2405.550048828125,
+      "ingreso_volatilidad_6m": 0.12476375699043274,
+      "actividad_wallet_90d": 21.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.4340461790561676,
+      0.0,
+      1.0,
+      2.0,
+      23.0,
+      2405.550048828125,
+      0.12476375699043274,
+      21.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.15195932984352112
+  },
+  {
+    "id": 18,
+    "features": {
+      "dti": 0.24301396310329437,
+      "mora_max_12m_dias": 0.0,
+      "num_acreedores": 3.0,
+      "peor_calificacion_24m": 1.0,
+      "antiguedad_sistema_financiero_meses": 74.0,
+      "ingreso_promedio_6m_bob": 1552.5,
+      "ingreso_volatilidad_6m": 0.280656635761261,
+      "actividad_wallet_90d": 21.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.24301396310329437,
+      0.0,
+      3.0,
+      1.0,
+      74.0,
+      1552.5,
+      0.280656635761261,
+      21.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.08023515343666077
+  },
+  {
+    "id": 19,
+    "features": {
+      "dti": 0.11036552488803864,
+      "mora_max_12m_dias": 15.0,
+      "num_acreedores": 1.0,
+      "peor_calificacion_24m": 3.0,
+      "antiguedad_sistema_financiero_meses": 26.0,
+      "ingreso_promedio_6m_bob": 2101.6201171875,
+      "ingreso_volatilidad_6m": 0.11259128153324127,
+      "actividad_wallet_90d": 21.0,
+      "es_pyme": 0.0,
+      "ventas_pyme_promedio_bob": 0.0
+    },
+    "featuresOrdered": [
+      0.11036552488803864,
+      15.0,
+      1.0,
+      3.0,
+      26.0,
+      2101.6201171875,
+      0.11259128153324127,
+      21.0,
+      0.0,
+      0.0
+    ],
+    "expectedPd": 0.06952941417694092
+  }
+]

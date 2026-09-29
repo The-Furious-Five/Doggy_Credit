@@ -10,10 +10,10 @@ el Product Backlog ni la guía de inducción — esos viven un nivel arriba, en
 - `../DoggyCredit/DoggyCredit_Backlogs.xlsx` — Product Backlog y Sprint 1 Backlog (fuente de verdad de horas y estado).
 - `../DoggyCredit/mesa_de_diseno/` — el documento de arquitectura completo y las 9 posiciones de la mesa de diseño.
 
-## Estado (25 de septiembre de 2026)
+## Estado (28 de septiembre de 2026)
 
-Inicializado por Nicole (Technical Lead / Scrum Master) como trabajo previo
-al Día 1 del Sprint 1 (`HAB-01`, `HAB-07`):
+Trabajo de Nicole (Dev4, Technical Lead / Scrum Master) previo y del Día 1
+del Sprint 1 (`HAB-01`, `HAB-07`, `SPIKE-3`):
 
 - ✅ Estructura del monorepo, `.gitignore`, `.env.example`.
 - ✅ `seed/tenants.yaml` — única fuente de tenants, usuarios e IDs de demo.
@@ -22,8 +22,9 @@ al Día 1 del Sprint 1 (`HAB-01`, `HAB-07`):
 - ✅ `contracts/canonical/perfil-financiero.v1.schema.json` — Perfil Financiero 360 v1.
 - ✅ `infra/compose.yaml` — Postgres 17, Keycloak, WireMock (buró), Grafana LGTM.
 - ✅ `backend/` — esqueleto Spring Boot 4.1.1 + Spring Modulith 2.1.1, con los 11 módulos como paquetes y `ApplicationModulesTest` verificando sus fronteras desde ya.
-- ⬜ `web/` — SPA Angular 22 (esqueleto siguiente).
-- ⬜ Todo lo demás: **tareas del equipo**, ver el capítulo 9 de la guía de inducción (`SPIKE-1` a `SPIKE-6`, `HAB-02` a `HAB-05`, y las historias `RF-*`).
+- ✅ `web/` — esqueleto Angular 22.2, compila (`angular-auth-oidc-client` ya instalado para `SPIKE-2`/`HAB-05`).
+- ✅ **`SPIKE-3`** — `ml/`: dataset sintético → regresión logística → ONNX, con todos los gates en verde (AUC, KS, equidad, monotonía, reproducibilidad). Servido dentro de la JVM por `com.doggycredit.scoring.internal.OnnxScoringAdapter`; `OnnxParityTest` confirma paridad Python↔Java (20/20, tolerancia 1e-6). Detalle en `ml/README.md`.
+- ⬜ Todo lo demás: **tareas del equipo**, ver el capítulo 9 de la guía de inducción (`SPIKE-1`, `SPIKE-2`, `SPIKE-4` a `SPIKE-6`, `HAB-02` a `HAB-05`, y las historias `RF-*`).
 
 ## Arranque rápido
 
@@ -42,6 +43,7 @@ doggycredit-platform/
 ├── contracts/       # OpenAPI, catálogo de errores, eventos, modelo canónico — fuente de verdad
 ├── seed/            # tenants.yaml — única fuente de IDs de demo
 ├── backend/         # doggycredit-api: Spring Boot + Modulith, un proceso, 11 módulos
+├── ml/              # SPIKE-3: dataset sintético, entrenamiento, ONNX (Nicole)
 ├── web/             # SPA Angular 22 (Franco)
 ├── simulators/      # WireMock: buró (Sprint 1), banco y billetera (Sprint 2)
 ├── infra/           # docker-compose, Keycloak, Caddy
