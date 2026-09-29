@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,7 +25,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-/** Integración de identidad SPIKE-2. El aislamiento de datos sigue siendo HAB-03. */
+/**
+ * Integración de identidad SPIKE-2. El aislamiento de datos sigue siendo HAB-03.
+ * <p>
+ * RF-API-02.1: también registra el {@link CorrelationFilter} como
+ * {@link FilterRegistrationBean} con la prioridad más alta, para que el id de
+ * correlación exista antes de que corra la cadena de Spring Security. Vive
+ * aquí (y no en una configuración de seguridad separada) porque Spring
+ * Security solo admite un {@link SecurityFilterChain} que responda a
+ * "cualquier ruta"; tener dos —uno por configuración— rompe el arranque de
+ * la aplicación con {@code UnreachableFilterChainException}.
+ */
 @Configuration(proxyBeanMethods = false)
 class IdentitySecurityConfiguration {
     @Bean
@@ -43,6 +56,16 @@ class IdentitySecurityConfiguration {
                 .requestMatchers("/actuator/**").denyAll().anyRequest().authenticated())
             .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter)))
             .addFilterBefore(new TenantClaimFilter(), AuthorizationFilter.class).build();
+    }
+
+    @Bean
+    FilterRegistrationBean<CorrelationFilter> correlationFilterRegistration(
+            @Value("${doggycredit.correlation.header:X-Correlation-Id}") String headerName) {
+        FilterRegistrationBean<CorrelationFilter> reg = new FilterRegistrationBean<>(
+                new CorrelationFilter(headerName));
+        reg.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        reg.addUrlPatterns("/*");
+        return reg;
     }
 
     private static class TenantClaimFilter extends OncePerRequestFilter {

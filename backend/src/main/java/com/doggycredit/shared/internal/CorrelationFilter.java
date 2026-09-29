@@ -17,8 +17,9 @@ import jakarta.servlet.http.HttpServletResponse;
  * en el MDC para que aparezca en cada línea de log y lo devuelve al
  * cliente en el header de respuesta.
  * <p>
- * No es {@code @Component}: se registra como bean en {@link SecurityConfig}
- * para evitar doble registro y problemas de proxy con {@code GenericFilterBean}.
+ * No es {@code @Component}: se registra como bean en
+ * {@link IdentitySecurityConfiguration} para evitar doble registro y
+ * problemas de proxy con {@code GenericFilterBean}.
  */
 public final class CorrelationFilter extends OncePerRequestFilter {
 

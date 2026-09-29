@@ -11,6 +11,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
@@ -28,15 +29,20 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-class MetaTest401 {
+class MetaTest401Test {
 
-	/** Rutas explícitamente públicas en SecurityConfig. */
+	/** Rutas explícitamente públicas en IdentitySecurityConfiguration. */
 	private static final Set<String> RUTAS_PUBLICAS = Set.of("/actuator/health");
 
 	@Autowired
 	MockMvc mvc;
 
+	/**
+	 * Actuator registra su propio {@code controllerEndpointHandlerMapping};
+	 * sin el calificador, Spring encuentra dos beans y falla al arrancar.
+	 */
 	@Autowired
+	@Qualifier("requestMappingHandlerMapping")
 	RequestMappingHandlerMapping handlerMapping;
 
 	@TestFactory
