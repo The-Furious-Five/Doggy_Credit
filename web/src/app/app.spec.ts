@@ -24,7 +24,8 @@ describe('Acceso institucional', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const page = fixture.nativeElement as HTMLElement;
-    expect(page.textContent).toContain('Datos simulados');
+    // La pantalla de acceso no muestra datos del simulador: sin avisos de datos de prueba.
+    expect(page.textContent).not.toMatch(/simulad|ficti|demostraci|demo\b/i);
     expect(page.querySelector('input')).toBeNull();
     page.querySelector('button')!.click();
     expect(auth.authorize).toHaveBeenCalledOnce();

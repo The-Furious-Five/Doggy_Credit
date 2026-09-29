@@ -15,8 +15,10 @@ def mapper(name, kind, config):
                        "userinfo.token.claim": "true", "jsonType.label": "String", **config}}
 
 def person_name(full_name):
-    """Keycloak rechaza ()<>&... en nombres y forzaría VERIFY_PROFILE en cada login."""
-    first, _, last = re.sub(r"[()<>&\"$%!#?§;*~/\\|^=\[\]{}]", "", full_name).strip().partition(" ")
+    """Keycloak rechaza ()<>&... en nombres y forzaría VERIFY_PROFILE en cada login.
+    Las anotaciones de la semilla, como "(demo)", no forman parte del nombre visible."""
+    name = re.sub(r"\([^)]*\)", "", full_name)
+    first, _, last = re.sub(r"[()<>&\"$%!#?§;*~/\\|^=\[\]{}]", "", name).strip().partition(" ")
     return first, " ".join(last.split()) or first
 
 def generate(seed, origin):
@@ -83,7 +85,10 @@ def generate(seed, origin):
             mapper("realm roles", "oidc-usermodel-realm-role-mapper",
                    {"claim.name": "realm_access.roles", "multivalued": "true"})]},
     ]
-    return {"realm": "doggycredit", "enabled": True, "sslRequired": "external",
+    return {"realm": "doggycredit", "displayName": "DoggyCredit", "enabled": True,
+            # La pantalla de acceso de Keycloak también es UI: en español (guía §6.3).
+            "internationalizationEnabled": True, "supportedLocales": ["es"], "defaultLocale": "es",
+            "sslRequired": "external",
             "registrationAllowed": False, "resetPasswordAllowed": False,
             "editUsernameAllowed": False, "bruteForceProtected": True,
             "roles": {"realm": [{"name": r} for r in seed["roles"]]},
@@ -99,7 +104,7 @@ if __name__ == "__main__":
     if local_env.is_file():
         env_values = dict(line.split("=", 1) for line in local_env.read_text().splitlines()
                           if "=" in line and not line.lstrip().startswith("#"))
-    issuer = env_values.get("DC_KEYCLOAK_ISSUER_URI", "http://localhost:8080/auth/realms/doggycredit")
+    issuer = env_values.get("DC_KEYCLOAK_ISSUER_URI", "https://localhost/auth/realms/doggycredit")
     default_origin = issuer.removesuffix("/auth/realms/doggycredit")
     parser.add_argument("--origin", default=default_origin)
     parser.add_argument("--output", type=Path, default=ROOT / "infra/keycloak/doggycredit-realm.json")

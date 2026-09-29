@@ -1,9 +1,9 @@
-<a dsLink class="ds-skip" href="#catalog-main">Saltar al contenido</a>
+<a dsLink class="ds-skip" routerLink="/design-system" fragment="catalog-main">Saltar al contenido</a>
 <header class="catalog-header">
   <div class="ds-container ds-row ds-between">
     <a dsLink href="/" aria-label="Volver a DoggyCredit"><ds-brand /></a>
     <div class="ds-row">
-      <ds-badge>Design System 2.0</ds-badge>
+      <ds-badge>Design System 3.0</ds-badge>
       <a dsLink href="/">Ir al acceso <ds-icon name="arrow" /></a>
     </div>
   </div>
@@ -11,20 +11,21 @@
 <div class="ds-container catalog-layout">
   <aside class="catalog-sidebar">
     <nav aria-label="Secciones del Design System" class="catalog-nav">
-      <a dsLink href="#overview">Visión general</a>
-      <a dsLink href="#color">Color</a>
-      <a dsLink href="#type">Tipografía y forma</a>
-      <a dsLink href="#actions">Acciones</a>
-      <a dsLink href="#forms">Formularios</a>
-      <a dsLink href="#feedback">Estados</a>
-      <a dsLink href="#data">Información</a>
-      <a dsLink href="#overlays">Diálogos</a>
-      <a dsLink href="#usage">Desarrollar</a>
+      <a dsLink routerLink="/design-system" fragment="overview">Visión general</a>
+      <a dsLink routerLink="/design-system" fragment="color">Color</a>
+      <a dsLink routerLink="/design-system" fragment="type">Tipografía y forma</a>
+      <a dsLink routerLink="/design-system" fragment="actions">Acciones</a>
+      <a dsLink routerLink="/design-system" fragment="forms">Formularios</a>
+      <a dsLink routerLink="/design-system" fragment="feedback">Estados</a>
+      <a dsLink routerLink="/design-system" fragment="data">Información</a>
+      <a dsLink routerLink="/design-system" fragment="navigation">Navegación</a>
+      <a dsLink routerLink="/design-system" fragment="overlays">Diálogos</a>
+      <a dsLink routerLink="/design-system" fragment="usage">Desarrollar</a>
     </nav>
   </aside>
   <main id="catalog-main" class="catalog-main" tabindex="-1">
     <section id="overview" class="ds-stack" aria-labelledby="overview-title">
-      <p class="ds-eyebrow">DoggyCredit Design System 2.0</p>
+      <p class="ds-eyebrow">DoggyCredit Design System 3.0</p>
       <h1 id="overview-title" class="ds-display">Menos ruido.<br />Más claridad.</h1>
       <p class="ds-lead ds-reading">
         Un lenguaje visual sólido y sereno, construido con los colores exactos del logo. Planos,
@@ -307,7 +308,7 @@
             >
               <ds-icon name="search" />
             </button>
-            <a dsLink href="#usage">Cómo usarlo <ds-icon name="arrow" /></a>
+            <a dsLink routerLink="/design-system" fragment="usage">Cómo usarlo <ds-icon name="arrow" /></a>
           </div>
           <p class="ds-caption">
             Objetivos de 44 px, foco visible y protección frente a acciones duplicadas durante la
@@ -328,25 +329,63 @@
           class="ds-stack"
           (ngSubmit)="save()"
           novalidate
-          aria-label="Formulario de demostración"
+          aria-label="Formulario de ejemplo"
         >
           <ds-alert tone="info" heading="Ejemplo interactivo"
-            >Usa información ficticia. Este formulario no envía datos a la API.</ds-alert
+            >Este formulario no envía datos a la API.</ds-alert
           >
           <div class="ds-grid">
             <ds-field
-              label="Nombre del titular"
-              hint="Por ejemplo: Alex Demo"
-              [error]="submitted() && !name.trim() ? 'Escribe un nombre para continuar.' : ''"
+              label="Titular"
+              hint="Busca por nombre o razón social."
+              [error]="submitted() && !holder ? 'Elige un titular para continuar.' : ''"
               required
-              ><input #nameControl dsInput name="name" [(ngModel)]="name" autocomplete="off"
-            /></ds-field>
-            <ds-field label="Finalidad"
-              ><select dsSelect name="purpose" [(ngModel)]="purpose">
-                <option>Evaluación inicial</option>
-                <option>Revisión de crédito</option>
-              </select></ds-field
             >
+              <ds-combobox
+                #holderControl
+                name="holder"
+                [options]="holders"
+                [(ngModel)]="holder"
+              />
+            </ds-field>
+            <ds-field label="Finalidad">
+              <ds-select name="purpose" [options]="purposes" [(ngModel)]="purpose" />
+            </ds-field>
+          </div>
+          <div class="ds-grid">
+            <ds-field label="Fuentes" hint="Puedes elegir varias.">
+              <ds-select
+                name="sources"
+                multiple
+                placeholder="Elige las fuentes"
+                [options]="sources"
+                [(ngModel)]="selectedSources"
+              />
+            </ds-field>
+            <ds-field label="Fecha de solicitud">
+              <ds-date-picker name="requestDate" [max]="today" [(ngModel)]="requestDate" />
+            </ds-field>
+          </div>
+          <div class="ds-grid">
+            <ds-field label="Monto solicitado">
+              <ds-number-field
+                name="amount"
+                prefix="Bs"
+                [decimals]="2"
+                [step]="500"
+                [min]="0"
+                [(ngModel)]="amount"
+              />
+            </ds-field>
+            <ds-field label="Plazo" hint="Entre 1 y 60 meses.">
+              <ds-number-field
+                name="term"
+                suffix="meses"
+                [min]="1"
+                [max]="60"
+                [(ngModel)]="term"
+              />
+            </ds-field>
           </div>
           <ds-field label="Observaciones" hint="Añade únicamente el contexto necesario.">
             <textarea
@@ -356,6 +395,9 @@
               placeholder="Escribe una nota breve…"
             ></textarea>
           </ds-field>
+          <ds-switch name="notify" [(ngModel)]="notify"
+            >Avisar al titular cuando termine la evaluación</ds-switch
+          >
           <div>
             <label class="ds-choice"
               ><input
@@ -366,11 +408,11 @@
                 [(ngModel)]="consent"
                 [attr.aria-invalid]="submitted() && !consent ? 'true' : null"
                 [attr.aria-describedby]="submitted() && !consent ? 'consent-error' : null"
-              />Confirmo que estos datos son ficticios.</label
+              />Confirmo que el titular autorizó esta consulta.</label
             >
             @if (submitted() && !consent) {
               <p id="consent-error" class="form-error" role="alert">
-                Confirma el uso de datos ficticios.
+                Confirma la autorización del titular para continuar.
               </p>
             }
           </div>
@@ -383,6 +425,31 @@
           </div>
         </form>
       </ds-card>
+      <div class="ds-grid">
+        <ds-card>
+          <div class="ds-stack">
+            <h3>Calendario</h3>
+            <ds-calendar [(value)]="calendarDate" />
+            <p class="ds-caption">
+              Flechas para moverse por días, Re Pág y Av Pág para cambiar de mes (con Mayús, de
+              año).
+            </p>
+          </div>
+        </ds-card>
+        <ds-card>
+          <div class="ds-stack">
+            <h3>Sin controles del navegador</h3>
+            <p class="ds-muted">
+              Listas, búsqueda, fechas y números se dibujan con el sistema: se ven igual en todos
+              los navegadores, respetan el tema y funcionan con teclado y lector de pantalla.
+            </p>
+            <p class="ds-caption">
+              El checker rechaza <code>select</code>, <code>datalist</code> e
+              <code>input</code> de tipo date o number en las pantallas.
+            </p>
+          </div>
+        </ds-card>
+      </div>
     </section>
 
     <section id="feedback" class="ds-stack" aria-labelledby="feedback-title">
@@ -419,6 +486,8 @@
             <div class="ds-stack-sm">
               <ds-skeleton /><ds-skeleton /><ds-skeleton class="skeleton-short" />
             </div>
+            <ds-progress label="Consultando fuentes" [value]="2" [max]="3" />
+            <ds-progress label="Preparando el informe" />
             <p class="ds-caption">La animación respeta la preferencia de movimiento reducido.</p>
           </div>
         </ds-card>
@@ -450,7 +519,7 @@
       </div>
       <div class="ds-grid">
         <ds-card padding="compact">
-          <ds-stat label="Evaluaciones" value="24" detail="Muestra ficticia" />
+          <ds-stat label="Evaluaciones" value="24" detail="Últimos 30 días" />
         </ds-card>
         <ds-card padding="compact">
           <ds-stat label="En revisión manual" value="3" detail="Requieren una persona" />
@@ -459,7 +528,7 @@
           <ds-stat
             label="Fuentes consultadas"
             value="2"
-            detail="Buró simulado y registro interno"
+            detail="Buró y registro interno"
           />
         </ds-card>
       </div>
@@ -467,11 +536,11 @@
         class="ds-table-scroll"
         tabindex="0"
         role="region"
-        aria-label="Tabla de evaluaciones de ejemplo"
+        aria-label="Tabla de evaluaciones recientes"
       >
         <table dsTable>
           <caption>
-            Evaluaciones ficticias
+            Evaluaciones recientes
           </caption>
           <thead>
             <tr>
@@ -483,31 +552,75 @@
           </thead>
           <tbody>
             <tr>
-              <th scope="row">Alex Demo</th>
+              <th scope="row">Justina Choque</th>
               <td><ds-badge tone="success">Completado</ds-badge></td>
-              <td>Simulada</td>
+              <td>Buró</td>
               <td>28/09/2026</td>
             </tr>
             <tr>
-              <th scope="row">Taller Ejemplo</th>
+              <th scope="row">Talleres Mamani SRL</th>
               <td><ds-badge tone="warning">Revisión manual</ds-badge></td>
-              <td>Simulada</td>
+              <td>Buró</td>
               <td>27/09/2026</td>
             </tr>
             <tr>
-              <th scope="row">Comercial Muestra</th>
+              <th scope="row">Justina Apaza Colque</th>
               <td><ds-badge tone="info">En proceso</ds-badge></td>
-              <td>Simulada</td>
+              <td>Buró</td>
               <td>27/09/2026</td>
             </tr>
           </tbody>
         </table>
       </div>
+      <ds-pagination label="Páginas de evaluaciones" [total]="42" [pageSize]="10" [(page)]="page" />
+    </section>
+
+    <section id="navigation" class="ds-stack" aria-labelledby="navigation-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">07 · Navegación</p>
+        <h2 id="navigation-title">Siempre sabes dónde estás.</h2>
+        <p class="ds-muted ds-reading">
+          Pasos, pestañas y menús de acciones con teclado completo. Para ir a otra página se usa
+          un enlace, no un menú.
+        </p>
+      </div>
+      <ds-card>
+        <div class="ds-stack">
+          <ds-steps label="Progreso de la solicitud" [steps]="steps" [current]="2" />
+          <hr class="ds-divider" />
+          <div class="ds-row ds-between">
+            <h3>Evaluación de Justina Choque</h3>
+            <div class="ds-row">
+              <ds-menu label="Acciones" [items]="menuItems" (itemSelected)="onMenu($event)" />
+              <ds-menu
+                label="Más opciones"
+                icon="more"
+                variant="quiet"
+                [items]="moreItems"
+                (itemSelected)="onMenu($event)"
+              />
+            </div>
+          </div>
+          <ds-tabs label="Detalle de la evaluación" [(selected)]="tab">
+            <ds-tab value="summary" label="Resumen">
+              <p class="ds-muted">
+                Estado, fuentes consultadas y fecha de la evaluación, siempre escritos.
+              </p>
+            </ds-tab>
+            <ds-tab value="sources" label="Fuentes">
+              <p class="ds-muted">Buró de crédito y registro interno de la institución.</p>
+            </ds-tab>
+            <ds-tab value="history" label="Historial">
+              <p class="ds-muted">Cambios de estado con su fecha y responsable.</p>
+            </ds-tab>
+          </ds-tabs>
+        </div>
+      </ds-card>
     </section>
 
     <section id="overlays" class="ds-stack" aria-labelledby="overlays-title">
       <div class="ds-stack-sm section-heading">
-        <p class="ds-eyebrow">07 · Diálogos</p>
+        <p class="ds-eyebrow">08 · Diálogos</p>
         <h2 id="overlays-title">Una pausa, solo cuando hace falta.</h2>
       </div>
       <ds-card>
@@ -534,7 +647,7 @@
 
     <section id="usage" class="ds-stack" aria-labelledby="usage-title">
       <div class="ds-stack-sm section-heading">
-        <p class="ds-eyebrow">08 · Desarrollar</p>
+        <p class="ds-eyebrow">09 · Desarrollar</p>
         <h2 id="usage-title">Una sola forma de construir juntos.</h2>
         <p class="ds-muted ds-reading">
           Importa desde <code>design-system</code>, compón con sus componentes y utiliza tokens para
@@ -558,14 +671,14 @@
     </section>
     <footer class="catalog-footer">
       <ds-logo />
-      <p class="ds-caption">DoggyCredit Design System 2.0 · Sólido en cada detalle.</p>
+      <p class="ds-caption">DoggyCredit Design System 3.0 · Sólido en cada detalle.</p>
     </footer>
   </main>
 </div>
 <ds-dialog #confirmation heading="¿Restablecer el ejemplo?">
   <div class="ds-stack">
     <p class="ds-muted">
-      Se vaciarán el nombre y la confirmación del formulario de demostración. No afecta a datos del
+      Se vaciarán el titular y la confirmación del formulario de ejemplo. No afecta a datos del
       sistema.
     </p>
     <div class="ds-actions">

@@ -1,6 +1,12 @@
 {
   "realm": "doggycredit",
+  "displayName": "DoggyCredit",
   "enabled": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "es"
+  ],
+  "defaultLocale": "es",
   "sslRequired": "external",
   "registrationAllowed": false,
   "resetPasswordAllowed": false,
@@ -163,14 +169,14 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": [
-        "http://localhost:8080/callback"
+        "https://localhost/callback"
       ],
       "webOrigins": [
-        "http://localhost:8080"
+        "https://localhost"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:8080/"
+        "post.logout.redirect.uris": "https://localhost/"
       },
       "defaultClientScopes": [
         "basic",
@@ -300,7 +306,7 @@
       "email": "admin.progreso@doggycredit.invalid",
       "emailVerified": true,
       "firstName": "Rosa",
-      "lastName": "Mamani demo",
+      "lastName": "Mamani",
       "attributes": {
         "tenant_id": [
           "9c7e7c1a-0000-4000-8000-000000000001"
@@ -323,7 +329,7 @@
       "email": "analista.progreso@doggycredit.invalid",
       "emailVerified": true,
       "firstName": "Marcelo",
-      "lastName": "Quispe demo",
+      "lastName": "Quispe",
       "attributes": {
         "tenant_id": [
           "9c7e7c1a-0000-4000-8000-000000000001"
@@ -359,7 +365,7 @@
       "email": "admin.vecina@doggycredit.invalid",
       "emailVerified": true,
       "firstName": "Paola",
-      "lastName": "Fernández demo",
+      "lastName": "Fernández",
       "attributes": {
         "tenant_id": [
           "9c7e7c1a-0000-4000-8000-000000000002"

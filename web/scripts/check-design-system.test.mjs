@@ -6,6 +6,19 @@ test('rechaza controles propios incluso dentro de bloques Angular', () => {
   assert.ok(checkTemplate('<input />').length);
   assert.equal(checkTemplate('<button dsButton>Continuar</button>').length, 0);
 });
+test('rechaza controles con interfaz del navegador y orienta al componente propio', () => {
+  assert.match(checkTemplate('<select><option>A</option></select>').join(), /ds-select/);
+  assert.match(checkTemplate('<input dsInput type="date" />').join(), /ds-date-picker/);
+  assert.match(checkTemplate('<input dsInput type="number" />').join(), /ds-number-field/);
+  assert.match(checkTemplate('<input dsInput list="x" />').join(), /ds-combobox/);
+  assert.match(checkTemplate('<datalist id="x"></datalist>').join(), /ds-combobox/);
+  assert.ok(checkTemplate('<input dsInput type="range" />').length);
+  assert.ok(checkTemplate('<div role="listbox"></div>').length);
+  assert.ok(checkTemplate('<ul role="menu"></ul>').length);
+  assert.equal(checkTemplate('<ds-select [options]="options" />').length, 0);
+  assert.equal(checkTemplate('<ds-date-picker [(ngModel)]="date" />').length, 0);
+  assert.equal(checkTemplate('<input dsInput type="email" />').length, 0);
+});
 test('rechaza estilos inline y bindings', () => {
   assert.ok(checkTemplate('<p [style.color]="color">Texto</p>').length);
   assert.ok(checkTemplate('<div [ngStyle]="custom"></div>').length);

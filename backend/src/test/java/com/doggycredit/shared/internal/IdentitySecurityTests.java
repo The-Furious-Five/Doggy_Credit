@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,7 +45,7 @@ class IdentitySecurityTests {
     static class Probe {
         @GetMapping("/identity-test")
         List<String> identity(Authentication auth) {
-            return auth.getAuthorities().stream().map(Object::toString).toList();
+            return auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
         }
     }
 
@@ -55,7 +57,8 @@ class IdentitySecurityTests {
     @Test
     void mapsKeycloakRoles() throws Exception {
         mvc.perform(get("/identity-test").header("Authorization", "Bearer valid"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[0]").value("ROLE_ANALYST"));
+                // Spring Security 7 agrega también FACTOR_BEARER; el orden no es parte del contrato.
+                .andExpect(status().isOk()).andExpect(jsonPath("$", hasItem("ROLE_ANALYST")));
     }
 
     @Test

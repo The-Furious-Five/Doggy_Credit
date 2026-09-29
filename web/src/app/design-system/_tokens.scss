@@ -31,7 +31,6 @@
   --ds-surface-raised: #fffefd;
   --ds-wordmark: #10403c;
   --ds-wordmark-accent: #d59132;
-  --ds-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6461' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --ds-shadow-sm: 0 1px 2px rgba(16, 32, 30, 0.05);
   --ds-shadow: 0 1px 2px rgba(16, 32, 30, 0.04), 0 6px 20px rgba(16, 32, 30, 0.05);
   --ds-shadow-raised: 0 2px 8px rgba(16, 32, 30, 0.06), 0 24px 56px rgba(16, 32, 30, 0.16);
@@ -66,7 +65,6 @@
   --ds-surface-raised: #353b39;
   --ds-wordmark: #f4f3ef;
   --ds-wordmark-accent: #e0a64e;
-  --ds-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a2a9a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --ds-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.2);
   --ds-shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.3), 0 24px 56px rgba(0, 0, 0, 0.45);
@@ -103,7 +101,6 @@
   --ds-surface-raised: #2b5e56;
   --ds-wordmark: #fffefd;
   --ds-wordmark-accent: #e8b75b;
-  --ds-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bcd0ca' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.16);
   --ds-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 6px 20px rgba(0, 0, 0, 0.14);
 }
@@ -183,6 +180,11 @@
   --ds-sidebar-width: 13rem;
   --ds-logo-size: 2.25rem;
   --ds-logo-size-lg: 4.5rem;
+  --ds-popover-min-width: 12rem;
+  --ds-switch-width: 2.75rem;
+  --ds-switch-height: 1.625rem;
+  --ds-progress-height: 0.5rem;
+  --ds-indicator: 0.1875rem;
   --ds-focus-width: 2px;
   --ds-focus-offset: 2px;
   --ds-opacity-disabled: 0.42;
@@ -193,6 +195,7 @@
   --ds-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ds-press-scale: 0.98;
   --ds-z-sticky: 10;
+  --ds-z-popover: 50;
   --ds-z-toast: 100;
 }
 

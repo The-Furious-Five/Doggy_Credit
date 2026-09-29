@@ -59,10 +59,6 @@
   padding: var(--ds-space-8) var(--ds-space-12);
   background: var(--ds-surface);
 }
-.access-header {
-  display: flex;
-  justify-content: flex-end;
-}
 .access-main {
   flex: 1;
   display: grid;
@@ -99,15 +95,11 @@
     gap: var(--ds-space-4);
   }
   .access-points,
-  .access-legal,
   .access-logo {
     display: none;
   }
   .access-panel {
     padding: var(--ds-space-6) var(--ds-space-5);
-  }
-  .access-header {
-    justify-content: flex-start;
   }
   .access-main {
     place-items: start stretch;

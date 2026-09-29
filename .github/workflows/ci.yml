@@ -111,14 +111,15 @@ jobs:
       - name: Levantar Compose con credenciales sintéticas de ejemplo
         run: |
           python scripts/generate_realm.py
-          docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.override.yaml up -d --build --wait --wait-timeout 180
-          curl --retry 30 --retry-all-errors --retry-delay 2 --fail --silent http://localhost:8080/actuator/health
+          docker compose --env-file .env.example -f infra/compose.yaml up -d --build --wait --wait-timeout 300
+          docker compose --env-file .env.example -f infra/compose.yaml cp caddy:/data/caddy/pki/authorities/local/root.crt "$RUNNER_TEMP/doggycredit-root.crt"
+          curl --retry 30 --retry-all-errors --retry-delay 2 --fail --silent --cacert "$RUNNER_TEMP/doggycredit-root.crt" https://localhost/actuator/health
       - name: PKCE humano y client_credentials contra API real
         run: |
           set -a
           source .env.example
           set +a
-          python e2e/identity_smoke.py
+          python e2e/identity_smoke.py --ca "$RUNNER_TEMP/doggycredit-root.crt"
       - name: Detener contenedores de CI
         if: always()
-        run: docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.override.yaml down
+        run: docker compose --env-file .env.example -f infra/compose.yaml down

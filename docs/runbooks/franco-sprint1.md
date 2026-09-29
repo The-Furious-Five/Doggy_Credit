@@ -10,23 +10,54 @@ referenciados por el PDF no se encuentran en este checkout.
 
 Requiere Docker Compose, Java 21, Node 22.22.3 o superior compatible con
 Angular 22, y Python 3.12+. Usar el `.env` entregado por Nicole. No generar
-nuevos secretos. El issuer local es `http://localhost:8080/auth/realms/doggycredit`.
+nuevos secretos. El issuer local es `https://localhost/auth/realms/doggycredit`
+(guía §9.5, HAB-05) y Caddy publica el puerto 443 (`DC_HTTP_PORT`).
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r scripts/requirements.txt
 .venv/bin/python scripts/generate_realm.py
-bash scripts/generate_clients.sh
+npm --prefix web run generate:api
 cd backend
 ./mvnw verify
 cd ..
-docker compose --env-file .env -f infra/compose.yaml -f infra/compose.override.yaml up -d --build
+docker compose --env-file .env -f infra/compose.yaml up -d --build --wait
 ```
 
-Abrir http://localhost:8080. La configuración local sirve HTTP explícitamente y no requiere certificado. El `compose.override.yaml` también se carga automáticamente al ejecutar Compose desde `infra/`.
+Abrir https://localhost.
+
+### Certificado local
+
+Caddy firma `localhost` con su CA interna, que persiste en el volumen
+`caddy_data`. Se confía una sola vez por máquina (no es un secreto: es la CA
+pública de ese volumen local):
+
+```bash
+docker compose --env-file .env -f infra/compose.yaml cp \
+  caddy:/data/caddy/pki/authorities/local/root.crt /tmp/doggycredit-root.crt
+# macOS
+sudo security add-trusted-cert -d -r trustRoot \
+  -k /Library/Keychains/System.keychain /tmp/doggycredit-root.crt
+# Linux (Debian/Ubuntu)
+sudo cp /tmp/doggycredit-root.crt /usr/local/share/ca-certificates/doggycredit-root.crt
+sudo update-ca-certificates
+```
+
+Reiniciar el navegador después de confiar en la CA. Si se borra `caddy_data`,
+Caddy genera otra CA y hay que repetir el paso.
+
+### Por qué el botón "Iniciar sesión" lleva a otra página
+
+Es el comportamiento exigido: Keycloak es el único servidor de identidad y
+"nadie del equipo construye login propio" (guía §2.5). La SPA nunca recibe
+contraseñas: el botón inicia Authorization Code + PKCE (§5.1), Keycloak muestra
+su formulario en `/auth/...` (mismo dominio, en español y con el nombre
+DoggyCredit) y devuelve a `/callback` con el código. Un formulario de usuario y
+contraseña dentro de Angular exigiría el *password grant*, que está deshabilitado
+a propósito en todos los clientes.
 
 La SPA inicia Authorization Code con PKCE S256; Keycloak pide las credenciales.
-La URI de retorno es `http://localhost:8080/callback`. No hay registro público ni selector de tenant.
+La URI de retorno es `https://localhost/callback`. No hay registro público ni selector de tenant.
 El tenant se obtiene del token. Los refresh tokens los administra la biblioteca
 OIDC en sessionStorage, sin copiar tokens a logs ni mostrarlos en pantalla.
 El interceptor solo envía el bearer a `/api/v1/` del mismo origen.
@@ -41,7 +72,10 @@ pertenecen al trabajo de plataforma de Juanjo y no se dan por terminadas aquí.
 
 La importación inicial no actualiza un realm existente. Si cambia la semilla,
 coordinar actualización con Nicole mediante administración de Keycloak; no
-borrar volúmenes automáticamente. Keycloak persiste en `keycloak_data` y usa
+borrar volúmenes automáticamente. Quien importó el realm cuando el entorno local
+usaba `http://localhost:8080` conserva esas URIs de retorno: con acuerdo del
+equipo, recrear solo `doggycredit_keycloak_data` (contiene únicamente el realm
+importado de la semilla). Keycloak persiste en `keycloak_data` y usa
 `start-dev` para esta demostración; no es un despliegue de producción.
 
 ## Contrato y generación
@@ -63,6 +97,8 @@ CI comprueba regeneración sin diferencias y oasdiff rechaza rupturas en PR.
 .venv/bin/python -m unittest discover -s scripts -p 'test_*.py'
 cd web
 npm ci
+npm run ds:check
+npm run ds:test
 npm test -- --watch=false
 npm run build
 cd ../backend
@@ -106,6 +142,21 @@ release anterior. `current` cambia únicamente tras la comprobación de salud.
 
 No se ha ejecutado un despliegue remoto: no se proporcionaron VM, dominio ni
 credenciales. SPIKE-6 necesita esa ejecución para cumplir el cierre de la guía.
+
+## Evidencia local (29/09/2026)
+
+- Compose completo en HTTPS (`https://localhost`, puerto 443): los 6 servicios
+  en `healthy`/running, CA de Caddy verificada por `identity_smoke.py --ca`.
+- `identity_smoke.py`: 401 sin token, client_credentials de ambos tenants con
+  `tenant_id` correcto, PKCE S256 humano y POST real de consentimiento (201).
+- Issuer publicado: `https://localhost/auth/realms/doggycredit`. Pantalla de
+  Keycloak en español ("Inicia sesión en DoggyCredit").
+- `configure_demo.py` con un dominio de prueba: Caddyfile sin `tls internal`
+  (antes quedaba y la VM habría servido un certificado no confiable) y
+  `caddy validate` aprobado.
+- Backend `./mvnw clean verify`: 35 pruebas aprobadas, 0 omitidas (incluye
+  Testcontainers). Web: 15 pruebas, `ds:check`, `ds:test` y build aprobados.
+  Scripts: 10 pruebas aprobadas. Despliegue remoto: sigue pendiente de la VM.
 
 ## Evidencia local (28/09/2026)
 
