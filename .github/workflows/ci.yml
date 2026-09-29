@@ -120,6 +120,9 @@ jobs:
           source .env.example
           set +a
           python e2e/identity_smoke.py --ca "$RUNNER_TEMP/doggycredit-root.crt"
+      - name: Logs de API, Keycloak y PostgreSQL si identity falla
+        if: failure()
+        run: docker compose --env-file .env.example -f infra/compose.yaml logs --no-color --timestamps --tail=250 doggycredit-api keycloak postgres
       - name: Detener contenedores de CI
         if: always()
         run: docker compose --env-file .env.example -f infra/compose.yaml down
