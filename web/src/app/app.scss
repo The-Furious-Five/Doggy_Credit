@@ -1,0 +1,65 @@
+@use './design-system/breakpoints' as screen;
+.access-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.access-header {
+  padding-block: var(--ds-space-6);
+}
+.access-header a {
+  text-decoration: none;
+}
+.access-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: center;
+  gap: var(--ds-space-16);
+  flex: 1;
+  padding-block: var(--ds-space-10);
+}
+.access-art {
+  width: var(--ds-art-size);
+}
+.access-art img {
+  display: block;
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow);
+}
+.access-intro {
+  align-items: flex-start;
+}
+.access-description {
+  max-width: var(--ds-form-width);
+  font-size: var(--ds-text-lg);
+}
+.access-card {
+  width: 100%;
+  max-width: var(--ds-form-width);
+  justify-self: end;
+}
+.access-card h2 {
+  font-size: var(--ds-title);
+}
+dd {
+  margin: 0;
+}
+.access-footer {
+  padding-block: var(--ds-space-6);
+}
+@include screen.compact {
+  .access-layout {
+    grid-template-columns: 1fr;
+    gap: var(--ds-space-8);
+    padding-block: var(--ds-space-6);
+  }
+  .access-art {
+    width: var(--ds-space-20);
+  }
+  .access-card {
+    max-width: 100%;
+  }
+  .access-intro {
+    gap: var(--ds-space-4);
+  }
+}

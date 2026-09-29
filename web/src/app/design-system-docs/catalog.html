@@ -1,0 +1,368 @@
+<a dsLink class="ds-skip" href="#catalog-main">Saltar al contenido</a>
+<header class="catalog-header">
+  <div class="ds-container ds-row ds-between">
+    <a dsLink href="/" aria-label="Volver a DoggyCredit"><ds-brand /></a>
+    <div class="ds-row">
+      <ds-badge>Design System · v1.0</ds-badge
+      ><a dsLink href="#foundations">Explorar <ds-icon name="arrow" /></a>
+    </div>
+  </div>
+</header>
+<div class="ds-container catalog-layout">
+  <aside class="catalog-sidebar">
+    <nav aria-label="Secciones del Design System" class="ds-stack-sm">
+      <p class="ds-eyebrow">La misma experiencia</p>
+      <a dsLink href="#overview">Visión general</a><a dsLink href="#foundations">Fundamentos</a>
+      <a dsLink href="#actions">Acciones</a><a dsLink href="#forms">Formularios</a>
+      <a dsLink href="#feedback">Estados y feedback</a><a dsLink href="#data">Información</a>
+      <a dsLink href="#overlays">Diálogos</a><a dsLink href="#usage">Desarrollar</a>
+    </nav>
+  </aside>
+  <main id="catalog-main" class="catalog-main ds-stack" tabindex="-1">
+    <section id="overview" class="catalog-hero ds-stack">
+      <div class="ds-row">
+        <ds-badge tone="success">DoggyCredit</ds-badge
+        ><span class="ds-caption">Diseñado para dar tranquilidad</span>
+      </div>
+      <h1 class="ds-display">Menos ruido.<br />Más claridad.</h1>
+      <p class="catalog-lead ds-muted">
+        Un lenguaje compartido para crear experiencias cuidadas. Suave al mirar, claro al usar y
+        consistente en cada detalle.
+      </p>
+      <div class="ds-grid">
+        <ds-card padding="compact"
+          ><ds-stat
+            label="Identidad"
+            value="Cercana"
+            detail="Verde profundo y calidez natural." /></ds-card
+        ><ds-card padding="compact"
+          ><ds-stat
+            label="Interacción"
+            value="Serena"
+            detail="Cada respuesta, en su momento." /></ds-card
+        ><ds-card padding="compact"
+          ><ds-stat
+            label="Experiencia"
+            value="Inclusiva"
+            detail="Teclado, contraste y movimiento reducido."
+        /></ds-card>
+      </div>
+    </section>
+    <section id="foundations" class="ds-stack">
+      <div class="section-heading">
+        <p class="ds-eyebrow">01 · Fundamentos</p>
+        <h2>Una base que se siente familiar.</h2>
+        <p class="ds-muted">
+          Tipografía nativa, espacio generoso y superficies que dejan respirar al contenido.
+        </p>
+      </div>
+      <ds-card
+        ><div class="ds-stack">
+          <div class="ds-row ds-between">
+            <h3>Apariencia</h3>
+            <span class="ds-caption">Se guarda en este navegador</span>
+          </div>
+          <fieldset class="ds-segmented">
+            <legend class="ds-sr-only">Apariencia del sistema</legend>
+            <label
+              ><input
+                dsRadio
+                type="radio"
+                name="theme"
+                value="system"
+                [ngModel]="theme.preference()"
+                (ngModelChange)="theme.preference.set($event)"
+              /><span>Sistema</span></label
+            >
+            <label
+              ><input
+                dsRadio
+                type="radio"
+                name="theme"
+                value="light"
+                [ngModel]="theme.preference()"
+                (ngModelChange)="theme.preference.set($event)"
+              /><span>Claro</span></label
+            >
+            <label
+              ><input
+                dsRadio
+                type="radio"
+                name="theme"
+                value="dark"
+                [ngModel]="theme.preference()"
+                (ngModelChange)="theme.preference.set($event)"
+              /><span>Oscuro</span></label
+            >
+          </fieldset>
+          <div class="swatches">
+            <div class="swatch swatch-primary">
+              <strong>Institucional</strong><span>primary</span>
+            </div>
+            <div class="swatch swatch-accent"><strong>Calidez</strong><span>accent</span></div>
+            <div class="swatch swatch-surface"><strong>Superficie</strong><span>surface</span></div>
+            <div class="swatch swatch-muted">
+              <strong>Descanso</strong><span>surface-muted</span>
+            </div>
+          </div>
+          <div class="type-sample">
+            <p class="ds-display">Aa. Claridad.</p>
+            <h3>La información importante, primero.</h3>
+            <p class="ds-muted">
+              Una tipografía que se adapta a tu dispositivo, sin fuentes externas ni esperas.
+            </p>
+            <p class="ds-caption">Detalles legibles · Números claros · Jerarquía consistente</p>
+          </div>
+        </div></ds-card
+      >
+    </section>
+    <section id="actions" class="ds-stack">
+      <div class="section-heading">
+        <p class="ds-eyebrow">02 · Acciones</p>
+        <h2>El siguiente paso es evidente.</h2>
+        <p class="ds-muted">Una acción principal por contexto. Los iconos acompañan al texto.</p>
+      </div>
+      <ds-card
+        ><div class="ds-stack">
+          <div class="ds-row">
+            <button dsButton (click)="toast.show('Acción principal seleccionada.')">
+              Continuar <ds-icon name="arrow" />
+            </button>
+            <button
+              dsButton
+              variant="secondary"
+              (click)="toast.show('Acción secundaria seleccionada.')"
+            >
+              Guardar borrador
+            </button>
+            <button dsButton variant="quiet" (click)="toast.show('Acción discreta seleccionada.')">
+              Ver detalle
+            </button>
+            <button dsButton variant="danger" (click)="confirmation.show()">Restablecer</button>
+          </div>
+          <div class="ds-row">
+            <button dsButton disabled>No disponible</button><button dsButton busy>Guardando</button
+            ><a dsLink href="#usage">Cómo usarlo <ds-icon name="arrow" /></a>
+          </div>
+          <p class="ds-caption">
+            Objetivos de al menos 44 px, foco visible y protección frente a acciones duplicadas
+            durante la carga.
+          </p>
+        </div></ds-card
+      >
+    </section>
+    <section id="forms" class="ds-stack">
+      <div class="section-heading">
+        <p class="ds-eyebrow">03 · Formularios</p>
+        <h2>Acompañar, sin interrumpir.</h2>
+        <p class="ds-muted">Etiquetas siempre visibles, ayudas breves y errores junto al campo.</p>
+      </div>
+      <ds-card
+        ><form
+          class="ds-stack"
+          (ngSubmit)="save()"
+          novalidate
+          aria-label="Formulario de demostración"
+        >
+          <ds-alert tone="info" heading="Ejemplo interactivo"
+            >Usa información ficticia. Este formulario no envía datos a la API.</ds-alert
+          >
+          <div class="ds-grid">
+            <ds-field
+              label="Nombre del titular"
+              hint="Por ejemplo: Alex Demo"
+              [error]="submitted() && !name.trim() ? 'Escribe un nombre para continuar.' : ''"
+              required
+              ><input #nameControl dsInput name="name" [(ngModel)]="name" autocomplete="off"
+            /></ds-field>
+            <ds-field label="Finalidad"
+              ><select dsSelect name="purpose" [(ngModel)]="purpose">
+                <option>Evaluación inicial</option>
+                <option>Revisión de crédito</option>
+              </select></ds-field
+            >
+          </div>
+          <ds-field label="Observaciones" hint="Añade únicamente el contexto necesario.">
+            <textarea
+              dsInput
+              name="notes"
+              rows="3"
+              placeholder="Escribe una nota breve…"
+            ></textarea>
+          </ds-field>
+          <div>
+            <label class="ds-choice"
+              ><input
+                #consentControl
+                dsCheckbox
+                type="checkbox"
+                name="consent"
+                [(ngModel)]="consent"
+                [attr.aria-invalid]="submitted() && !consent ? 'true' : null"
+                [attr.aria-describedby]="submitted() && !consent ? 'consent-error' : null"
+              />Confirmo que estos datos son ficticios.</label
+            >
+            @if (submitted() && !consent) {
+              <p id="consent-error" class="form-error" role="alert">
+                Confirma el uso de datos ficticios.
+              </p>
+            }
+          </div>
+          <div class="ds-row">
+            <button dsButton type="submit" [busy]="busy()">
+              {{ busy() ? 'Guardando…' : 'Guardar ejemplo' }}</button
+            ><span class="ds-caption">Prueba también enviar el formulario vacío.</span>
+          </div>
+        </form></ds-card
+      >
+    </section>
+    <section id="feedback" class="ds-stack">
+      <div class="section-heading">
+        <p class="ds-eyebrow">04 · Estados y feedback</p>
+        <h2>Siempre sabes qué está pasando.</h2>
+      </div>
+      <div class="ds-row">
+        <ds-badge>Sin evaluar</ds-badge><ds-badge tone="info">En proceso</ds-badge
+        ><ds-badge tone="success">Completado</ds-badge
+        ><ds-badge tone="warning">Revisión manual</ds-badge
+        ><ds-badge tone="danger">Requiere atención</ds-badge>
+      </div>
+      <div class="ds-grid">
+        <ds-alert tone="success" heading="Información guardada"
+          >Puedes continuar con el siguiente paso.</ds-alert
+        ><ds-alert tone="warning" heading="Datos incompletos"
+          >Revisa las fuentes antes de tomar una decisión.</ds-alert
+        ><ds-alert tone="danger" heading="No se pudo cargar"
+          >Intenta nuevamente. Tu información se conserva.</ds-alert
+        >
+      </div>
+      <div class="ds-grid">
+        <ds-card
+          ><div class="ds-stack">
+            <h3>Carga</h3>
+            <ds-spinner label="Consultando la información…" /><ds-skeleton /><ds-skeleton />
+            <p class="ds-caption">La animación respeta la preferencia de movimiento reducido.</p>
+          </div></ds-card
+        ><ds-card padding="compact"
+          ><ds-empty-state
+            heading="Todo empieza aquí"
+            description="Todavía no hay evaluaciones en este ejemplo."
+            ><button
+              dsButton
+              variant="secondary"
+              (click)="toast.show('Este es un ejemplo del estado vacío.')"
+            >
+              <ds-icon name="plus" />Crear primera evaluación
+            </button></ds-empty-state
+          ></ds-card
+        >
+      </div>
+    </section>
+    <section id="data" class="ds-stack">
+      <div class="section-heading">
+        <p class="ds-eyebrow">05 · Información</p>
+        <h2>Datos con contexto, sin distracciones.</h2>
+        <p class="ds-muted">
+          Estados escritos, cifras legibles y tablas que conservan su estructura en pantallas
+          pequeñas.
+        </p>
+      </div>
+      <div
+        class="ds-table-scroll"
+        tabindex="0"
+        role="region"
+        aria-label="Tabla de evaluaciones de ejemplo"
+      >
+        <table dsTable>
+          <caption>
+            Evaluaciones ficticias · Muestra del componente
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Titular</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Fuente</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Alex Demo</th>
+              <td><ds-badge tone="success">Completado</ds-badge></td>
+              <td>Simulada</td>
+            </tr>
+            <tr>
+              <th scope="row">Taller Ejemplo</th>
+              <td><ds-badge tone="warning">Revisión manual</ds-badge></td>
+              <td>Simulada</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section id="overlays" class="ds-stack">
+      <div class="section-heading">
+        <p class="ds-eyebrow">06 · Diálogos</p>
+        <h2>Una pausa, solo cuando hace falta.</h2>
+      </div>
+      <ds-card
+        ><div class="ds-stack">
+          <p class="ds-muted">
+            Las decisiones que descartan trabajo requieren contexto y una salida clara. Escape
+            cierra el diálogo y devuelve el foco al botón de origen.
+          </p>
+          <div class="ds-row">
+            <button dsButton variant="secondary" (click)="confirmation.show()">Abrir diálogo</button
+            ><button
+              dsButton
+              variant="quiet"
+              (click)="toast.show('Todo listo. Esta notificación se puede cerrar.')"
+            >
+              Probar notificación
+            </button>
+          </div>
+        </div></ds-card
+      >
+    </section>
+    <section id="usage" class="ds-stack">
+      <div class="section-heading">
+        <p class="ds-eyebrow">07 · Desarrollar</p>
+        <h2>Una sola forma de construir juntos.</h2>
+        <p class="ds-muted">
+          Importa desde <code>design-system</code>, compón con sus componentes y utiliza tokens para
+          el layout.
+        </p>
+      </div>
+      <ds-card
+        ><div class="ds-stack">
+          <h3>Empieza con los componentes</h3>
+          <pre class="code-sample"><code [textContent]="example"></code></pre>
+          <p class="ds-caption">
+            Ejecuta <code>npm run ds:check</code>. El build y CI rechazan controles sin Design
+            System, estilos visuales independientes e imports internos.
+          </p>
+          <p class="ds-caption">
+            Contrato de contribución: <code>docs/design-system/README.md</code>. Catálogo:
+            <code>/design-system</code>.
+          </p>
+        </div></ds-card
+      >
+    </section>
+    <footer class="catalog-footer ds-caption">
+      DoggyCredit Design System · Claridad en cada detalle.
+    </footer>
+  </main>
+</div>
+<ds-dialog #confirmation heading="¿Restablecer el ejemplo?"
+  ><div class="ds-stack">
+    <p class="ds-muted">
+      Se vaciarán el nombre y la confirmación del formulario de demostración. No afecta a datos del
+      sistema.
+    </p>
+    <div class="ds-row">
+      <button dsButton variant="secondary" (click)="confirmation.close()">Conservar cambios</button
+      ><button dsButton variant="danger" (click)="reset(); confirmation.close()">
+        Restablecer ejemplo
+      </button>
+    </div>
+  </div></ds-dialog
+>

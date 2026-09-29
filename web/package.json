@@ -6,7 +6,12 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "ds:check": "node scripts/check-design-system.mjs",
+    "ds:test": "node --test scripts/check-design-system.test.mjs",
+    "prebuild": "npm run ds:check",
+    "prestart": "npm run ds:check",
+    "prewatch": "npm run ds:check"
   },
   "private": true,
   "packageManager": "npm@11.12.1",
@@ -28,6 +33,8 @@
     "jsdom": "^30.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "sass": "1.104.1",
+    "postcss": "8.5.28"
   }
 }
