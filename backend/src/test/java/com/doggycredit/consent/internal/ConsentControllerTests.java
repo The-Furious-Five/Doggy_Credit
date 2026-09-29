@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,6 +48,9 @@ class ConsentControllerTests {
 
 	@Autowired
 	JdbcTemplate jdbc;
+
+	@Autowired
+	PlatformTransactionManager transactionManager;
 
 	/** Solo para probar cómo se renderiza CONSENT_REQUIRED por HTTP. */
 	@TestConfiguration
@@ -78,13 +85,59 @@ class ConsentControllerTests {
 			.getContentAsString();
 
 		UUID id = UUID.fromString(response.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1"));
-		Map<String, Object> row = jdbc.queryForMap("""
+		Map<String, Object> row = inTenant(TENANT, () -> jdbc.queryForMap("""
 				select tenant_id, otorgado_por, payload_sha256, expira_en - otorgado_en = interval '90 days' as vigencia_ok
-				from consent.consents where id = ?""", id);
+				from consent.consents where id = ?""", id));
 		assertThat(row.get("tenant_id")).isEqualTo(UUID.fromString(TENANT));
 		assertThat(row.get("otorgado_por")).isEqualTo("analista-1");
 		assertThat((String) row.get("payload_sha256")).hasSize(64);
 		assertThat(row.get("vigencia_ok")).isEqualTo(true);
+	}
+
+	@Test
+	void rlsFallaCerradoSinTenantYEnAislamientoConcurrente() throws Exception {
+		assertThat(jdbc.queryForObject("select count(*) from consent.consents", Long.class)).isZero();
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("""
+				insert into consent.consents (id, tenant_id, titular_documento, fuentes, finalidad,
+				vigencia_dias, otorgado_en, expira_en, estado, otorgado_por, payload_sha256)
+				values (?, ?::uuid, 'TEST', ARRAY['BURO'], 'prueba', 1, now(), now() + interval '1 day',
+				'ACTIVO', 'test', repeat('0', 64))""", UUID.randomUUID(), "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"))
+			.isInstanceOf(org.springframework.dao.DataAccessException.class);
+		String tenantA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+		String tenantB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+		AtomicInteger filasCruzadas = new AtomicInteger();
+		try (var pool = Executors.newFixedThreadPool(2)) {
+			var a = pool.submit(() -> insertarConcurrentemente(tenantA, tenantB, filasCruzadas));
+			var b = pool.submit(() -> insertarConcurrentemente(tenantB, tenantA, filasCruzadas));
+			a.get();
+			b.get();
+		}
+		assertThat(filasCruzadas).hasValue(0);
+	}
+
+	private void insertarConcurrentemente(String tenant, String otroTenant, AtomicInteger filasCruzadas) {
+		for (int i = 0; i < 50; i++) {
+			inTenant(tenant, () -> {
+				jdbc.update("""
+						insert into consent.consents (id, tenant_id, titular_documento, fuentes, finalidad,
+						vigencia_dias, otorgado_en, expira_en, estado, otorgado_por, payload_sha256)
+						values (?, ?::uuid, 'TEST', ARRAY['BURO'], 'prueba', 1, now(), now() + interval '1 day',
+						'ACTIVO', 'test', repeat('0', 64))""", UUID.randomUUID(), tenant);
+				Long visible = jdbc.queryForObject("select count(*) from consent.consents where tenant_id = ?::uuid",
+					Long.class, otroTenant);
+				if (visible != null && visible != 0) filasCruzadas.addAndGet(visible.intValue());
+				return null;
+			});
+		}
+	}
+
+	private <T> T inTenant(String tenant, java.util.concurrent.Callable<T> work) {
+		return new TransactionTemplate(transactionManager).execute(status -> {
+			jdbc.queryForObject("select set_config('app.tenant_id', ?, true)", String.class, tenant);
+			try { return work.call(); }
+			catch (RuntimeException e) { throw e; }
+			catch (Exception e) { throw new IllegalStateException(e); }
+		});
 	}
 
 	@Test

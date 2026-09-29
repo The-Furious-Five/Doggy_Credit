@@ -3,7 +3,6 @@
 -- RF-CON-01.1: consentimientos del titular (módulo consent).
 -- Fuentes, finalidad, vigencia y evidencia (quién, cuándo, SHA-256 del
 -- payload canónico). EXPIRADO no se guarda: se evalúa al leer con expira_en.
--- RLS por tenant_id queda para SPIKE-1; mientras tanto la app siempre filtra.
 -- =============================================================================
 
 CREATE TABLE consent.consents (
@@ -22,3 +21,11 @@ CREATE TABLE consent.consents (
 );
 
 CREATE INDEX consents_tenant_documento_idx ON consent.consents (tenant_id, titular_documento);
+
+-- SPIKE-1: la política se aplica también al propietario de la tabla. Sin
+-- contexto transaccional app.tenant_id, USING/WITH CHECK evalúan a NULL (fail closed).
+ALTER TABLE consent.consents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE consent.consents FORCE ROW LEVEL SECURITY;
+CREATE POLICY consents_tenant_isolation ON consent.consents
+    USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
