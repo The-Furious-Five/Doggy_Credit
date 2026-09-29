@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
@@ -107,10 +108,12 @@ class SynchronousAssessmentService implements AssessmentOperations {
 
 	private ScorecardInput toScorecardInput(AssessmentCommand command, ApplicantProfile applicant,
 			Optional<BureauReport> bureau) {
-		int maxDaysPastDue = bureau.stream()
-			.flatMap(report -> report.endeudamiento().stream())
-			.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
-			.max().orElse(0);
+		// Con informe y sin deudas registradas, la mora es 0 de verdad. Sin informe (buró
+		// caído) la mora es desconocida: vacío, nunca 0 (RN-15).
+		OptionalInt maxDaysPastDue = bureau.isEmpty() ? OptionalInt.empty()
+				: OptionalInt.of(bureau.get().endeudamiento().stream()
+					.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
+					.max().orElse(0));
 		int financialSeniority = bureau.map(BureauReport::antiguedadSistemaFinancieroMeses).orElse(0);
 		BigDecimal requestedAmount = command.requestedAmount() == null ? BigDecimal.ZERO : command.requestedAmount();
 		return new ScorecardInput(maxDaysPastDue, applicant.activitySeniorityMonths(), financialSeniority,

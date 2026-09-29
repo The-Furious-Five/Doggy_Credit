@@ -138,7 +138,11 @@ class AssessmentControllerTests {
 			.thenThrow(new SourceUnavailableException(Source.BURO, "simulada", null));
 		createAssessment("assessment-failure-0001", DOCUMENT)
 			.andExpect(status().isCreated())
-			.andExpect(jsonPath("$.estado").value("PARCIAL"));
+			.andExpect(jsonPath("$.estado").value("PARCIAL"))
+			// Demo, punto 6: PARCIAL y además nada inventado dentro del score (RN-15).
+			.andExpect(jsonPath("$.razones[0]").value("MORA_DESCONOCIDA_BURO_NO_DISPONIBLE"))
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_MORA_12M')]").isEmpty())
+			.andExpect(jsonPath("$.banda").value(org.hamcrest.Matchers.not("A")));
 	}
 
 	@Test
