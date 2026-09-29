@@ -8,6 +8,9 @@
 --   3. Triggers: rechazan UPDATE, DELETE y TRUNCATE incluso para un rol
 --      elevado (dueño o superusuario), que se salta las capas 1 y 2.
 --
+-- resource_type/resource_id dicen QUÉ se tocó (p. ej. APPLICANT + su id);
+-- resource_id es opcional porque hay acciones sin un recurso concreto.
+--
 -- Sin updated_at ni version: una fila de auditoría nunca se modifica, así que
 -- esas columnas base no tendrían ningún uso. El id (UUIDv7) lo genera la
 -- aplicación: PostgreSQL 17 todavía no trae uuidv7().
@@ -18,6 +21,8 @@ CREATE TABLE audit.access_log (
     tenant_id      UUID        NOT NULL,
     actor          TEXT        NOT NULL,
     action         TEXT        NOT NULL,
+    resource_type  TEXT        NOT NULL,
+    resource_id    UUID,
     correlation_id TEXT        NOT NULL,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );

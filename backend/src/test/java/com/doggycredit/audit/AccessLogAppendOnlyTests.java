@@ -161,13 +161,19 @@ class AccessLogAppendOnlyTests {
 	}
 
 	private static void insert(Connection connection, UUID tenant) throws SQLException {
-		String sql = "INSERT INTO audit.access_log (id, tenant_id, actor, action, correlation_id) VALUES (?, ?, ?, ?, ?)";
+		String sql = """
+				INSERT INTO audit.access_log
+				    (id, tenant_id, actor, action, resource_type, resource_id, correlation_id)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+				""";
 		try (PreparedStatement ps = connection.prepareStatement(sql)) {
 			ps.setObject(1, UUID.randomUUID());
 			ps.setObject(2, tenant);
 			ps.setString(3, "usr_test");
-			ps.setString(4, "APPLICANT_READ");
-			ps.setString(5, UUID.randomUUID().toString());
+			ps.setString(4, "READ");
+			ps.setString(5, "APPLICANT");
+			ps.setObject(6, UUID.randomUUID());
+			ps.setString(7, UUID.randomUUID().toString());
 			ps.executeUpdate();
 		}
 	}
