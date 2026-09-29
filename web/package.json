@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "generate:api": "bash ../scripts/generate_clients.sh",
     "ds:check": "node scripts/check-design-system.mjs",
     "ds:test": "node --test scripts/check-design-system.test.mjs",
     "prebuild": "npm run ds:check",
@@ -36,5 +37,6 @@
     "vitest": "^5.0.0",
     "sass": "1.104.1",
     "postcss": "8.5.28"
-  }
+  },
+  "sideEffects": false
 }

@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { booleanAttribute, Component, Directive, computed, inject, input } from '@angular/core';
 import { DsIcon, DsIconName } from './icon';
 
@@ -84,7 +85,7 @@ let fieldSequence = 0;
   imports: [DsIcon],
   host: { class: 'ds-field' },
   template: `
-    <label [for]="controlId()"
+    <label [id]="controlId() + '-label'" [for]="controlId()" (click)="focusControl()"
       >{{ label() }}
       @if (required()) {
         <span class="ds-field__required" aria-hidden="true">*</span>
@@ -107,10 +108,17 @@ export class DsField {
   readonly hint = input('');
   readonly error = input('');
   readonly required = input(false, { transform: booleanAttribute });
+  private readonly document = inject(DOCUMENT);
+
+  /** Los controles nativos reciben el foco por `for`; los propios (role=combobox) no son etiquetables. */
+  focusControl(): void {
+    const control = this.document.getElementById(this.controlId());
+    if (control && !('labels' in control)) control.focus();
+  }
 }
 
 @Directive({
-  selector: 'input[dsInput], textarea[dsInput], select[dsSelect]',
+  selector: 'input[dsInput], textarea[dsInput]',
   host: {
     class: 'ds-control',
     '[id]': 'controlId()',
@@ -151,6 +159,46 @@ export class DsTable {}
 })
 export class DsSpinner {
   readonly label = input('Cargando…');
+}
+
+let progressSequence = 0;
+@Component({
+  selector: 'ds-progress',
+  host: { class: 'ds-progress' },
+  template: `
+    <div class="ds-progress__header">
+      <span [id]="labelId">{{ label() }}</span>
+      @if (percent() !== null) {
+        <span class="ds-progress__value" aria-hidden="true">{{ percent() }} %</span>
+      }
+    </div>
+    <div
+      class="ds-progress__track"
+      role="progressbar"
+      [attr.aria-labelledby]="labelId"
+      [attr.aria-valuemin]="percent() === null ? null : 0"
+      [attr.aria-valuemax]="percent() === null ? null : 100"
+      [attr.aria-valuenow]="percent()"
+    >
+      <span
+        class="ds-progress__bar"
+        [class.ds-progress__bar--indeterminate]="percent() === null"
+        [style.width.%]="percent()"
+      ></span>
+    </div>
+  `,
+})
+export class DsProgress {
+  readonly label = input.required<string>();
+  /** `null` indica progreso indeterminado. */
+  readonly value = input<number | null>(null);
+  readonly max = input(100);
+  readonly labelId = 'ds-progress-' + ++progressSequence;
+  readonly percent = computed(() => {
+    const value = this.value();
+    if (value === null) return null;
+    return Math.round(Math.min(100, Math.max(0, (value / (this.max() || 1)) * 100)));
+  });
 }
 
 @Component({

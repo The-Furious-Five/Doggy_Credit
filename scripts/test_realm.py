@@ -5,13 +5,13 @@ from generate_realm import generate, ROOT
 class RealmTest(unittest.TestCase):
     def setUp(self):
         self.seed = yaml.safe_load((ROOT / 'seed/tenants.yaml').read_text())
-        self.realm = generate(self.seed, 'http://localhost:8080')
+        self.realm = generate(self.seed, 'https://localhost')
 
     def test_pkce_and_no_password_grant(self):
         client = self.realm['clients'][0]
         self.assertTrue(client['publicClient'])
         self.assertEqual(client['attributes']['pkce.code.challenge.method'], 'S256')
-        self.assertEqual(client['redirectUris'], ['http://localhost:8080/callback'])
+        self.assertEqual(client['redirectUris'], ['https://localhost/callback'])
         self.assertTrue(all(not c['directAccessGrantsEnabled'] for c in self.realm['clients']))
 
     def test_human_and_service_account_share_seed_tenant(self):
@@ -36,6 +36,7 @@ class RealmTest(unittest.TestCase):
                 if field in user:
                     self.assertTrue(user[field])
                     self.assertFalse(prohibited & set(user[field]), user[field])
+                    self.assertNotIn('demo', user[field].lower(), user[field])
 
     def test_all_clients_issue_subject(self):
         scopes = {s['name']: s for s in self.realm['clientScopes']}
@@ -45,9 +46,15 @@ class RealmTest(unittest.TestCase):
         for client in self.realm['clients']:
             self.assertIn('basic', client['defaultClientScopes'])
 
+    def test_login_screen_is_spanish_and_branded(self):
+        self.assertEqual(self.realm['displayName'], 'DoggyCredit')
+        self.assertTrue(self.realm['internationalizationEnabled'])
+        self.assertEqual(self.realm['supportedLocales'], ['es'])
+        self.assertEqual(self.realm['defaultLocale'], 'es')
+
     def test_reject_duplicate_tenants(self):
         self.seed['tenants'][1]['tenant_id'] = self.seed['tenants'][0]['tenant_id']
-        with self.assertRaises(ValueError): generate(self.seed, 'http://localhost:8080')
+        with self.assertRaises(ValueError): generate(self.seed, 'https://localhost')
 
     def test_all_clients_issue_audience_and_tenant_claim(self):
         for client in self.realm['clients']:

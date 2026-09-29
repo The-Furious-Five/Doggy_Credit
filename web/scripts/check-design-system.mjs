@@ -25,6 +25,36 @@ const tokens = new Set(
     ),
 );
 
+// Controles cuya interfaz dibuja el navegador, y el componente propio que los reemplaza.
+const nativeWidgets = { select: 'ds-select', datalist: 'ds-combobox' };
+const nativeInputs = {
+  date: 'ds-date-picker',
+  'datetime-local': 'ds-date-picker',
+  month: 'ds-date-picker',
+  week: 'ds-date-picker',
+  number: 'ds-number-field',
+  time: null,
+  range: null,
+  color: null,
+};
+// Roles que el Design System ya implementa con teclado y estados completos.
+const systemRoles = [
+  'button',
+  'checkbox',
+  'switch',
+  'tab',
+  'tablist',
+  'tabpanel',
+  'combobox',
+  'listbox',
+  'option',
+  'menu',
+  'menuitem',
+  'spinbutton',
+  'progressbar',
+  'grid',
+];
+
 export function checkTemplate(source, file = 'template') {
   const failures = [];
   const parsed = parseTemplate(source, file);
@@ -40,13 +70,22 @@ export function checkTemplate(source, file = 'template') {
         a: ['dsLink'],
         input: ['dsInput', 'dsCheckbox', 'dsRadio'],
         textarea: ['dsInput'],
-        select: ['dsSelect'],
         table: ['dsTable'],
       };
       if (markers[tag] && !markers[tag].some((n) => names.has(n)))
         failures.push(`${file}: <${tag}> requiere ${markers[tag].join(' / ')}.`);
+      if (nativeWidgets[tag])
+        failures.push(
+          `${file}: <${tag}> muestra la interfaz del navegador; utiliza ${nativeWidgets[tag]}.`,
+        );
       if (tag === 'input') {
         const type = node.attributes.find((a) => a.name === 'type')?.value;
+        if (type in nativeInputs)
+          failures.push(
+            `${file}: input type="${type}" muestra un control del navegador; ${nativeInputs[type] ? 'utiliza ' + nativeInputs[type] : 'extiende el Design System'}.`,
+          );
+        if (names.has('list'))
+          failures.push(`${file}: <input list> usa sugerencias del navegador; utiliza ds-combobox.`);
         if (
           (names.has('dsCheckbox') && type !== 'checkbox') ||
           (names.has('dsRadio') && type !== 'radio')
@@ -70,11 +109,7 @@ export function checkTemplate(source, file = 'template') {
         failures.push(
           `${file}: estilos inline/HTML dinámico no permitidos; utiliza componentes y tokens.`,
         );
-      if (
-        node.attributes.some(
-          (a) => a.name === 'role' && ['button', 'checkbox', 'switch', 'tab'].includes(a.value),
-        )
-      )
+      if (node.attributes.some((a) => a.name === 'role' && systemRoles.includes(a.value)))
         failures.push(
           `${file}: utiliza un control nativo del Design System, no role="${node.attributes.find((a) => a.name === 'role').value}".`,
         );

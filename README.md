@@ -30,8 +30,8 @@ del Sprint 1 (`HAB-01`, `HAB-07`, `SPIKE-3`):
 
 ```bash
 cp .env.example .env   # o pidan el .env real a Nicole
-docker compose --env-file .env -f infra/compose.yaml -f infra/compose.override.yaml up -d --build
-docker compose --env-file .env -f infra/compose.yaml -f infra/compose.override.yaml ps   # todos "healthy"
+docker compose --env-file .env -f infra/compose.yaml up -d --build
+docker compose --env-file .env -f infra/compose.yaml ps   # todos "healthy"
 
 cd backend && ./mvnw test   # incluye ApplicationModulesTest (FF-01/FF-02)
 ```
@@ -76,9 +76,11 @@ real requiere Docker y el `.env` de Nicole. El despliegue remoto requiere la VM.
 
 ## Acceso local
 
-Compose usa HTTP local en [http://localhost:8080](http://localhost:8080).
-No requiere certificado. Ejecutar desde `infra/` para cargar `.env` y el override
-local automáticamente.
+Caddy es la entrada única en HTTPS: [https://localhost](https://localhost)
+(SPA, `/auth` de Keycloak y `/api/v1`). El certificado lo emite la CA interna de
+Caddy; confíen en ella una sola vez siguiendo el
+[runbook](docs/runbooks/franco-sprint1.md#certificado-local). Grafana queda en
+`http://localhost:3300` y el simulador del buró en `http://localhost:8089`.
 
 ## Design System
 

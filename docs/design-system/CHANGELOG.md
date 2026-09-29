@@ -1,5 +1,43 @@
 # Changelog
 
+## 3.0.0 — 2026-09-29
+
+Controles propios: ningún control de la interfaz depende de la apariencia del
+navegador.
+
+- Nuevos: `ds-select` (simple y múltiple), `ds-combobox` (búsqueda con lista),
+  `ds-date-picker` y `ds-calendar` (en español, semana desde el lunes),
+  `ds-number-field` (−/+ propios, prefijo y sufijo), `ds-switch`, `ds-menu`,
+  `ds-tabs`/`ds-tab`, `ds-pagination`, `ds-steps` y `ds-progress`. Todos con
+  patrones ARIA, teclado completo, temas, contraste aumentado y movimiento reducido.
+- Paneles flotantes con posición fija: no se recortan en diálogos ni tablas y
+  cambian de lado si no caben. Escape cierra primero el panel y luego el diálogo.
+- `ds-field`: la etiqueta tiene id y lleva el foco también a controles propios.
+- Iconos nuevos: calendar, minus, more, chevron-down, chevron-left.
+- Tokens nuevos: `--ds-z-popover`, `--ds-popover-min-width`, `--ds-switch-width`,
+  `--ds-switch-height`, `--ds-progress-height`, `--ds-indicator`.
+- **Ruptura:** se elimina `select[dsSelect]` y el token `--ds-chevron`; migrar a
+  `ds-select`. El checker rechaza en pantallas `<select>`, `<datalist>`,
+  `input list` e `input` de tipo date/time/number/range/color, y los roles
+  combobox, listbox, option, menu, menuitem, tablist, tabpanel, spinbutton,
+  progressbar y grid.
+- Build: `web/package.json` declara `sideEffects: false`, de modo que el login ya
+  no descarga los componentes que solo usan otras pantallas (antes viajaban en el
+  paquete inicial todos los del sistema). Paquete inicial: 446 kB (antes 515 kB
+  con los componentes nuevos, sobre el presupuesto de 500 kB).
+- Catálogo: formulario de ejemplo migrado (titular con búsqueda, finalidad,
+  fuentes múltiples, fecha, monto, plazo, aviso), calendario y nueva sección
+  Navegación; paginación bajo la tabla y progreso en Estados.
+- Corrección: el índice del catálogo y "Saltar al contenido" usaban `href="#…"`,
+  que con `<base href="/">` llevaba al acceso. Ahora usan `routerLink` + `fragment`
+  con desplazamiento a anclas del router.
+
+Verificación de esta entrega: 30 pruebas Angular (14 nuevas de comportamiento y
+teclado) y 8 pruebas de reglas/contraste aprobadas; build de producción sin avisos.
+Revisión en Chrome a 1512 px, claro y oscuro: lista simple y múltiple, búsqueda,
+calendario con teclado, campo numérico, menú, pestañas, paginación y progreso.
+Pendiente: revisión visual a 375 px, lector de pantalla, Safari y Firefox.
+
 ## 2.0.0 — 2026-09-28
 
 Rediseño visual completo: colores sólidos y precisos tomados del logo, estilo

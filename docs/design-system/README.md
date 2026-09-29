@@ -1,4 +1,4 @@
-# DoggyCredit Design System · v2.0
+# DoggyCredit Design System · v3.0
 
 Este es el contrato obligatorio de toda interfaz de DoggyCredit. Las pantallas
 componen componentes; la identidad visual, los estados y las interacciones se
@@ -104,7 +104,18 @@ la ruta), nunca desde sus archivos internos.
 | `ds-badge` | `tone`: neutral/success/warning/danger/info. Texto neutro con un punto sólido del tono (neutral sin punto). Siempre texto, nunca solo color. |
 | `ds-alert` | `heading` obligatorio, contenido proyectado y `tone`. Superficie neutra con icono del tono. `urgent` activa role=alert; por defecto role=status. |
 | `ds-field` | `label` obligatorio; `hint`, `error`, `required`, `controlId` opcional. Un control por campo. Genera y conecta label, ayuda y error (con icono). |
-| `input[dsInput]`, `textarea[dsInput]`, `select[dsSelect]` | Controles nativos compatibles con Forms y Reactive Forms. Dentro de ds-field heredan id, required, aria-invalid y aria-describedby. Fuera requieren etiqueta/id explícitos. |
+| `input[dsInput]`, `textarea[dsInput]` | Campos de texto compatibles con Forms y Reactive Forms. Dentro de ds-field heredan id, required, aria-invalid y aria-describedby. Fuera requieren etiqueta/id explícitos. Solo tipos de texto (text, email, tel, search, password). |
+| `ds-select` | Lista desplegable propia, sin menú del navegador. `options: DsOption[]` (`value`, `label`, `description?`, `disabled?`), `placeholder`, `multiple`, `disabled`. Valor escalar o arreglo con `multiple`. Compatible con ngModel/formControl. Teclado: flechas, Inicio/Fin, Re Pág/Av Pág, Enter/Espacio, Escape y escritura anticipada. Patrón ARIA combobox de solo selección + listbox. |
+| `ds-combobox` | Campo con búsqueda y lista filtrada sin tildes ni mayúsculas. `options`, `placeholder`, `filter` (false para búsqueda remota con `(queryChange)`). Al salir del campo solo conserva una opción válida. |
+| `ds-date-picker` | Fecha escrita (dd/mm/aaaa) o elegida en un calendario propio. Valor ISO `aaaa-mm-dd` o null; `min`, `max`. Validadores `dsDate`, `dsDateMin`, `dsDateMax`. Conserva el texto inválido para corregirlo. |
+| `ds-calendar` | Mes navegable: flechas (días), Inicio/Fin (semana), Re Pág/Av Pág (mes; con Mayús, año). `[(value)]` ISO, `min`, `max`. En español, semana desde el lunes. |
+| `ds-number-field` | Número con botones −/+ propios (spinbutton). `min`, `max`, `step`, `decimals`, `prefix` (p. ej. "Bs"), `suffix` (p. ej. "meses"). Coma decimal. Validadores `dsNumber`, `dsNumberMin`, `dsNumberMax`. |
+| `ds-switch` | Interruptor on/off (`role=switch`); el contenido proyectado es su etiqueta. Para cambios de efecto inmediato; en formularios que se envían, preferir checkbox. |
+| `ds-menu` | Menú de acciones. `label`, `items: DsMenuItem[]` (`id`, `label`, `icon?`, `tone?: 'danger'`, `disabled?`), `icon` para botón circular, `variant`. Evento `(itemSelected)` con el `id`. No usar para navegar entre páginas. |
+| `ds-tabs` + `ds-tab` | Pestañas: `ds-tabs` con `label` y `[(selected)]`; cada `ds-tab` con `value` y `label`. Flechas, Inicio y Fin; activación automática. |
+| `ds-pagination` | `total`, `pageSize`, `[(page)]` (desde 1), `label`. Resumen "1–10 de 42" y página actual con aria-current. |
+| `ds-steps` | Progreso de un flujo: `steps: string[]`, `current` (desde 0), `label`. Pasos completados anunciados como tales. |
+| `ds-progress` | Barra de progreso con `label`, `value` (null = indeterminado) y `max`. Sin movimiento cuando la persona lo prefiere. |
 | `input[dsCheckbox]` | Declarar **type="checkbox"**; envolver en label.ds-choice. Compatible con ngModel/formControl. Dibujo propio; en `forced-colors` vuelve al control nativo. |
 | `input[dsRadio]` | Declarar **type="radio"** y name común; envolver en label. Se puede usar dentro de fieldset.ds-segmented con legend. |
 | `ds-icon` | Iconos decorativos originales centralizados: arrow/check/close/plus/shield/search/chevron/moon/info/success/warning/danger/tray/building/flask. `name` tipado. El control contenedor debe tener nombre accesible. |
@@ -118,6 +129,17 @@ la ruta), nunca desde sus archivos internos.
 | `ds-brand` | Emblema sobre placa marfil + wordmark en los colores exactos del logo (Pino/Miel; marfil sobre fondos oscuros). El enlace externo aporta nombre accesible cuando se usa para navegar. |
 | `ds-logo` | Emblema como icono de aplicación (placa marfil 72 px). Decorativo por defecto; `label` le da nombre accesible. |
 | `ds-swatch` | Muestra decorativa de un token de color. `color` tipado (`DsColorToken`), `shape`: tile/dot. Acompañar siempre con el nombre en texto. |
+
+Los controles propios exponen `focus()` para llevar el foco al primer campo inválido.
+Sus paneles (listas, menús, calendario) usan posición fija: no quedan recortados
+dentro de diálogos ni tablas con desplazamiento, y se colocan encima si abajo no caben.
+
+**Sin controles del navegador.** Las pantallas no usan `<select>`, `<datalist>`,
+`input list` ni `input` de tipo date, datetime-local, month, week, time, number,
+range o color: el checker los rechaza e indica el componente que los reemplaza.
+Checkbox y radio conservan el `input` nativo por su accesibilidad, pero el sistema
+los dibuja por completo; el diálogo usa `<dialog>` por su semántica modal, sin la
+apariencia del navegador.
 
 Utilidades: `ds-container`, `ds-stack`, `ds-stack-sm`, `ds-row`, `ds-between`,
 `ds-grid`, `ds-reading`, `ds-actions`, `ds-muted`, `ds-caption`, `ds-eyebrow`
@@ -150,9 +172,23 @@ no mostrar errores antes de que la persona interactúe. En errores de envío,
 llevar el foco al primer campo inválido. `busy` protege la interacción, pero la
 idempotencia real sigue siendo responsabilidad de la API.
 
-Para agrupar radios usar fieldset/legend. Un switch o segmented control no es
-una pestaña: los ejemplos usan selección nativa, con flechas y semántica de radio.
-Para navegación utilizar enlaces y `aria-current="page"`, no roles inventados.
+```html
+<ds-field label="Fuentes" hint="Puedes elegir varias.">
+  <ds-select multiple [options]="sources" [(ngModel)]="selectedSources" />
+</ds-field>
+<ds-field label="Fecha de solicitud">
+  <ds-date-picker [max]="today" [(ngModel)]="requestDate" />
+</ds-field>
+<ds-field label="Plazo">
+  <ds-number-field suffix="meses" [min]="1" [max]="60" [(ngModel)]="term" />
+</ds-field>
+```
+
+Para agrupar radios usar fieldset/legend. Un segmented control no es una pestaña:
+para cambiar de vista dentro de una página usar `ds-tabs`; para on/off inmediato,
+`ds-switch`. Para ir a otra página utilizar enlaces y `aria-current="page"`, no un
+menú ni roles inventados: el checker rechaza `role` de controles que el sistema ya
+implementa (combobox, listbox, menu, tab, switch, spinbutton, progressbar…).
 
 ## Receta: layout propio, lenguaje visual compartido
 
