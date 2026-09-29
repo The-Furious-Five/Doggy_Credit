@@ -16,9 +16,35 @@ security:
 
 tags:
   - name: consentimientos
+  - name: solicitantes
   - name: evaluaciones
 
 paths:
+  /solicitantes:
+    post:
+      tags: [solicitantes]
+      operationId: crearSolicitante
+      summary: Registra los datos declarados de un solicitante
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitanteNuevo"
+      responses:
+        "201":
+          description: Solicitante creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitante"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "409":
+          $ref: "#/components/responses/ErrorNegocio"
+        "422":
+          $ref: "#/components/responses/ErrorNegocio"
+
   /consentimientos:
     post:
       tags: [consentimientos]
@@ -154,14 +180,40 @@ components:
             estado: { type: string, enum: [ACTIVO, REVOCADO, EXPIRADO] }
             creadoEn: { type: string, format: date-time }
 
+    SolicitanteNuevo:
+      type: object
+      properties:
+        documento: { type: string, minLength: 3, maxLength: 64 }
+        actividad: { type: string, minLength: 2, maxLength: 120 }
+        antiguedadActividadMeses: { type: integer, minimum: 0, maximum: 1200 }
+        ingresosMensuales:
+          type: string
+          pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+          description: "Decimal positivo como string"
+        moneda: { type: string, enum: [BOB, USD], default: BOB }
+        destinoCredito: { type: string, minLength: 2, maxLength: 250 }
+      required: [documento, actividad, antiguedadActividadMeses, ingresosMensuales, moneda, destinoCredito]
+
+    Solicitante:
+      allOf:
+        - $ref: "#/components/schemas/SolicitanteNuevo"
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            creadoEn: { type: string, format: date-time }
+          required: [id, creadoEn]
+
     EvaluacionNueva:
       type: object
       properties:
-        titularDocumento: { type: string }
+        titularDocumento: { type: string, minLength: 3, maxLength: 64 }
         consentId: { type: string, format: uuid }
-        proposito: { type: string }
-        montoSolicitado: { type: string, description: "Decimal como string" }
-        plazoMeses: { type: integer }
+        proposito: { type: string, maxLength: 250 }
+        montoSolicitado:
+          type: string
+          pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+          description: "Decimal positivo como string"
+        plazoMeses: { type: integer, minimum: 1, maximum: 360 }
       required: [titularDocumento, consentId]
 
     Evaluacion:

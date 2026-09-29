@@ -66,3 +66,21 @@ errors:
     status: 400
     title: "Error de validación"
     detail_template: "Uno o más campos no son válidos."
+
+  - code: APPLICANT_ALREADY_EXISTS
+    type: applicant-already-exists
+    status: 409
+    title: "Solicitante ya registrado"
+    detail_template: "El documento ya corresponde a un solicitante del tenant."
+
+  - code: APPLICANT_NOT_FOUND
+    type: applicant-not-found
+    status: 422
+    title: "Solicitante no registrado"
+    detail_template: "Debe registrar al solicitante antes de evaluarlo."
+
+  - code: ASSESSMENT_NOT_FOUND
+    type: assessment-not-found
+    status: 404
+    title: "Evaluación no encontrada"
+    detail_template: "La evaluación no existe o pertenece a otro tenant."

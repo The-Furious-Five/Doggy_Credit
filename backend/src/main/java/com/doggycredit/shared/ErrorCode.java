@@ -17,7 +17,10 @@ public enum ErrorCode {
     PROVIDER_UNAVAILABLE("provider-unavailable", 502, "Fuente externa no disponible"),
     IDEMPOTENCY_KEY_REUSED("idempotency-key-reused", 422, "Clave de idempotencia reutilizada con un cuerpo distinto"),
     TENANT_NOT_FOUND("tenant-not-found", 403, "Tenant no registrado"),
-    VALIDATION_ERROR("validation-error", 400, "Error de validación");
+    VALIDATION_ERROR("validation-error", 400, "Error de validación"),
+    APPLICANT_ALREADY_EXISTS("applicant-already-exists", 409, "Solicitante ya registrado"),
+    APPLICANT_NOT_FOUND("applicant-not-found", 422, "Solicitante no registrado"),
+    ASSESSMENT_NOT_FOUND("assessment-not-found", 404, "Evaluación no encontrada");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
 
