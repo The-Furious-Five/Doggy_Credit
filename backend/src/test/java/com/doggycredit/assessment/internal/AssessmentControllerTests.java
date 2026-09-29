@@ -41,6 +41,7 @@ import com.doggycredit.integration.BureauReport.Linaje;
 import com.doggycredit.integration.BureauReport.TipoTitular;
 import com.doggycredit.integration.SourceUnavailableException;
 import com.doggycredit.shared.Money;
+import com.doggycredit.shared.TenantContext;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "doggycredit.assessment.collection-budget=100ms")
@@ -64,13 +65,29 @@ class AssessmentControllerTests {
 	void configureBureauAndData() throws Exception {
 		when(bureau.source()).thenReturn(Source.BURO);
 		registerApplicant();
-		jdbc.update("""
+		comoTenant(() -> jdbc.update("""
 				insert into consent.consents (id, tenant_id, titular_documento, fuentes, finalidad, vigencia_dias,
 				  otorgado_en, expira_en, estado, otorgado_por, payload_sha256)
 				values (?, ?::uuid, ?, '{BURO}'::text[], 'evaluacion', 90, now(), now() + interval '1 day',
 				  'ACTIVO', 'test', 'x')
 				on conflict do nothing
-				""", CONSENT_ID, TENANT, DOCUMENT);
+				""", CONSENT_ID, TENANT, DOCUMENT));
+	}
+
+	/**
+	 * SPIKE-1 (RLS): el JDBC directo de esta prueba corre fuera de una petición
+	 * HTTP, así que nadie fija el tenant; sin esto la política lo filtra todo
+	 * (conteos en 0, INSERT rechazado). Se envuelve cada llamada por separado
+	 * porque TenantClaimFilter limpia el contexto al terminar cada mvc.perform.
+	 */
+	private <T> T comoTenant(java.util.function.Supplier<T> work) {
+		TenantContext.set(UUID.fromString(TENANT));
+		try {
+			return work.get();
+		}
+		finally {
+			TenantContext.clear();
+		}
 	}
 
 	@Test
@@ -151,8 +168,8 @@ class AssessmentControllerTests {
 	}
 
 	private void registerApplicant() throws Exception {
-		if (jdbc.queryForObject("select count(*) from customer.applicants where tenant_id = ?::uuid",
-				Integer.class, TENANT) > 0) {
+		if (comoTenant(() -> jdbc.queryForObject("select count(*) from customer.applicants where tenant_id = ?::uuid",
+				Integer.class, TENANT)) > 0) {
 			return;
 		}
 		mvc.perform(post("/solicitantes")

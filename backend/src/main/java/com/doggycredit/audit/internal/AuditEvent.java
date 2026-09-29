@@ -15,6 +15,8 @@ class AuditEvent {
 	@Id
 	private UUID id;
 
+	// SPIKE-1: discriminador de Hibernate; ver Consent.
+	@org.hibernate.annotations.TenantId
 	@Column(name = "tenant_id", nullable = false)
 	private UUID tenantId;
 

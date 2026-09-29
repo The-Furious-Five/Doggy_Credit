@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.doggycredit.TestcontainersConfiguration;
+import com.doggycredit.shared.TenantContext;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -27,6 +28,7 @@ import com.doggycredit.TestcontainersConfiguration;
 class ApplicantControllerTests {
 
 	private static final String TENANT = "33333333-3333-4333-8333-333333333333";
+	private static final String OTRO_TENANT = "55555555-5555-4555-8555-555555555555";
 
 	@Autowired
 	MockMvc mvc;
@@ -50,9 +52,18 @@ class ApplicantControllerTests {
 			.andReturn().getResponse().getContentAsString();
 
 		UUID id = UUID.fromString(response.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1"));
-		Map<String, Object> row = jdbc.queryForMap("""
-				select document_ref, document_ciphertext from customer.applicants where id = ?
-				""", id);
+		// SPIKE-1 (RLS): lectura directa fuera de una petición HTTP; sin tenant
+		// en contexto la política devolvería cero filas.
+		Map<String, Object> row;
+		TenantContext.set(UUID.fromString(TENANT));
+		try {
+			row = jdbc.queryForMap("""
+					select document_ref, document_ciphertext from customer.applicants where id = ?
+					""", id);
+		}
+		finally {
+			TenantContext.clear();
+		}
 		assertThat((String) row.get("document_ref")).hasSize(64).doesNotContain("12345678");
 		assertThat((String) row.get("document_ciphertext")).doesNotContain("12345678-K");
 
@@ -63,6 +74,12 @@ class ApplicantControllerTests {
 			.andExpect(status().isConflict())
 			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
 			.andExpect(jsonPath("$.code").value("APPLICANT_ALREADY_EXISTS"));
+
+		// La unicidad es por tenant: otra institución puede registrar al mismo titular.
+		mvc.perform(post("/solicitantes")
+				.with(jwt().jwt(token -> token.subject("analista-otro").claim("tenant_id", OTRO_TENANT)))
+				.contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isCreated());
 	}
 
 }
