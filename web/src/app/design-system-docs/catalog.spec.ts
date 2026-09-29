@@ -14,7 +14,7 @@ describe('Catálogo del Design System', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('h1').textContent).toContain('Menos ruido.');
-    expect(fixture.nativeElement.querySelectorAll('section').length).toBe(8);
+    expect(fixture.nativeElement.querySelectorAll('section').length).toBe(9);
   });
   it('valida el formulario y lleva el foco al primer campo inválido', async () => {
     const fixture = TestBed.createComponent(DesignSystemCatalog);

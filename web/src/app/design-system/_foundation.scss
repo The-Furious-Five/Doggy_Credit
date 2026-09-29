@@ -1,9 +1,13 @@
+@use 'tokens';
+
 * {
   box-sizing: border-box;
 }
 html {
   scroll-behavior: smooth;
   scroll-padding-top: var(--ds-space-24);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 body {
   margin: 0;
@@ -13,6 +17,8 @@ body {
   font-size: var(--ds-text-md);
   line-height: var(--ds-leading);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 button,
 input,
@@ -24,30 +30,44 @@ h1,
 h2,
 h3,
 p,
-dl {
+dl,
+dd,
+figure {
   margin: 0;
 }
 h1,
 h2,
 h3 {
+  font-family: var(--ds-font-display);
   font-weight: var(--ds-weight-semibold);
   text-wrap: balance;
 }
 h1 {
   font-size: var(--ds-title);
   line-height: var(--ds-leading-tight);
-  letter-spacing: var(--ds-tracking);
+  letter-spacing: var(--ds-tracking-display);
 }
 h2 {
   font-size: var(--ds-text-xl);
-  line-height: var(--ds-leading-tight);
+  line-height: var(--ds-leading-snug);
   letter-spacing: var(--ds-tracking);
 }
 h3 {
   font-size: var(--ds-text-lg);
+  line-height: var(--ds-leading-snug);
+  letter-spacing: var(--ds-tracking);
+}
+p {
+  text-wrap: pretty;
 }
 a {
-  color: var(--ds-primary);
+  color: var(--ds-link);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: var(--ds-hairline);
+}
+code {
+  font-family: var(--ds-mono);
+  font-size: 0.92em;
 }
 img {
   max-width: 100%;
@@ -57,10 +77,16 @@ img {
   outline: var(--ds-focus-width) solid var(--ds-focus);
   outline-offset: var(--ds-focus-offset);
 }
-::selection {
-  background: var(--ds-accent);
-  color: #10403c;
+// Destinos de "saltar al contenido": reciben foco sin dibujar un marco.
+[tabindex='-1']:focus {
+  outline: none;
 }
+::selection {
+  background: var(--ds-selection);
+  color: var(--ds-text);
+}
+
+// Layout
 .ds-container {
   width: min(100% - var(--ds-space-8), var(--ds-content-width));
   margin-inline: auto;
@@ -86,27 +112,50 @@ img {
 }
 .ds-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
-  gap: var(--ds-space-6);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--ds-space-5);
+}
+.ds-reading {
+  max-width: var(--ds-reading-width);
+}
+// Acciones al pie de un formulario o diálogo. La última es la principal; si no
+// caben en una línea se apilan a ancho completo con la principal arriba.
+.ds-actions {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  gap: var(--ds-space-3);
+  > .ds-button {
+    flex: 1 1 auto;
+  }
+}
+
+// Tipografía
+.ds-display {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-display);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-display);
+}
+.ds-lead {
+  font-size: var(--ds-text-lg);
+  line-height: var(--ds-leading-snug);
+  color: var(--ds-muted);
 }
 .ds-muted {
   color: var(--ds-muted);
 }
 .ds-caption {
   font-size: var(--ds-text-sm);
+  line-height: var(--ds-leading-snug);
   color: var(--ds-muted);
 }
 .ds-eyebrow {
-  font-size: var(--ds-text-xs);
+  font-size: var(--ds-text-sm);
   font-weight: var(--ds-weight-semibold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ds-muted);
-}
-.ds-display {
-  font-size: var(--ds-display);
-  letter-spacing: var(--ds-tracking);
-  line-height: var(--ds-leading-tight);
+  letter-spacing: 0;
+  color: var(--ds-accent-text);
 }
 .ds-mono {
   font-family: var(--ds-mono);
@@ -114,10 +163,23 @@ img {
   overflow-wrap: anywhere;
 }
 .ds-divider {
+  align-self: stretch;
+  width: auto;
+  height: 0;
+  margin: var(--ds-space-2) 0;
   border: 0;
-  border-top: var(--ds-border-width) solid var(--ds-border);
-  margin-block: var(--ds-space-6);
+  border-top: var(--ds-hairline) solid var(--ds-border);
 }
+
+// Superficie sólida de marca (verde pino del logo). Todo componente interior
+// hereda roles reasignados con contraste AA.
+.ds-brand-surface {
+  @include tokens.brand;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+}
+
+// Accesibilidad
 .ds-sr-only {
   position: absolute;
   width: 1px;
@@ -133,13 +195,14 @@ img {
   top: var(--ds-space-3);
   left: var(--ds-space-3);
   z-index: var(--ds-z-toast);
+  padding-inline: var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
   transform: translateY(-200%);
 }
 .ds-skip:focus {
   transform: none;
-}
-.ds-reading {
-  max-width: var(--ds-reading-width);
+  box-shadow: var(--ds-shadow-raised);
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -151,22 +214,18 @@ img {
     scroll-behavior: auto !important;
   }
 }
-@media (prefers-reduced-transparency: reduce) {
-  :root {
-    --ds-glass: var(--ds-surface);
-    --ds-blur: 0px;
-  }
-}
 @media (prefers-contrast: more) {
   :root {
     --ds-border: var(--ds-control-border);
+    --ds-muted: var(--ds-text);
   }
 }
 @media (forced-colors: active) {
   .ds-button,
   .ds-control,
   .ds-card,
-  .ds-badge {
+  .ds-badge,
+  .ds-alert {
     border: 1px solid CanvasText;
   }
 }

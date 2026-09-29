@@ -1,7 +1,17 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { DsButton, DsCheckbox, DsDialog, DsField, DsInput, DsRadio, DsToastService } from './index';
+import {
+  DsAlert,
+  DsButton,
+  DsCheckbox,
+  DsDialog,
+  DsField,
+  DsInput,
+  DsLogo,
+  DsRadio,
+  DsToastService,
+} from './index';
 
 @Component({
   imports: [FormsModule, DsButton, DsCheckbox, DsDialog, DsField, DsInput, DsRadio],
@@ -82,6 +92,54 @@ describe('Contrato accesible del Design System', () => {
     const id = dialog.getAttribute('aria-labelledby');
     expect(fixture.nativeElement.querySelector('#' + id).textContent).toBe('Confirmación');
     expect(dialog.querySelector('button')?.getAttribute('aria-label')).toBe('Cerrar diálogo');
+  });
+});
+
+@Component({
+  imports: [DsAlert, DsButton, DsLogo],
+  template: `
+    <ds-alert [tone]="tone()" heading="Aviso" [urgent]="urgent()">Detalle</ds-alert>
+    <button dsButton icon variant="quiet" aria-label="Buscar">·</button>
+    <ds-logo />
+    <ds-logo label="DoggyCredit" />
+  `,
+})
+class SignalsFixture {
+  tone = signal<'info' | 'danger'>('info');
+  urgent = signal(false);
+}
+
+describe('Señales visuales con significado accesible', () => {
+  beforeEach(() => TestBed.configureTestingModule({ imports: [SignalsFixture] }));
+  it('la alerta acompaña el tono con un icono decorativo y solo interrumpe si es urgente', () => {
+    const fixture = TestBed.createComponent(SignalsFixture);
+    fixture.detectChanges();
+    const alert: HTMLElement = fixture.nativeElement.querySelector('ds-alert');
+    const icon = () => alert.querySelector('ds-icon path')!.getAttribute('d');
+    expect(alert.getAttribute('role')).toBe('status');
+    expect(alert.querySelector('ds-icon')!.getAttribute('aria-hidden')).toBe('true');
+    const infoIcon = icon();
+    fixture.componentInstance.tone.set('danger');
+    fixture.componentInstance.urgent.set(true);
+    fixture.detectChanges();
+    expect(alert.getAttribute('role')).toBe('alert');
+    expect(alert.getAttribute('data-tone')).toBe('danger');
+    expect(icon()).not.toBe(infoIcon);
+    expect(alert.textContent).toContain('Aviso');
+  });
+  it('el botón de icono conserva su nombre accesible', () => {
+    const fixture = TestBed.createComponent(SignalsFixture);
+    fixture.detectChanges();
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button');
+    expect(button.classList).toContain('ds-button--icon');
+    expect(button.getAttribute('aria-label')).toBe('Buscar');
+  });
+  it('el logo es decorativo salvo que se le dé un nombre', () => {
+    const fixture = TestBed.createComponent(SignalsFixture);
+    fixture.detectChanges();
+    const [decorative, named] = fixture.nativeElement.querySelectorAll('ds-logo img');
+    expect(decorative.getAttribute('alt')).toBe('');
+    expect(named.getAttribute('alt')).toBe('DoggyCredit');
   });
 });
 

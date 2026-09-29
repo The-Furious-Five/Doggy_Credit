@@ -1,4 +1,5 @@
 import { booleanAttribute, Component, Directive, computed, inject, input } from '@angular/core';
+import { DsIcon, DsIconName } from './icon';
 
 export type DsTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -11,6 +12,7 @@ export type DsTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
     '[disabled]': 'disabled() || busy()',
     '[attr.aria-busy]': 'busy() || null',
     '[class.ds-button--full]': 'full()',
+    '[class.ds-button--icon]': 'icon()',
     '[class.ds-button--busy]': 'busy()',
   },
 })
@@ -20,6 +22,8 @@ export class DsButton {
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly busy = input(false, { transform: booleanAttribute });
   readonly full = input(false, { transform: booleanAttribute });
+  /** Botón cuadrado solo con icono. Requiere aria-label. */
+  readonly icon = input(false, { transform: booleanAttribute });
 }
 
 @Directive({ selector: 'a[dsLink]', host: { class: 'ds-link' } })
@@ -43,30 +47,47 @@ export class DsBadge {
   readonly tone = input<DsTone>('neutral');
 }
 
+const toneIcons: Record<DsTone, DsIconName> = {
+  neutral: 'info',
+  info: 'info',
+  success: 'success',
+  warning: 'warning',
+  danger: 'danger',
+};
+
 @Component({
   selector: 'ds-alert',
+  imports: [DsIcon],
   host: {
     class: 'ds-alert',
     '[attr.data-tone]': 'tone()',
     '[attr.role]': 'urgent() ? "alert" : "status"',
   },
-  template: '<strong>{{ heading() }}</strong><div><ng-content /></div>',
+  template: `
+    <ds-icon class="ds-alert__icon" [name]="icon()" />
+    <div>
+      <strong class="ds-alert__heading">{{ heading() }}</strong>
+      <div class="ds-alert__content"><ng-content /></div>
+    </div>
+  `,
 })
 export class DsAlert {
   readonly tone = input<DsTone>('info');
   readonly heading = input.required<string>();
   readonly urgent = input(false, { transform: booleanAttribute });
+  readonly icon = computed(() => toneIcons[this.tone()]);
 }
 
 let fieldSequence = 0;
 @Component({
   selector: 'ds-field',
+  imports: [DsIcon],
   host: { class: 'ds-field' },
   template: `
     <label [for]="controlId()"
       >{{ label() }}
       @if (required()) {
-        <span aria-hidden="true">*</span>
+        <span class="ds-field__required" aria-hidden="true">*</span>
       }
     </label>
     <ng-content />
@@ -74,7 +95,9 @@ let fieldSequence = 0;
       <p class="ds-field__hint" [id]="controlId() + '-hint'">{{ hint() }}</p>
     }
     @if (error()) {
-      <p class="ds-field__error" [id]="controlId() + '-error'" role="alert">{{ error() }}</p>
+      <p class="ds-field__error" [id]="controlId() + '-error'" role="alert">
+        <ds-icon name="danger" />{{ error() }}
+      </p>
     }
   `,
 })
@@ -139,9 +162,10 @@ export class DsSkeleton {}
 
 @Component({
   selector: 'ds-empty-state',
+  imports: [DsIcon],
   host: { class: 'ds-empty' },
   template: `
-    <div class="ds-empty__symbol" aria-hidden="true">◇</div>
+    <span class="ds-empty__symbol" aria-hidden="true"><ds-icon [name]="icon()" /></span>
     <h3>{{ heading() }}</h3>
     <p class="ds-muted">{{ description() }}</p>
     <ng-content />
@@ -150,13 +174,19 @@ export class DsSkeleton {}
 export class DsEmptyState {
   readonly heading = input.required<string>();
   readonly description = input.required<string>();
+  readonly icon = input<DsIconName>('tray');
 }
 
 @Component({
   selector: 'ds-stat',
   host: { class: 'ds-stat' },
-  template:
-    '<p class="ds-caption">{{ label() }}</p><p class="ds-stat__value">{{ value() }}</p><p class="ds-caption">{{ detail() }}</p>',
+  template: `
+    <p class="ds-stat__label">{{ label() }}</p>
+    <p class="ds-stat__value">{{ value() }}</p>
+    @if (detail()) {
+      <p class="ds-stat__detail">{{ detail() }}</p>
+    }
+  `,
 })
 export class DsStat {
   readonly label = input.required<string>();
@@ -168,6 +198,54 @@ export class DsStat {
   selector: 'ds-brand',
   host: { class: 'ds-brand' },
   template:
-    '<img src="doggycredit.svg" alt="" width="48" height="48" /><span>Doggy<span class="ds-brand__accent">Credit</span></span>',
+    '<img class="ds-brand__mark" src="doggycredit-mark.svg" alt="" width="36" height="36" /><span>Doggy<span class="ds-brand__accent">Credit</span></span>',
 })
 export class DsBrand {}
+
+export type DsColorToken =
+  | 'brand-pine'
+  | 'brand-forest'
+  | 'brand-sage'
+  | 'brand-honey'
+  | 'brand-sand'
+  | 'brand-ivory'
+  | 'brand-cocoa'
+  | 'primary'
+  | 'link'
+  | 'accent'
+  | 'text'
+  | 'muted'
+  | 'bg'
+  | 'surface'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info';
+
+/** Muestra decorativa de un token de color. Acompañar siempre con su nombre en texto. */
+@Component({
+  selector: 'ds-swatch',
+  host: {
+    class: 'ds-swatch',
+    'aria-hidden': 'true',
+    '[attr.data-shape]': 'shape()',
+    '[style.background]': 'fill()',
+  },
+  template: '',
+})
+export class DsSwatch {
+  readonly color = input.required<DsColorToken>();
+  readonly shape = input<'tile' | 'dot'>('tile');
+  readonly fill = computed(() => `var(--ds-${this.color()})`);
+}
+
+/** Emblema del logo sobre su placa marfil, como un icono de aplicación. */
+@Component({
+  selector: 'ds-logo',
+  host: { class: 'ds-logo' },
+  template: '<img src="doggycredit-mark.svg" [alt]="label()" width="72" height="72" />',
+})
+export class DsLogo {
+  /** Vacío cuando el nombre de la marca ya aparece junto al logo. */
+  readonly label = input('');
+}

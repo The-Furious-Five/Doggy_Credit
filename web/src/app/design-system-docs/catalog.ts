@@ -13,10 +13,12 @@ import {
   DsIcon,
   DsInput,
   DsLink,
+  DsLogo,
   DsRadio,
   DsSkeleton,
   DsSpinner,
   DsStat,
+  DsSwatch,
   DsTable,
   DsThemeService,
   DsToastService,
@@ -37,10 +39,12 @@ import {
     DsIcon,
     DsInput,
     DsLink,
+    DsLogo,
     DsRadio,
     DsSkeleton,
     DsSpinner,
     DsStat,
+    DsSwatch,
     DsTable,
   ],
   templateUrl: './catalog.html',
@@ -58,10 +62,12 @@ export class DesignSystemCatalog implements OnDestroy {
   purpose = 'Evaluación inicial';
   consent = false;
   private timer?: ReturnType<typeof setTimeout>;
-  readonly example = `<ds-field label="Nombre" hint="Solo datos ficticios" required>
+  readonly example = `import { DsButton, DsField, DsInput } from '../design-system';
+
+<ds-field label="Nombre" hint="Solo datos ficticios" required>
   <input dsInput [(ngModel)]="name" />
 </ds-field>
-<button dsButton [busy]="saving()">Guardar</button>`;
+<button dsButton type="submit" [busy]="saving()">Guardar</button>`;
   save(): void {
     this.submitted.set(true);
     if (this.busy()) return;

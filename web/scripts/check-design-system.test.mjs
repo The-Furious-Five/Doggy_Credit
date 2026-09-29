@@ -10,6 +10,22 @@ test('rechaza estilos inline y bindings', () => {
   assert.ok(checkTemplate('<p [style.color]="color">Texto</p>').length);
   assert.ok(checkTemplate('<div [ngStyle]="custom"></div>').length);
 });
+test('exige colores sólidos: sin degradados ni desenfoques, también con tokens', () => {
+  assert.ok(
+    checkCss('.hero { background: linear-gradient(var(--ds-primary), var(--ds-accent)); }').length,
+  );
+  assert.ok(checkCss('.bar { backdrop-filter: blur(var(--ds-space-4)); }').length);
+  assert.ok(checkCss('.art { filter: saturate(2); }').length);
+  assert.equal(checkCss('.hero { background: var(--ds-primary); }').length, 0);
+});
+test('el propio Design System no define degradados, desenfoques ni brillos', async () => {
+  const fs = await import('node:fs');
+  const dir = new URL('../src/app/design-system/', import.meta.url);
+  for (const name of fs.readdirSync(dir).filter((f) => f.endsWith('.scss'))) {
+    const source = fs.readFileSync(new URL(name, dir), 'utf8');
+    assert.doesNotMatch(source, /gradient\s*\(|backdrop-filter|blur\s*\(|text-shadow/i, name);
+  }
+});
 test('rechaza colores, tamaños y tokens desconocidos', () => {
   assert.ok(checkCss('.card { color: red; padding: 24px; }').length);
   assert.ok(checkCss('.card { color: var(--ds-inventado); }').length);
@@ -25,12 +41,12 @@ test('no permite rodear la regla con componentes inline ni imports internos', ()
   assert.equal(checkTypescript("import { DsButton } from './design-system';", 'x.ts').length, 0);
 });
 
-test('temas: texto semántico 4.5:1 y bordes de controles 3:1', async () => {
+test('temas y superficie de marca: texto 4.5:1, bordes y foco 3:1', async () => {
   const sass = await import('sass');
   const postcss = (await import('postcss')).default;
   const { fileURLToPath } = await import('node:url');
   const css = sass.compileString(
-    "@use 'tokens' as t; .test-light { @include t.light; } .test-dark { @include t.dark; }",
+    "@use 'tokens' as t; .test-light { @include t.light; } .test-dark { @include t.dark; } .test-brand { @include t.brand; }",
     {
       loadPaths: [fileURLToPath(new URL('../src/app/design-system', import.meta.url))],
     },
@@ -50,32 +66,35 @@ test('temas: texto semántico 4.5:1 y bordes de controles 3:1', async () => {
   };
   let themes = 0;
   postcss.parse(css).walkRules((rule) => {
-    if (!['.test-light', '.test-dark'].includes(rule.selector)) return;
+    if (!['.test-light', '.test-dark', '.test-brand'].includes(rule.selector)) return;
     themes++;
     const values = Object.fromEntries(
       rule.nodes
         .filter((n) => n.type === 'decl')
         .map((n) => [n.prop.replace('--ds-', ''), n.value]),
     );
+    const surfaces = ['bg', 'surface', 'surface-muted'];
     const pairs = [
-      ['text', 'bg'],
-      ['text', 'surface'],
-      ['muted', 'bg'],
-      ['muted', 'surface'],
-      ['muted', 'surface-muted'],
+      ['text', 'surface-raised'],
+      ['muted', 'surface-strong'],
       ['on-primary', 'primary'],
       ['on-primary', 'primary-hover'],
-      ...['success', 'warning', 'danger', 'info'].map((t) => [t, t + '-bg']),
+      ['on-inverse', 'inverse'],
+      ...['text', 'muted', 'link', 'accent-text', 'success', 'warning', 'danger', 'info'].flatMap(
+        (fg) => surfaces.map((bg) => [fg, bg]),
+      ),
     ];
     for (const [fg, bg] of pairs)
       assert.ok(
         ratio(values[fg], values[bg]) >= 4.5,
         `${rule.selector}: ${fg}/${bg} no alcanza 4.5:1`,
       );
-    assert.ok(
-      ratio(values['control-border'], values.surface) >= 3,
-      `${rule.selector}: borde del control no alcanza 3:1`,
-    );
+    for (const [fg, bg] of [
+      ['control-border', 'surface'],
+      ['focus', 'bg'],
+      ['focus', 'surface'],
+    ])
+      assert.ok(ratio(values[fg], values[bg]) >= 3, `${rule.selector}: ${fg}/${bg} no alcanza 3:1`);
   });
-  assert.equal(themes, 2);
+  assert.equal(themes, 3);
 });

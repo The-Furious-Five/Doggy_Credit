@@ -8,9 +8,9 @@ let dialogSequence = 0;
   imports: [DsButton, DsIcon],
   template: `
     <dialog #native class="ds-dialog" [attr.aria-labelledby]="titleId" (close)="onClose()">
-      <div class="ds-row ds-between">
+      <div class="ds-dialog__header">
         <h2 [id]="titleId">{{ heading() }}</h2>
-        <button dsButton variant="quiet" aria-label="Cerrar diálogo" (click)="close()">
+        <button dsButton variant="quiet" icon aria-label="Cerrar diálogo" (click)="close()">
           <ds-icon name="close" />
         </button>
       </div>

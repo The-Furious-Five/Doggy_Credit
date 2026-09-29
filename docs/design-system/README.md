@@ -1,4 +1,4 @@
-# DoggyCredit Design System · v1.0
+# DoggyCredit Design System · v2.0
 
 Este es el contrato obligatorio de toda interfaz de DoggyCredit. Las pantallas
 componen componentes; la identidad visual, los estados y las interacciones se
@@ -11,15 +11,21 @@ El login es la primera pantalla migrada y sirve como ejemplo real.
 
 ## Dirección visual
 
-Inspiración: claridad, jerarquía, tipografía nativa y respuesta inmediata de las
+**Sólido, estable, impecable.** Inspiración: claridad, jerarquía, tipografía
+nativa y respuesta inmediata de las
 [Human Interface Guidelines de Apple](https://developer.apple.com/design/human-interface-guidelines/foundations).
-La identidad sigue siendo DoggyCredit: verde profundo del logo, marfil y dorado
-cálido. No se redistribuyen tipografías ni iconos propietarios de Apple.
+La identidad es DoggyCredit: los colores exactos del logo. No se redistribuyen
+tipografías ni iconos propietarios de Apple.
 
+- **Colores sólidos y precisos.** Sin degradados, neones, brillos, desenfoques
+  ni tintes acuarelados. El checker rechaza `gradient()`, `filter`,
+  `backdrop-filter` y `mix-blend-mode` en las pantallas.
+- **El color es una señal, no un fondo.** Las superficies son neutras y opacas;
+  el color aparece en la acción principal, el punto de un badge o el icono de una
+  alerta. Nunca un rectángulo teñido.
 - Priorizar el contenido. Una acción principal por contexto, títulos breves,
-  espacio suficiente y sombras discretas.
-- Usar superficies opacas para formularios y datos. El material translúcido se
-  reserva para navegación; tiene fondo legible y respeta reducción de transparencia.
+  espacio suficiente y sombras apenas perceptibles.
+- Todas las superficies son opacas, incluida la navegación.
 - Usar movimiento corto como respuesta, nunca como requisito para comprender.
   Respetar `prefers-reduced-motion`; no crear animaciones locales.
 - Texto en español, lenguaje directo, sin culpar al usuario. Dar el siguiente paso
@@ -33,25 +39,55 @@ cálido. No se redistribuyen tipografías ni iconos propietarios de Apple.
 layout. `_foundation.scss` establece tipografía y utilidades. `_components.scss`
 resuelve presentación y estados. `styles.scss` es la única entrada global.
 
+### Paleta de marca
+
+Valores tomados literalmente de `public/doggycredit.svg`; idénticos en todos los
+temas. Se usan para la marca y la documentación; las pantallas consumen roles.
+
+| Token | Nombre | Valor | Uso en el logo |
+| --- | --- | --- | --- |
+| `--ds-brand-pine` | Pino | `#10403C` | "Doggy", flecha, superficie de marca |
+| `--ds-brand-forest` | Bosque | `#1A5149` | Onda del emblema; acción principal en claro |
+| `--ds-brand-sage` | Salvia | `#377766` | Barras del gráfico |
+| `--ds-brand-honey` | Miel | `#D59132` | "Credit"; acento |
+| `--ds-brand-sand` | Arena | `#F7DDA0` | Pelaje claro; selección, acción sobre pino |
+| `--ds-brand-ivory` | Marfil | `#FFFEFD` | Fondo del logo; superficies |
+| `--ds-brand-cocoa` | Cacao | `#261F14` | Contornos |
+
+### Roles semánticos
+
 | Familia | Tokens / uso |
 | --- | --- |
-| Superficies | `--ds-bg`, `--ds-surface`, `--ds-surface-muted`, `--ds-glass` |
-| Texto | `--ds-text`, `--ds-muted`, `--ds-on-primary` |
-| Acción | `--ds-primary`, `--ds-primary-hover`, `--ds-focus` |
-| Estados | `--ds-success`, `--ds-warning`, `--ds-danger`, `--ds-info` y sus `-bg` |
-| Tipografía | `--ds-font`, `--ds-mono`, `--ds-text-xs` a `--ds-text-xl`, `--ds-title`, `--ds-display` |
-| Espaciado | `--ds-space-1/2/3/4/5/6/8/10/12/16/20/24`; base de 4 px |
-| Forma | `--ds-radius-sm/md/lg/pill`, `--ds-border-width` |
-| Profundidad | `--ds-shadow`, `--ds-shadow-raised`, `--ds-z-sticky/toast` |
-| Movimiento | `--ds-duration-fast/duration/slow`, `--ds-ease` |
-| Layout | `--ds-content-width`, `--ds-reading-width`, `--ds-form-width` |
+| Superficies | `--ds-bg`, `--ds-surface`, `--ds-surface-muted`, `--ds-surface-strong`, `--ds-surface-raised`, `--ds-inverse` |
+| Texto | `--ds-text`, `--ds-muted`, `--ds-link`, `--ds-accent-text`, `--ds-on-primary`, `--ds-on-inverse` |
+| Acción | `--ds-primary`, `--ds-primary-hover`, `--ds-focus`, `--ds-accent` |
+| Estados | `--ds-success`, `--ds-warning`, `--ds-danger`, `--ds-info` (texto y señales; sin fondos teñidos) |
+| Bordes | `--ds-border` (separadores), `--ds-control-border` (3:1), `--ds-hairline`, `--ds-border-width` |
+| Tipografía | `--ds-font`, `--ds-font-display`, `--ds-mono`, `--ds-text-xs` a `--ds-text-xl`, `--ds-title`, `--ds-display`, `--ds-display-fit` |
+| Espaciado | `--ds-inset`, `--ds-space-1/2/3/4/5/6/8/10/12/16/20/24`; base de 4 px |
+| Forma | `--ds-radius-xs/sm/md/lg/xl/pill`; controles en md, tarjetas en lg |
+| Profundidad | `--ds-shadow-sm`, `--ds-shadow`, `--ds-shadow-raised`, `--ds-backdrop`, `--ds-z-sticky/toast` |
+| Movimiento | `--ds-duration-fast/duration/slow`, `--ds-ease`, `--ds-press-scale` |
+| Layout | `--ds-content-width`, `--ds-reading-width`, `--ds-form-width`, `--ds-dialog-width`, `--ds-sidebar-width` |
 
 Los nombres describen intención. Nunca usar el color verde para representar
 éxito directamente: usar `success`, que puede cambiar por tema. Las constantes
 estructurales de los componentes (por ejemplo, una región oculta para lectores)
 se mantienen dentro del sistema, nunca se replican en las pantallas.
 
+`--ds-display-fit` ajusta el titular al ancho de su columna: el contenedor
+declara `container-type: inline-size` (ver el panel de marca del login).
+
+### Superficie de marca
+
+`.ds-brand-surface` pinta un área en verde pino sólido y reasigna todos los
+roles (texto marfil, acción arena, acento miel, estados aclarados) con contraste
+AA verificado. Cualquier componente interior funciona sin estilos propios. Usarla
+para momentos de marca (acceso, bienvenida), no para formularios extensos.
+
 Tema claro, oscuro y automático mediante `DsThemeService.preference.set(...)`.
+En oscuro el verde de marca se aclara lo justo para seguir siendo legible sobre
+fondos casi negros; no se usan tonos pastel ni neón.
 La preferencia es local al navegador; no se almacena junto a datos del usuario.
 No cambiar manualmente atributos de tema desde las pantallas.
 
@@ -62,28 +98,35 @@ la ruta), nunca desde sus archivos internos.
 
 | API | Contrato |
 | --- | --- |
-| `button[dsButton]` | `variant`: primary/secondary/quiet/danger; `busy`, `disabled`, `full`; `type` por defecto button. Busy bloquea clics y expone aria-busy. |
+| `button[dsButton]` | `variant`: primary/secondary/quiet/danger; `busy`, `disabled`, `full`, `icon`; `type` por defecto button. Busy bloquea clics y expone aria-busy. `icon` crea un botón circular solo con icono y exige `aria-label`. Danger es texto rojo sobre superficie neutra. |
 | `a[dsLink]` | Navegación real con href o routerLink. No usar botones para navegar. |
 | `ds-card` | Superficie no interactiva. `padding`: normal/compact. No convertir toda la tarjeta en un botón implícito. |
-| `ds-badge` | `tone`: neutral/success/warning/danger/info. Siempre texto, nunca solo color. |
-| `ds-alert` | `heading` obligatorio, contenido proyectado y `tone`. `urgent` activa role=alert; por defecto role=status. |
-| `ds-field` | `label` obligatorio; `hint`, `error`, `required`, `controlId` opcional. Un control por campo. Genera y conecta label, ayuda y error. |
+| `ds-badge` | `tone`: neutral/success/warning/danger/info. Texto neutro con un punto sólido del tono (neutral sin punto). Siempre texto, nunca solo color. |
+| `ds-alert` | `heading` obligatorio, contenido proyectado y `tone`. Superficie neutra con icono del tono. `urgent` activa role=alert; por defecto role=status. |
+| `ds-field` | `label` obligatorio; `hint`, `error`, `required`, `controlId` opcional. Un control por campo. Genera y conecta label, ayuda y error (con icono). |
 | `input[dsInput]`, `textarea[dsInput]`, `select[dsSelect]` | Controles nativos compatibles con Forms y Reactive Forms. Dentro de ds-field heredan id, required, aria-invalid y aria-describedby. Fuera requieren etiqueta/id explícitos. |
-| `input[dsCheckbox]` | Declarar **type="checkbox"**; envolver en label.ds-choice. Compatible con ngModel/formControl. |
+| `input[dsCheckbox]` | Declarar **type="checkbox"**; envolver en label.ds-choice. Compatible con ngModel/formControl. Dibujo propio; en `forced-colors` vuelve al control nativo. |
 | `input[dsRadio]` | Declarar **type="radio"** y name común; envolver en label. Se puede usar dentro de fieldset.ds-segmented con legend. |
-| `ds-icon` | Iconos decorativos originales centralizados: arrow/check/close/plus/shield/search/chevron/moon. `name` tipado. El control contenedor debe tener nombre accesible. |
+| `ds-icon` | Iconos decorativos originales centralizados: arrow/check/close/plus/shield/search/chevron/moon/info/success/warning/danger/tray/building/flask. `name` tipado. El control contenedor debe tener nombre accesible. |
 | `ds-spinner` | `label` descriptivo; role=status. No ocultar toda la pantalla por una operación local. |
 | `ds-skeleton` | Placeholder decorativo, aria-hidden; acompañar una región con estado de carga legible. |
-| `ds-empty-state` | `heading` y `description`; proyectar una acción útil, si corresponde. |
+| `ds-empty-state` | `heading`, `description` e `icon` opcional (tray); proyectar una acción útil, si corresponde. |
 | `ds-stat` | `label`, `value`, `detail`; no calcula ni interpreta datos financieros. |
 | `table[dsTable]` | Tabla nativa con caption y encabezados scope. Contenedor ds-table-scroll con nombre y tabindex=0. |
 | `ds-dialog` | `heading` obligatorio; `show()`, `close()`, evento `dismissed`. Dialog nativo: modal, Escape, foco contenido y restauración al origen. |
 | `DsToastService` + `ds-toast-outlet` | `show(message)`, `dismiss()`. Un outlet global. Aviso no crítico por 8 s; pausa al interactuar. Errores importantes deben permanecer en ds-alert. |
-| `ds-brand` | Logo y wordmark; el enlace externo aporta nombre accesible cuando se usa para navegar. |
+| `ds-brand` | Emblema sobre placa marfil + wordmark en los colores exactos del logo (Pino/Miel; marfil sobre fondos oscuros). El enlace externo aporta nombre accesible cuando se usa para navegar. |
+| `ds-logo` | Emblema como icono de aplicación (placa marfil 72 px). Decorativo por defecto; `label` le da nombre accesible. |
+| `ds-swatch` | Muestra decorativa de un token de color. `color` tipado (`DsColorToken`), `shape`: tile/dot. Acompañar siempre con el nombre en texto. |
 
 Utilidades: `ds-container`, `ds-stack`, `ds-stack-sm`, `ds-row`, `ds-between`,
-`ds-grid`, `ds-reading`, `ds-muted`, `ds-caption`, `ds-eyebrow`, `ds-display`,
-`ds-mono`, `ds-divider`, `ds-sr-only` y `ds-skip`.
+`ds-grid`, `ds-reading`, `ds-actions`, `ds-muted`, `ds-caption`, `ds-eyebrow`
+(texto miel, sin mayúsculas forzadas), `ds-lead`, `ds-display`, `ds-mono`,
+`ds-divider`, `ds-brand-surface`, `ds-sr-only` y `ds-skip`.
+
+`ds-actions` agrupa las acciones al pie de un formulario o diálogo: la última es
+la principal; si no caben en una línea se apilan a ancho completo con la
+principal arriba y la de cancelar abajo.
 
 ## Receta: un formulario
 
@@ -128,6 +171,7 @@ Para navegación utilizar enlaces y `aria-current="page"`, no roles inventados.
 Las pantallas pueden organizar el contenido. No deben redefinir botones, inputs,
 colores o tamaños visuales con valores literales. No usar ::ng-deep, !important,
 ngStyle, innerHTML, CSS global nuevo ni imports internos para esquivar el sistema.
+Tampoco degradados, filtros ni desenfoques, aunque se compongan con tokens.
 
 ## Patrones para el producto
 
@@ -139,7 +183,7 @@ ngStyle, innerHTML, CSS global nuevo ni imports internos para esquivar el sistem
 - **Listado:** título, acción principal, filtros etiquetados, estado vacío y error
   con reintento. Conservar encabezados al permitir desplazamiento horizontal.
 - **Acción irreversible:** diálogo con consecuencias concretas; acción de cancelar
-  clara y nombre específico del botón de confirmación.
+  clara y nombre específico del botón de confirmación, agrupadas en `ds-actions`.
 - **Carga:** mantener contexto y bloquear solo las acciones dependientes.
 - **Error:** decir qué ocurrió, qué se conserva y qué se puede hacer.
 
@@ -157,7 +201,10 @@ npm run build    # ejecuta ds:check antes de compilar
 explícitamente. Revisa plantillas Angular externas e inline con el parser de
 Angular, y estilos CSS/SCSS con Sass + PostCSS. Rechaza controles sin directivas,
 estilos inline, valores visuales locales, tokens desconocidos, escapes de
-encapsulación e imports internos. `app/api` se excluye porque es código generado.
+encapsulación, imports internos, degradados y desenfoques. `app/api` se excluye
+porque es código generado. `ds:test` además verifica que el propio sistema no
+define degradados ni desenfoques y que los roles de los tres contextos (claro,
+oscuro y superficie de marca) alcanzan 4.5:1 en texto y 3:1 en bordes y foco.
 El guardrail ayuda a evitar divergencias habituales; no sustituye revisión humana
 ni es una barrera frente a cambios deliberados en la propia configuración.
 
@@ -187,9 +234,11 @@ registran en `AGENTS.md` para asistentes de desarrollo.
 - Recorrer con Tab/Shift+Tab; activar con teclado; abrir diálogo, recorrerlo y
   cerrar con Escape; el foco vuelve a su origen.
 - Probar lector de pantalla para etiquetas, errores, carga y notificaciones.
-- Activar reducción de movimiento y transparencia en el sistema operativo.
+- Activar reducción de movimiento y contraste aumentado en el sistema operativo.
 - Ejecutar formularios válidos/invalidos y estados de carga/deshabilitado.
 
-Las pruebas automáticas de DOM no equivalen a auditoría completa WCAG. En esta
-sesión el sandbox impide abrir un servidor HTTP local; la revisión visual real
-en navegador queda pendiente y no se reporta como aprobada.
+Las pruebas automáticas de DOM no equivalen a auditoría completa WCAG. La v2 se
+revisó en Chrome headless (375, 768, 1024 y 1440 px sin scroll horizontal; claro
+y oscuro; recorrido con Tab, diálogo con Escape y retorno de foco, errores de
+formulario y notificación). Siguen pendientes: lector de pantalla, zoom al 200 %
+y Safari/Firefox.

@@ -5,16 +5,16 @@ import {
   DsBadge,
   DsBrand,
   DsButton,
-  DsCard,
   DsIcon,
   DsLink,
+  DsLogo,
   DsSpinner,
 } from './design-system';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 
 @Component({
   selector: 'dc-access-page',
-  imports: [DsAlert, DsBadge, DsBrand, DsButton, DsCard, DsIcon, DsLink, DsSpinner],
+  imports: [DsAlert, DsBadge, DsBrand, DsButton, DsIcon, DsLink, DsLogo, DsSpinner],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

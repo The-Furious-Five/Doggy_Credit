@@ -44,6 +44,7 @@ export class DsToastService implements OnDestroy {
         ><button
           dsButton
           variant="quiet"
+          icon
           aria-label="Cerrar notificación"
           (click)="toast.dismiss()"
         >

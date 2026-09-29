@@ -101,6 +101,10 @@ export function checkCss(source, file = 'styles', compile = false) {
   const failures = [];
   if (/::ng-deep|!important|@import|@keyframes/.test(source))
     failures.push(`${file}: no se permiten escapes de estilos ni animaciones propias.`);
+  if (/gradient\s*\(|backdrop-filter|\bfilter\s*:|mix-blend-mode/i.test(source))
+    failures.push(
+      `${file}: la identidad usa colores sólidos; sin degradados, desenfoques ni mezclas.`,
+    );
   let css;
   try {
     css = compile

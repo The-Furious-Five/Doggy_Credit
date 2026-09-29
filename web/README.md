@@ -1,8 +1,9 @@
 # DoggyCredit Web
 
 SPA Angular 22 con login OIDC Authorization Code + PKCE contra Keycloak.
-Paleta y logo originales: verde #10403C / #1A5149, dorado #D59132 / #F7DDA0,
-marfil #FFFEFD. Diseño adaptable, estados de carga/error y aviso Datos simulados.
+Paleta tomada del logo, en colores sólidos: pino #10403C, bosque #1A5149,
+salvia #377766, miel #D59132, arena #F7DDA0, marfil #FFFEFD. Sin degradados.
+Diseño adaptable, estados de carga/error y aviso Datos simulados.
 
 ```bash
 npm ci
