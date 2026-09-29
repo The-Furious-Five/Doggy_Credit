@@ -127,6 +127,21 @@ class AccessLogAppendOnlyTests {
 		}
 	}
 
+	@Test
+	void conexionReusadaDelPoolSinTenantNoVeNadaNiLanzaError() throws SQLException {
+		// Tras una transacción con set_config(..., true), app.tenant_id queda en ''
+		// (no NULL) en esa conexión. La política debe seguir en fallo cerrado.
+		UUID tenant = UUID.randomUUID();
+
+		try (Connection app = appConnection(tenant)) {
+			insert(app, tenant);
+			app.commit();
+
+			assertThat(countVisible(app)).isZero();
+			app.commit();
+		}
+	}
+
 	// --- utilidades ------------------------------------------------------------
 
 	/** Conexión como doggy_app con el tenant fijado solo para esta transacción. */

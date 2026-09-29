@@ -1,5 +1,5 @@
 -- =============================================================================
--- V2026_09_27_2330__audit_create_access_log.sql
+-- V2026_09_29_1800__audit_create_access_log.sql
 -- RF-SEG-03.1 (LOS-57): bitácora de auditoría append-only (solo inserción).
 --
 -- Tres capas de defensa, de la más blanda a la más dura:
@@ -24,13 +24,15 @@ CREATE TABLE audit.access_log (
 
 -- --- Capa 2: RLS con fallo cerrado ------------------------------------------
 -- Si nadie fija app.tenant_id, current_setting(..., true) devuelve NULL, la
--- comparación da NULL y no se ve ni se inserta ninguna fila.
+-- comparación da NULL y no se ve ni se inserta ninguna fila. NULLIF cubre el
+-- caso del pool: tras una transacción con set_config(..., true) el valor queda
+-- en '' (no NULL), y ''::uuid lanzaría un error en vez de devolver 0 filas.
 ALTER TABLE audit.access_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit.access_log FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON audit.access_log
-    USING (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+    USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
 
 -- --- Capa 3: triggers que bloquean cualquier modificación -------------------
 -- search_path fijo: evita que alguien "reemplace" funciones del sistema
