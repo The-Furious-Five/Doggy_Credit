@@ -1,0 +1,46 @@
+package com.doggycredit.shared;
+
+import java.net.URI;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+
+/**
+ * Catálogo único de códigos de error (contracts/errors/catalog.yaml).
+ * RF-API-02.1: todo error 4xx/5xx usa un code de este enum.
+ */
+public enum ErrorCode {
+    CONSENT_REQUIRED("consent-required", 422, "Consentimiento requerido"),
+    QUOTA_EXCEEDED("quota-exceeded", 429, "Cuota mensual agotada"),
+    RATE_LIMITED("rate-limited", 429, "Límite de solicitudes por minuto excedido"),
+    FEATURE_NOT_IN_PLAN("feature-not-in-plan", 403, "Función no disponible en el plan actual"),
+    PLAN_LIMIT_REACHED("plan-limit-reached", 409, "Límite del plan alcanzado"),
+    PROVIDER_UNAVAILABLE("provider-unavailable", 502, "Fuente externa no disponible"),
+    IDEMPOTENCY_KEY_REUSED("idempotency-key-reused", 422, "Clave de idempotencia reutilizada con un cuerpo distinto"),
+    TENANT_NOT_FOUND("tenant-not-found", 403, "Tenant no registrado"),
+    VALIDATION_ERROR("validation-error", 400, "Error de validación");
+
+    private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
+
+    private final String type;
+    private final int status;
+    private final String title;
+
+    ErrorCode(String type, int status, String title) {
+        this.type = type;
+        this.status = status;
+        this.title = title;
+    }
+
+    public ProblemDetail toProblemDetail(String detail) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.valueOf(status), detail);
+        problem.setType(URI.create(BASE_URI + type));
+        problem.setTitle(title);
+        problem.setProperty("code", name());
+        return problem;
+    }
+
+    public int status() { return status; }
+    public String typeUri() { return BASE_URI + type; }
+    public String title() { return title; }
+}
