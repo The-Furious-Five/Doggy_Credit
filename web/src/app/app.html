@@ -1,9 +1,74 @@
-<main>
-  <h1>DoggyCredit</h1>
-  <p>
-    SPA en construcción. El login con PKCE contra Keycloak es la tarea
-    <code>HAB-05</code> del Sprint 1 (Franco) — ver el capítulo 9.5 de la
-    guía de inducción.
-  </p>
-  <router-outlet />
-</main>
+<a dsLink class="ds-skip" href="#access">Saltar al acceso</a>
+<div class="access">
+  <section class="access-brand ds-brand-surface" aria-labelledby="intro-heading">
+    <a dsLink class="access-home" href="/" aria-label="DoggyCredit, inicio"><ds-brand /></a>
+    <div class="access-brand__content ds-stack">
+      <div class="ds-stack-sm">
+        <p class="ds-eyebrow">Cada decisión, con más claridad</p>
+        <h1 id="intro-heading" class="ds-display access-title">
+          El siguiente paso.<br />Con confianza.
+        </h1>
+      </div>
+      <p class="ds-lead access-lead">
+        Una mirada más completa para acompañar las decisiones de crédito de tu institución.
+      </p>
+      <ul class="access-points">
+        <li>
+          <span class="access-points__icon"><ds-icon name="shield" /></span>
+          Credenciales gestionadas por tu institución
+        </li>
+        <li>
+          <span class="access-points__icon"><ds-icon name="building" /></span>
+          Un espacio de trabajo separado por institución
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="access-panel">
+    <main class="access-main" id="access" tabindex="-1">
+      <div class="access-form ds-stack">
+        <ds-logo class="access-logo" />
+        @if (loading()) {
+          <div class="ds-stack-sm">
+            <h2>Preparando tu espacio</h2>
+            <p class="ds-muted">Estamos comprobando si ya iniciaste sesión.</p>
+          </div>
+          <ds-spinner label="Verificando tu sesión…" />
+        } @else if (authenticated()) {
+          <div class="ds-stack-sm">
+            <ds-badge tone="success">Sesión iniciada</ds-badge>
+            <h2>Hola, {{ name() }}</h2>
+            <p class="ds-muted">Tu acceso está vinculado a tu institución.</p>
+          </div>
+          <dl class="access-tenant ds-stack-sm">
+            <dt class="ds-caption">Identificador de institución</dt>
+            <dd class="ds-mono">{{ tenant() || 'No disponible. Contacta al administrador.' }}</dd>
+          </dl>
+          <button dsButton full variant="secondary" (click)="logout()">Cerrar sesión</button>
+        } @else {
+          <div class="ds-stack-sm">
+            <h2>Bienvenido de nuevo</h2>
+            <p class="ds-muted">Inicia sesión con tu cuenta institucional para continuar.</p>
+          </div>
+          <div class="ds-stack-sm">
+            <button dsButton full (click)="login()">Iniciar sesión <ds-icon name="arrow" /></button>
+            <p class="ds-caption">Te llevaremos al acceso seguro de tu institución.</p>
+          </div>
+          <hr class="ds-divider" />
+          <p class="ds-caption">
+            ¿Necesitas una cuenta? Contacta al administrador de tu institución.
+          </p>
+        }
+        @if (error()) {
+          <ds-alert tone="danger" heading="No pudimos completar el acceso" urgent>{{
+            error()
+          }}</ds-alert>
+        }
+      </div>
+    </main>
+    <footer class="access-footer">
+      <a dsLink href="/design-system">Design System <ds-icon name="arrow" /></a>
+    </footer>
+  </div>
+</div>

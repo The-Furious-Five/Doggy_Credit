@@ -29,7 +29,7 @@ al Día 1 del Sprint 1 (`HAB-01`, `HAB-07`):
 
 ```bash
 cp .env.example .env   # o pidan el .env real a Nicole
-docker compose --env-file .env -f infra/compose.yaml up -d
+docker compose --env-file .env -f infra/compose.yaml up -d --build
 docker compose --env-file .env -f infra/compose.yaml ps   # todos "healthy"
 
 cd backend && ./mvnw test   # incluye ApplicationModulesTest (FF-01/FF-02)
@@ -64,3 +64,25 @@ entorno, roles idénticos en Keycloak/backend/UI (`TENANT_ADMIN`, `ANALYST`,
 **Regla que no se negocia:** el `tenant_id` sale siempre y únicamente del
 token JWT. Nunca de una cabecera, un parámetro de ruta o el cuerpo de una
 petición.
+
+## Entrega Franco — Sprint 1
+
+Login Angular con PKCE, realm multi-tenant generado, clientes OpenAPI y Compose
+con Caddy HTTPS implementados. Ver [instrucciones y evidencia de verificación](docs/runbooks/franco-sprint1.md).
+El estado histórico de inicialización arriba corresponde al 25/09; la integración
+real requiere Docker y el `.env` de Nicole. El despliegue remoto requiere la VM.
+
+## Acceso local
+
+Caddy es la entrada única en HTTPS: [https://localhost](https://localhost)
+(SPA, `/auth` de Keycloak y `/api/v1`). El certificado lo emite la CA interna de
+Caddy; confíen en ella una sola vez siguiendo el
+[runbook](docs/runbooks/franco-sprint1.md#certificado-local). Grafana queda en
+`http://localhost:3300` y el simulador del buró en `http://localhost:8089`.
+
+## Design System
+
+Toda interfaz debe consumir el [Design System de DoggyCredit](docs/design-system/README.md).
+Catálogo interactivo: `/design-system`. El login ya lo utiliza; los scripts de
+build y CI verifican controles, tokens e imports. Reglas de contribución para
+asistentes y desarrolladores en `AGENTS.md`.

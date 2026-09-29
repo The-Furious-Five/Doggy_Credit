@@ -1,0 +1,399 @@
+{
+  "realm": "doggycredit",
+  "displayName": "DoggyCredit",
+  "enabled": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "es"
+  ],
+  "defaultLocale": "es",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "TENANT_ADMIN"
+      },
+      {
+        "name": "ANALYST"
+      },
+      {
+        "name": "API_CLIENT"
+      },
+      {
+        "name": "PLATFORM_ADMIN"
+      }
+    ]
+  },
+  "defaultDefaultClientScopes": [
+    "basic",
+    "profile",
+    "email",
+    "roles"
+  ],
+  "clientScopes": [
+    {
+      "name": "basic",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "sub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "auth_time",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "long",
+            "user.session.note": "AUTH_TIME",
+            "claim.name": "auth_time"
+          }
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "user.attribute": "username",
+            "claim.name": "preferred_username"
+          }
+        },
+        {
+          "name": "full name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-full-name-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    },
+    {
+      "name": "email",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "user.attribute": "email",
+            "claim.name": "email"
+          }
+        }
+      ]
+    },
+    {
+      "name": "roles",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "claim.name": "realm_access.roles",
+            "multivalued": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "assessments:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    },
+    {
+      "name": "assessments:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    },
+    {
+      "name": "consents:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "doggycredit-web",
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://localhost/callback"
+      ],
+      "webOrigins": [
+        "https://localhost"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://localhost/"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id"
+          }
+        },
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "included.custom.audience": "doggycredit-api"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "progreso-andino-m2m",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${DC_SEED_M2M_SECRET}",
+      "defaultClientScopes": [
+        "basic",
+        "roles",
+        "assessments:write",
+        "assessments:read",
+        "consents:write"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id"
+          }
+        },
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "included.custom.audience": "doggycredit-api"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "fintech-vecina-m2m",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${DC_SEED_M2M_SECRET_2}",
+      "defaultClientScopes": [
+        "basic",
+        "roles",
+        "assessments:write",
+        "assessments:read",
+        "consents:write"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id"
+          }
+        },
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "included.custom.audience": "doggycredit-api"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin.progreso",
+      "enabled": true,
+      "email": "admin.progreso@doggycredit.invalid",
+      "emailVerified": true,
+      "firstName": "Rosa",
+      "lastName": "Mamani",
+      "attributes": {
+        "tenant_id": [
+          "9c7e7c1a-0000-4000-8000-000000000001"
+        ]
+      },
+      "realmRoles": [
+        "TENANT_ADMIN"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "temporary": false,
+          "value": "${DC_SEED_ADMIN_PASSWORD}"
+        }
+      ]
+    },
+    {
+      "username": "analista.progreso",
+      "enabled": true,
+      "email": "analista.progreso@doggycredit.invalid",
+      "emailVerified": true,
+      "firstName": "Marcelo",
+      "lastName": "Quispe",
+      "attributes": {
+        "tenant_id": [
+          "9c7e7c1a-0000-4000-8000-000000000001"
+        ]
+      },
+      "realmRoles": [
+        "ANALYST"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "temporary": false,
+          "value": "${DC_SEED_ANALYST_PASSWORD}"
+        }
+      ]
+    },
+    {
+      "username": "service-account-progreso-andino-m2m",
+      "enabled": true,
+      "serviceAccountClientId": "progreso-andino-m2m",
+      "attributes": {
+        "tenant_id": [
+          "9c7e7c1a-0000-4000-8000-000000000001"
+        ]
+      },
+      "realmRoles": [
+        "API_CLIENT"
+      ]
+    },
+    {
+      "username": "admin.vecina",
+      "enabled": true,
+      "email": "admin.vecina@doggycredit.invalid",
+      "emailVerified": true,
+      "firstName": "Paola",
+      "lastName": "Fernández",
+      "attributes": {
+        "tenant_id": [
+          "9c7e7c1a-0000-4000-8000-000000000002"
+        ]
+      },
+      "realmRoles": [
+        "TENANT_ADMIN"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "temporary": false,
+          "value": "${DC_SEED_ADMIN_PASSWORD_2}"
+        }
+      ]
+    },
+    {
+      "username": "service-account-fintech-vecina-m2m",
+      "enabled": true,
+      "serviceAccountClientId": "fintech-vecina-m2m",
+      "attributes": {
+        "tenant_id": [
+          "9c7e7c1a-0000-4000-8000-000000000002"
+        ]
+      },
+      "realmRoles": [
+        "API_CLIENT"
+      ]
+    }
+  ]
+}

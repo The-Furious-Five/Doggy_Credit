@@ -1,0 +1,11 @@
+// Breakpoints de layout: los valores se consumen mediante mixins Sass.
+@mixin compact {
+  @media (max-width: 48rem) {
+    @content;
+  }
+}
+@mixin wide {
+  @media (min-width: 64rem) {
+    @content;
+  }
+}

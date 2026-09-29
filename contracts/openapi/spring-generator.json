@@ -1,0 +1,8 @@
+{
+  "interfaceOnly": true, "skipDefaultInterface": true, "useTags": true,
+  "useSpringBoot4": true, "useJackson3": true, "openApiNullable": false,
+  "annotationLibrary": "none", "documentationProvider": "none",
+  "apiPackage": "com.doggycredit.shared.contract.api",
+  "modelPackage": "com.doggycredit.shared.contract.model",
+  "hideGenerationTimestamp": true
+}
