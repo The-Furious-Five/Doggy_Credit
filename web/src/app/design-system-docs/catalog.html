@@ -1,0 +1,691 @@
+<a dsLink class="ds-skip" routerLink="/design-system" fragment="catalog-main">Saltar al contenido</a>
+<header class="catalog-header">
+  <div class="ds-container ds-row ds-between">
+    <a dsLink href="/" aria-label="Volver a DoggyCredit"><ds-brand /></a>
+    <div class="ds-row">
+      <ds-badge>Design System 3.0</ds-badge>
+      <a dsLink href="/">Ir al acceso <ds-icon name="arrow" /></a>
+    </div>
+  </div>
+</header>
+<div class="ds-container catalog-layout">
+  <aside class="catalog-sidebar">
+    <nav aria-label="Secciones del Design System" class="catalog-nav">
+      <a dsLink routerLink="/design-system" fragment="overview">Visión general</a>
+      <a dsLink routerLink="/design-system" fragment="color">Color</a>
+      <a dsLink routerLink="/design-system" fragment="type">Tipografía y forma</a>
+      <a dsLink routerLink="/design-system" fragment="actions">Acciones</a>
+      <a dsLink routerLink="/design-system" fragment="forms">Formularios</a>
+      <a dsLink routerLink="/design-system" fragment="feedback">Estados</a>
+      <a dsLink routerLink="/design-system" fragment="data">Información</a>
+      <a dsLink routerLink="/design-system" fragment="navigation">Navegación</a>
+      <a dsLink routerLink="/design-system" fragment="overlays">Diálogos</a>
+      <a dsLink routerLink="/design-system" fragment="usage">Desarrollar</a>
+    </nav>
+  </aside>
+  <main id="catalog-main" class="catalog-main" tabindex="-1">
+    <section id="overview" class="ds-stack" aria-labelledby="overview-title">
+      <p class="ds-eyebrow">DoggyCredit Design System 3.0</p>
+      <h1 id="overview-title" class="ds-display">Menos ruido.<br />Más claridad.</h1>
+      <p class="ds-lead ds-reading">
+        Un lenguaje visual sólido y sereno, construido con los colores exactos del logo. Planos,
+        precisos y consistentes en cada pantalla.
+      </p>
+      <div class="ds-grid">
+        <ds-card padding="compact">
+          <ds-stat
+            label="Color"
+            value="Sólido"
+            detail="Tonos planos del logo. Sin degradados ni transparencias."
+          />
+        </ds-card>
+        <ds-card padding="compact">
+          <ds-stat
+            label="Interacción"
+            value="Serena"
+            detail="Movimiento breve, superficies opacas y espacio generoso."
+          />
+        </ds-card>
+        <ds-card padding="compact">
+          <ds-stat
+            label="Experiencia"
+            value="Inclusiva"
+            detail="Contraste AA verificado, teclado y movimiento reducido."
+          />
+        </ds-card>
+      </div>
+    </section>
+
+    <section id="color" class="ds-stack" aria-labelledby="color-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">01 · Color</p>
+        <h2 id="color-title">Nace del logo.</h2>
+        <p class="ds-muted ds-reading">
+          Siete valores exactos del logo definen la marca. Los roles semánticos se derivan de ellos
+          y se ajustan a cada tema para conservar el contraste.
+        </p>
+      </div>
+      <ds-card>
+        <div class="ds-stack">
+          <div class="ds-row ds-between">
+            <h3>Paleta de marca</h3>
+            <span class="ds-caption">Idéntica en todos los temas</span>
+          </div>
+          <ul class="palette" aria-label="Paleta de marca">
+            <li class="ds-stack-sm palette__item">
+              <ds-swatch color="brand-pine" />
+              <strong>Pino</strong><span class="ds-mono ds-muted">#10403C</span>
+            </li>
+            <li class="ds-stack-sm palette__item">
+              <ds-swatch color="brand-forest" />
+              <strong>Bosque</strong><span class="ds-mono ds-muted">#1A5149</span>
+            </li>
+            <li class="ds-stack-sm palette__item">
+              <ds-swatch color="brand-sage" />
+              <strong>Salvia</strong><span class="ds-mono ds-muted">#377766</span>
+            </li>
+            <li class="ds-stack-sm palette__item">
+              <ds-swatch color="brand-honey" />
+              <strong>Miel</strong><span class="ds-mono ds-muted">#D59132</span>
+            </li>
+            <li class="ds-stack-sm palette__item">
+              <ds-swatch color="brand-sand" />
+              <strong>Arena</strong><span class="ds-mono ds-muted">#F7DDA0</span>
+            </li>
+            <li class="ds-stack-sm palette__item">
+              <ds-swatch color="brand-ivory" />
+              <strong>Marfil</strong><span class="ds-mono ds-muted">#FFFEFD</span>
+            </li>
+            <li class="ds-stack-sm palette__item">
+              <ds-swatch color="brand-cocoa" />
+              <strong>Cacao</strong><span class="ds-mono ds-muted">#261F14</span>
+            </li>
+          </ul>
+        </div>
+      </ds-card>
+      <ds-card>
+        <div class="ds-stack">
+          <div class="ds-row ds-between">
+            <h3>Roles semánticos</h3>
+            <span class="ds-caption">La preferencia se guarda en este navegador</span>
+          </div>
+          <fieldset class="ds-segmented">
+            <legend class="ds-sr-only">Apariencia del sistema</legend>
+            <label
+              ><input
+                dsRadio
+                type="radio"
+                name="theme"
+                value="system"
+                [ngModel]="theme.preference()"
+                (ngModelChange)="theme.preference.set($event)"
+              /><span>Sistema</span></label
+            >
+            <label
+              ><input
+                dsRadio
+                type="radio"
+                name="theme"
+                value="light"
+                [ngModel]="theme.preference()"
+                (ngModelChange)="theme.preference.set($event)"
+              /><span>Claro</span></label
+            >
+            <label
+              ><input
+                dsRadio
+                type="radio"
+                name="theme"
+                value="dark"
+                [ngModel]="theme.preference()"
+                (ngModelChange)="theme.preference.set($event)"
+              /><span>Oscuro</span></label
+            >
+          </fieldset>
+          <dl class="roles">
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="primary" shape="dot" />primary</dt>
+              <dd class="ds-caption">Acción principal. Una por contexto.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="link" shape="dot" />link</dt>
+              <dd class="ds-caption">Enlaces y acciones discretas.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="accent" shape="dot" />accent</dt>
+              <dd class="ds-caption">Acento de marca. Uso puntual.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="text" shape="dot" />text</dt>
+              <dd class="ds-caption">Texto principal.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="muted" shape="dot" />muted</dt>
+              <dd class="ds-caption">Texto secundario, siempre 4.5:1.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="surface" shape="dot" />surface</dt>
+              <dd class="ds-caption">Tarjetas, formularios y datos.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="success" shape="dot" />success</dt>
+              <dd class="ds-caption">Operación completada.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="warning" shape="dot" />warning</dt>
+              <dd class="ds-caption">Revisión necesaria.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="danger" shape="dot" />danger</dt>
+              <dd class="ds-caption">Error o acción destructiva.</dd>
+            </div>
+            <div class="role">
+              <dt class="ds-row ds-mono"><ds-swatch color="info" shape="dot" />info</dt>
+              <dd class="ds-caption">Contexto informativo.</dd>
+            </div>
+          </dl>
+        </div>
+      </ds-card>
+      <div class="brand-demo ds-brand-surface">
+        <div class="ds-stack">
+          <ds-brand />
+          <div class="ds-stack-sm">
+            <p class="ds-eyebrow">Superficie de marca</p>
+            <h3>Verde pino, sin excepciones locales.</h3>
+            <p class="ds-muted ds-reading">
+              <code>ds-brand-surface</code> reasigna los roles: cualquier componente interior
+              conserva su contraste sin estilos propios.
+            </p>
+          </div>
+          <div class="ds-row">
+            <button dsButton (click)="toast.show('Acción sobre superficie de marca.')">
+              Continuar <ds-icon name="arrow" />
+            </button>
+            <button dsButton variant="secondary">Secundaria</button>
+            <ds-badge tone="success">Verificado</ds-badge>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="type" class="ds-stack" aria-labelledby="type-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">02 · Tipografía y forma</p>
+        <h2 id="type-title">Jerarquía nítida, formas serenas.</h2>
+        <p class="ds-muted ds-reading">
+          Tipografía del sistema, sin fuentes externas. Tamaños con propósito, esquinas suaves y
+          sombras apenas perceptibles.
+        </p>
+      </div>
+      <ds-card>
+        <dl class="type-scale">
+          <div class="type-row">
+            <dt class="ds-caption">Display · semibold</dt>
+            <dd class="ds-display">Aa. Claridad.</dd>
+          </div>
+          <div class="type-row">
+            <dt class="ds-caption">Título · h1</dt>
+            <dd class="type-title">La información importante, primero.</dd>
+          </div>
+          <div class="type-row">
+            <dt class="ds-caption">Encabezado · h2</dt>
+            <dd class="type-heading">Evaluaciones de la semana</dd>
+          </div>
+          <div class="type-row">
+            <dt class="ds-caption">Introducción</dt>
+            <dd class="ds-lead">Una mirada completa para decidir con calma.</dd>
+          </div>
+          <div class="type-row">
+            <dt class="ds-caption">Cuerpo</dt>
+            <dd>Texto legible a 16 px, con interlineado cómodo y números tabulares.</dd>
+          </div>
+          <div class="type-row">
+            <dt class="ds-caption">Pie</dt>
+            <dd class="ds-caption">Detalles, ayudas y metadatos.</dd>
+          </div>
+        </dl>
+      </ds-card>
+      <div class="ds-grid">
+        <ds-card>
+          <div class="ds-stack">
+            <h3>Radios</h3>
+            <div class="shapes">
+              <span class="shape shape--sm">sm</span>
+              <span class="shape shape--md">md</span>
+              <span class="shape shape--lg">lg</span>
+              <span class="shape shape--pill">pill</span>
+            </div>
+            <p class="ds-caption">Controles en md, tarjetas en lg, insignias en pill.</p>
+          </div>
+        </ds-card>
+        <ds-card>
+          <div class="ds-stack">
+            <h3>Elevación</h3>
+            <div class="shapes">
+              <span class="shape shape--flat">sm</span>
+              <span class="shape shape--shadow">base</span>
+              <span class="shape shape--raised">raised</span>
+            </div>
+            <p class="ds-caption">Solo diálogos y avisos flotan sobre el contenido.</p>
+          </div>
+        </ds-card>
+      </div>
+    </section>
+
+    <section id="actions" class="ds-stack" aria-labelledby="actions-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">03 · Acciones</p>
+        <h2 id="actions-title">El siguiente paso es evidente.</h2>
+        <p class="ds-muted">Una acción principal por contexto. Los iconos acompañan al texto.</p>
+      </div>
+      <ds-card>
+        <div class="ds-stack">
+          <div class="ds-row">
+            <button dsButton (click)="toast.show('Acción principal seleccionada.')">
+              Continuar <ds-icon name="arrow" />
+            </button>
+            <button
+              dsButton
+              variant="secondary"
+              (click)="toast.show('Acción secundaria seleccionada.')"
+            >
+              Guardar borrador
+            </button>
+            <button dsButton variant="quiet" (click)="toast.show('Acción discreta seleccionada.')">
+              Ver detalle
+            </button>
+            <button dsButton variant="danger" (click)="confirmation.show()">Restablecer</button>
+          </div>
+          <div class="ds-row">
+            <button dsButton disabled>No disponible</button>
+            <button dsButton busy>Guardando</button>
+            <button
+              dsButton
+              variant="secondary"
+              icon
+              aria-label="Buscar"
+              (click)="toast.show('Búsqueda de ejemplo.')"
+            >
+              <ds-icon name="search" />
+            </button>
+            <a dsLink routerLink="/design-system" fragment="usage">Cómo usarlo <ds-icon name="arrow" /></a>
+          </div>
+          <p class="ds-caption">
+            Objetivos de 44 px, foco visible y protección frente a acciones duplicadas durante la
+            carga. Los botones solo con icono requieren <code>aria-label</code>.
+          </p>
+        </div>
+      </ds-card>
+    </section>
+
+    <section id="forms" class="ds-stack" aria-labelledby="forms-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">04 · Formularios</p>
+        <h2 id="forms-title">Acompañar, sin interrumpir.</h2>
+        <p class="ds-muted">Etiquetas siempre visibles, ayudas breves y errores junto al campo.</p>
+      </div>
+      <ds-card>
+        <form
+          class="ds-stack"
+          (ngSubmit)="save()"
+          novalidate
+          aria-label="Formulario de ejemplo"
+        >
+          <ds-alert tone="info" heading="Ejemplo interactivo"
+            >Este formulario no envía datos a la API.</ds-alert
+          >
+          <div class="ds-grid">
+            <ds-field
+              label="Titular"
+              hint="Busca por nombre o razón social."
+              [error]="submitted() && !holder ? 'Elige un titular para continuar.' : ''"
+              required
+            >
+              <ds-combobox
+                #holderControl
+                name="holder"
+                [options]="holders"
+                [(ngModel)]="holder"
+              />
+            </ds-field>
+            <ds-field label="Finalidad">
+              <ds-select name="purpose" [options]="purposes" [(ngModel)]="purpose" />
+            </ds-field>
+          </div>
+          <div class="ds-grid">
+            <ds-field label="Fuentes" hint="Puedes elegir varias.">
+              <ds-select
+                name="sources"
+                multiple
+                placeholder="Elige las fuentes"
+                [options]="sources"
+                [(ngModel)]="selectedSources"
+              />
+            </ds-field>
+            <ds-field label="Fecha de solicitud">
+              <ds-date-picker name="requestDate" [max]="today" [(ngModel)]="requestDate" />
+            </ds-field>
+          </div>
+          <div class="ds-grid">
+            <ds-field label="Monto solicitado">
+              <ds-number-field
+                name="amount"
+                prefix="Bs"
+                [decimals]="2"
+                [step]="500"
+                [min]="0"
+                [(ngModel)]="amount"
+              />
+            </ds-field>
+            <ds-field label="Plazo" hint="Entre 1 y 60 meses.">
+              <ds-number-field
+                name="term"
+                suffix="meses"
+                [min]="1"
+                [max]="60"
+                [(ngModel)]="term"
+              />
+            </ds-field>
+          </div>
+          <ds-field label="Observaciones" hint="Añade únicamente el contexto necesario.">
+            <textarea
+              dsInput
+              name="notes"
+              rows="3"
+              placeholder="Escribe una nota breve…"
+            ></textarea>
+          </ds-field>
+          <ds-switch name="notify" [(ngModel)]="notify"
+            >Avisar al titular cuando termine la evaluación</ds-switch
+          >
+          <div>
+            <label class="ds-choice"
+              ><input
+                #consentControl
+                dsCheckbox
+                type="checkbox"
+                name="consent"
+                [(ngModel)]="consent"
+                [attr.aria-invalid]="submitted() && !consent ? 'true' : null"
+                [attr.aria-describedby]="submitted() && !consent ? 'consent-error' : null"
+              />Confirmo que el titular autorizó esta consulta.</label
+            >
+            @if (submitted() && !consent) {
+              <p id="consent-error" class="form-error" role="alert">
+                Confirma la autorización del titular para continuar.
+              </p>
+            }
+          </div>
+          <hr class="ds-divider" />
+          <div class="ds-row">
+            <button dsButton type="submit" [busy]="busy()">
+              {{ busy() ? 'Guardando…' : 'Guardar ejemplo' }}
+            </button>
+            <span class="ds-caption">Prueba también enviar el formulario vacío.</span>
+          </div>
+        </form>
+      </ds-card>
+      <div class="ds-grid">
+        <ds-card>
+          <div class="ds-stack">
+            <h3>Calendario</h3>
+            <ds-calendar [(value)]="calendarDate" />
+            <p class="ds-caption">
+              Flechas para moverse por días, Re Pág y Av Pág para cambiar de mes (con Mayús, de
+              año).
+            </p>
+          </div>
+        </ds-card>
+        <ds-card>
+          <div class="ds-stack">
+            <h3>Sin controles del navegador</h3>
+            <p class="ds-muted">
+              Listas, búsqueda, fechas y números se dibujan con el sistema: se ven igual en todos
+              los navegadores, respetan el tema y funcionan con teclado y lector de pantalla.
+            </p>
+            <p class="ds-caption">
+              El checker rechaza <code>select</code>, <code>datalist</code> e
+              <code>input</code> de tipo date o number en las pantallas.
+            </p>
+          </div>
+        </ds-card>
+      </div>
+    </section>
+
+    <section id="feedback" class="ds-stack" aria-labelledby="feedback-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">05 · Estados</p>
+        <h2 id="feedback-title">Siempre sabes qué está pasando.</h2>
+        <p class="ds-muted">
+          El color es una señal precisa: un punto, un icono. El texto siempre explica el estado.
+        </p>
+      </div>
+      <div class="ds-row">
+        <ds-badge>Sin evaluar</ds-badge>
+        <ds-badge tone="info">En proceso</ds-badge>
+        <ds-badge tone="success">Completado</ds-badge>
+        <ds-badge tone="warning">Revisión manual</ds-badge>
+        <ds-badge tone="danger">Requiere atención</ds-badge>
+      </div>
+      <div class="ds-grid">
+        <ds-alert tone="success" heading="Información guardada"
+          >Puedes continuar con el siguiente paso.</ds-alert
+        >
+        <ds-alert tone="warning" heading="Datos incompletos"
+          >Revisa las fuentes antes de tomar una decisión.</ds-alert
+        >
+        <ds-alert tone="danger" heading="No se pudo cargar"
+          >Intenta nuevamente. Tu información se conserva.</ds-alert
+        >
+      </div>
+      <div class="ds-grid">
+        <ds-card>
+          <div class="ds-stack">
+            <h3>Carga</h3>
+            <ds-spinner label="Consultando la información…" />
+            <div class="ds-stack-sm">
+              <ds-skeleton /><ds-skeleton /><ds-skeleton class="skeleton-short" />
+            </div>
+            <ds-progress label="Consultando fuentes" [value]="2" [max]="3" />
+            <ds-progress label="Preparando el informe" />
+            <p class="ds-caption">La animación respeta la preferencia de movimiento reducido.</p>
+          </div>
+        </ds-card>
+        <ds-card padding="compact">
+          <ds-empty-state
+            heading="Todo empieza aquí"
+            description="Todavía no hay evaluaciones en este ejemplo."
+          >
+            <button
+              dsButton
+              variant="secondary"
+              (click)="toast.show('Este es un ejemplo del estado vacío.')"
+            >
+              <ds-icon name="plus" />Crear primera evaluación
+            </button>
+          </ds-empty-state>
+        </ds-card>
+      </div>
+    </section>
+
+    <section id="data" class="ds-stack" aria-labelledby="data-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">06 · Información</p>
+        <h2 id="data-title">Datos con contexto, sin distracciones.</h2>
+        <p class="ds-muted ds-reading">
+          Estados escritos, cifras tabulares y tablas que conservan su estructura en pantallas
+          pequeñas.
+        </p>
+      </div>
+      <div class="ds-grid">
+        <ds-card padding="compact">
+          <ds-stat label="Evaluaciones" value="24" detail="Últimos 30 días" />
+        </ds-card>
+        <ds-card padding="compact">
+          <ds-stat label="En revisión manual" value="3" detail="Requieren una persona" />
+        </ds-card>
+        <ds-card padding="compact">
+          <ds-stat
+            label="Fuentes consultadas"
+            value="2"
+            detail="Buró y registro interno"
+          />
+        </ds-card>
+      </div>
+      <div
+        class="ds-table-scroll"
+        tabindex="0"
+        role="region"
+        aria-label="Tabla de evaluaciones recientes"
+      >
+        <table dsTable>
+          <caption>
+            Evaluaciones recientes
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Titular</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Fuente</th>
+              <th scope="col">Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Justina Choque</th>
+              <td><ds-badge tone="success">Completado</ds-badge></td>
+              <td>Buró</td>
+              <td>28/09/2026</td>
+            </tr>
+            <tr>
+              <th scope="row">Talleres Mamani SRL</th>
+              <td><ds-badge tone="warning">Revisión manual</ds-badge></td>
+              <td>Buró</td>
+              <td>27/09/2026</td>
+            </tr>
+            <tr>
+              <th scope="row">Justina Apaza Colque</th>
+              <td><ds-badge tone="info">En proceso</ds-badge></td>
+              <td>Buró</td>
+              <td>27/09/2026</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ds-pagination label="Páginas de evaluaciones" [total]="42" [pageSize]="10" [(page)]="page" />
+    </section>
+
+    <section id="navigation" class="ds-stack" aria-labelledby="navigation-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">07 · Navegación</p>
+        <h2 id="navigation-title">Siempre sabes dónde estás.</h2>
+        <p class="ds-muted ds-reading">
+          Pasos, pestañas y menús de acciones con teclado completo. Para ir a otra página se usa
+          un enlace, no un menú.
+        </p>
+      </div>
+      <ds-card>
+        <div class="ds-stack">
+          <ds-steps label="Progreso de la solicitud" [steps]="steps" [current]="2" />
+          <hr class="ds-divider" />
+          <div class="ds-row ds-between">
+            <h3>Evaluación de Justina Choque</h3>
+            <div class="ds-row">
+              <ds-menu label="Acciones" [items]="menuItems" (itemSelected)="onMenu($event)" />
+              <ds-menu
+                label="Más opciones"
+                icon="more"
+                variant="quiet"
+                [items]="moreItems"
+                (itemSelected)="onMenu($event)"
+              />
+            </div>
+          </div>
+          <ds-tabs label="Detalle de la evaluación" [(selected)]="tab">
+            <ds-tab value="summary" label="Resumen">
+              <p class="ds-muted">
+                Estado, fuentes consultadas y fecha de la evaluación, siempre escritos.
+              </p>
+            </ds-tab>
+            <ds-tab value="sources" label="Fuentes">
+              <p class="ds-muted">Buró de crédito y registro interno de la institución.</p>
+            </ds-tab>
+            <ds-tab value="history" label="Historial">
+              <p class="ds-muted">Cambios de estado con su fecha y responsable.</p>
+            </ds-tab>
+          </ds-tabs>
+        </div>
+      </ds-card>
+    </section>
+
+    <section id="overlays" class="ds-stack" aria-labelledby="overlays-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">08 · Diálogos</p>
+        <h2 id="overlays-title">Una pausa, solo cuando hace falta.</h2>
+      </div>
+      <ds-card>
+        <div class="ds-stack">
+          <p class="ds-muted ds-reading">
+            Las decisiones que descartan trabajo requieren contexto y una salida clara. Escape
+            cierra el diálogo y devuelve el foco al botón de origen.
+          </p>
+          <div class="ds-row">
+            <button dsButton variant="secondary" (click)="confirmation.show()">
+              Abrir diálogo
+            </button>
+            <button
+              dsButton
+              variant="quiet"
+              (click)="toast.show('Todo listo. Esta notificación se puede cerrar.')"
+            >
+              Probar notificación
+            </button>
+          </div>
+        </div>
+      </ds-card>
+    </section>
+
+    <section id="usage" class="ds-stack" aria-labelledby="usage-title">
+      <div class="ds-stack-sm section-heading">
+        <p class="ds-eyebrow">09 · Desarrollar</p>
+        <h2 id="usage-title">Una sola forma de construir juntos.</h2>
+        <p class="ds-muted ds-reading">
+          Importa desde <code>design-system</code>, compón con sus componentes y utiliza tokens para
+          el layout.
+        </p>
+      </div>
+      <ds-card>
+        <div class="ds-stack">
+          <h3>Empieza con los componentes</h3>
+          <pre class="code-sample"><code [textContent]="example"></code></pre>
+          <p class="ds-caption">
+            Ejecuta <code>npm run ds:check</code>. El build y CI rechazan controles sin Design
+            System, estilos visuales independientes e imports internos.
+          </p>
+          <p class="ds-caption">
+            Contrato de contribución: <code>docs/design-system/README.md</code>. Catálogo:
+            <code>/design-system</code>.
+          </p>
+        </div>
+      </ds-card>
+    </section>
+    <footer class="catalog-footer">
+      <ds-logo />
+      <p class="ds-caption">DoggyCredit Design System 3.0 · Sólido en cada detalle.</p>
+    </footer>
+  </main>
+</div>
+<ds-dialog #confirmation heading="¿Restablecer el ejemplo?">
+  <div class="ds-stack">
+    <p class="ds-muted">
+      Se vaciarán el titular y la confirmación del formulario de ejemplo. No afecta a datos del
+      sistema.
+    </p>
+    <div class="ds-actions">
+      <button dsButton variant="secondary" (click)="confirmation.close()">Conservar cambios</button>
+      <button dsButton variant="danger" (click)="reset(); confirmation.close()">
+        Restablecer ejemplo
+      </button>
+    </div>
+  </div>
+</ds-dialog>

@@ -1,16 +1,29 @@
 # Caddy: único punto de entrada público. Solo TLS, estáticos y enrutado.
 # NUNCA autoriza nada -- eso vive en doggycredit-api (Spring Security).
-# Se activa cuando exista backend/target/*.jar y web/dist/ (no en el Día 1).
-
+# El issuer determina el dominio; no se introduce otra variable de entorno.
 {
 	auto_https disable_redirects
 }
 
-localhost {
-	tls internal
+# Los snippets deben definirse antes de importarse.
+(routes) {
+	handle /auth/* {
+		reverse_proxy keycloak:8080
+	}
 
-	handle /api/* {
+	handle_path /api/v1/* {
+		reverse_proxy doggycredit-api:8080 {
+			# Nunca reenviar una cabecera de tenant entrante: el tenant sale solo del token.
+			header_up -X-Tenant-*
+		}
+	}
+
+	handle /actuator/health {
 		reverse_proxy doggycredit-api:8080
+	}
+
+	handle /actuator/* {
+		respond 404
 	}
 
 	handle {
@@ -19,7 +32,14 @@ localhost {
 		file_server
 	}
 
-	# Nunca reenviar una cabecera de tenant entrante: el tenant sale solo del token.
-	header -X-Tenant-Id
-	header -X-Tenant-*
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Frame-Options DENY
+	}
+}
+
+https://localhost {
+	tls internal
+	import routes
 }

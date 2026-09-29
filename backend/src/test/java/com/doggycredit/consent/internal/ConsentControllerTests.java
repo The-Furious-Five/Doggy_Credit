@@ -1,11 +1,11 @@
 package com.doggycredit.consent.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,6 +64,7 @@ class ConsentControllerTests {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(BODY))
 			.andExpect(status().isCreated())
+			.andExpect(header().string("X-Simulated", "true"))
 			.andExpect(jsonPath("$.id").isNotEmpty())
 			.andExpect(jsonPath("$.titularDocumento").value("12345678-K"))
 			.andExpect(jsonPath("$.fuentes[0]").value("BANCO"))
@@ -88,10 +89,7 @@ class ConsentControllerTests {
 
 	@Test
 	void sinTokenResponde401() throws Exception {
-		// csrf(): la cadena por defecto de Boot deja CSRF activo y, sin cabecera
-		// Authorization, respondería 403 antes de llegar al 401. Deshabilitarlo
-		// en una API solo-bearer es decisión de SPIKE-2 (SecurityFilterChain).
-		mvc.perform(post("/consentimientos").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY))
+		mvc.perform(post("/consentimientos").contentType(MediaType.APPLICATION_JSON).content(BODY))
 			.andExpect(status().isUnauthorized());
 	}
 

@@ -39,7 +39,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${DC_KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/doggycredit}
+          issuer-uri: ${DC_KEYCLOAK_ISSUER_URI:https://localhost/auth/realms/doggycredit}
 
 server:
   port: 8080
