@@ -30,4 +30,14 @@ public class ConsentPolicy {
 		}
 	}
 
+	/** @throws ConsentRequiredException si el consentimiento indicado no cubre este titular y fuente. */
+	public void requireActive(UUID tenantId, UUID consentId, String documento, Source source) {
+		Objects.requireNonNull(tenantId, "tenantId");
+		Objects.requireNonNull(consentId, "consentId");
+		Objects.requireNonNull(source, "source");
+		if (!consents.existsActive(tenantId, consentId, DocumentNumber.normalize(documento), source.name())) {
+			throw new ConsentRequiredException(source);
+		}
+	}
+
 }

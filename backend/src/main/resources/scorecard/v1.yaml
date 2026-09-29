@@ -1,0 +1,39 @@
+version: basic-v1
+baseScore: 850
+bands:
+  - { letter: A, min: 750 }
+  - { letter: B, min: 600 }
+  - { letter: C, min: 450 }
+  - { letter: D, min: 300 }
+  - { letter: E, min: 0 }
+rules:
+  - variable: maxDaysPastDue12m
+    buckets:
+      - { max: 0, points: 0, reason: SIN_MORA_12M }
+      - { max: 30, points: -80, reason: MORA_1_30_DIAS }
+      - { max: 90, points: -200, reason: MORA_31_90_DIAS }
+      - { max: 2147483647, points: -350, reason: MORA_MAYOR_90_DIAS }
+  - variable: activitySeniorityMonths
+    buckets:
+      - { max: 5, points: -150, reason: ACTIVIDAD_MENOR_6_MESES }
+      - { max: 23, points: -40, reason: ACTIVIDAD_6_23_MESES }
+      - { max: 2147483647, points: 0, reason: ACTIVIDAD_MAYOR_24_MESES }
+  - variable: financialSystemSeniorityMonths
+    buckets:
+      - { max: 5, points: -100, reason: HISTORIAL_MENOR_6_MESES }
+      - { max: 23, points: -30, reason: HISTORIAL_6_23_MESES }
+      - { max: 2147483647, points: 0, reason: HISTORIAL_MAYOR_24_MESES }
+  - variable: requestedAmountIncomeMonths
+    buckets:
+      - { max: 3, points: 0, reason: MONTO_HASTA_3_INGRESOS }
+      - { max: 6, points: -50, reason: MONTO_4_6_INGRESOS }
+      - { max: 2147483647, points: -140, reason: MONTO_MAYOR_6_INGRESOS }
+  - variable: termMonths
+    buckets:
+      - { max: 12, points: 0, reason: PLAZO_HASTA_12_MESES }
+      - { max: 36, points: -20, reason: PLAZO_13_36_MESES }
+      - { max: 2147483647, points: -50, reason: PLAZO_MAYOR_36_MESES }
+  - variable: bureauRecordFound
+    buckets:
+      - { max: 0, points: -60, reason: SIN_REGISTRO_BURO }
+      - { max: 1, points: 0, reason: CON_REGISTRO_BURO }

@@ -19,7 +19,10 @@ public enum ErrorCode {
     TENANT_NOT_FOUND("tenant-not-found", 403, "Tenant no registrado"),
     UNAUTHENTICATED("unauthenticated", 401, "Autenticación requerida"),
     INVALID_TENANT_CLAIM("invalid-tenant-claim", 403, "Reclamo de tenant inválido"),
-    VALIDATION_ERROR("validation-error", 400, "Error de validación");
+    VALIDATION_ERROR("validation-error", 400, "Error de validación"),
+    APPLICANT_ALREADY_EXISTS("applicant-already-exists", 409, "Solicitante ya registrado"),
+    APPLICANT_NOT_FOUND("applicant-not-found", 422, "Solicitante no registrado"),
+    ASSESSMENT_NOT_FOUND("assessment-not-found", 404, "Evaluación no encontrada");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
 
