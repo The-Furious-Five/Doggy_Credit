@@ -120,28 +120,9 @@ del navegador: iniciar sesión, recargar, cerrar sesión y confirmar retorno.
 El flujo completo de evaluación, auditoría y 404 entre tenants requiere los
 módulos de los demás integrantes; no se simula su aprobación en estas pruebas.
 
-## VM y despliegue por etiqueta
+## VM y despliegue
 
-Nicole debe proveer una VM con Docker Compose, Python/venv, DNS apuntando a la VM,
-443 accesible y `/srv/doggycredit/.env` con las variables ya declaradas. Usar
-`DC_KEYCLOAK_ISSUER_URI=https://DOMINIO/auth/realms/doggycredit` y `DC_HTTP_PORT=443`.
-El usuario de despliegue necesita permiso sobre `/srv/doggycredit` y Docker.
-
-Configurar el environment GitHub `demo` con DEMO_HOST, DEMO_USER, DEMO_SSH_KEY y
-DEMO_KNOWN_HOSTS (huella del servidor verificada por Nicole). Son credenciales de
-CI, no nuevas variables de aplicación. Una etiqueta `v*` ejecuta primero el CI;
-solo después copia un archivo del commit exacto por SSH con verificación de host.
-
-El script de despliegue genera las URLs públicas, construye imágenes con el SHA,
-conserva la release anterior y valida `/actuator/health` por HTTPS. Caddy obtiene
-certificado público por TLS-ALPN en 443; para localhost utiliza CA interna.
-Solo Caddy publica un puerto. La semilla no incluye contraseñas reales. Si falla
-el arranque o la salud, se restauran imágenes anteriores sin borrar datos.
-Las migraciones de base de datos no se revierten: deben ser compatibles con la
-release anterior. `current` cambia únicamente tras la comprobación de salud.
-
-No se ha ejecutado un despliegue remoto: no se proporcionaron VM, dominio ni
-credenciales. SPIKE-6 necesita esa ejecución para cumplir el cierre de la guía.
+Reemplazado por el pipeline CI/CD: ver [despliegue-vps.md](despliegue-vps.md).
 
 ## Evidencia local (29/09/2026)
 

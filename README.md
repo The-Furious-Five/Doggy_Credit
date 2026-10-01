@@ -36,7 +36,7 @@ docker compose --env-file .env -f infra/compose.yaml ps   # todos "healthy"
 cd backend && ./mvnw test   # incluye ApplicationModulesTest (FF-01/FF-02)
 ```
 
-El CI (`.github/workflows/ci.yml`) exige Docker, corre ArchUnit + Spring
+El CI/CD (`.github/workflows/ci-cd.yml`, despliegue en [`docs/runbooks/despliegue-vps.md`](docs/runbooks/despliegue-vps.md)) exige Docker, corre ArchUnit + Spring
 Modulith + tests y falla ante cualquier test omitido que no esté en la lista
 blanca con vencimiento: ver [`docs/runbooks/tests-omitidos.md`](docs/runbooks/tests-omitidos.md).
 

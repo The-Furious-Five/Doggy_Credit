@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 # Gates del backend (HAB-01 + HAB-02):
 #   1. Docker disponible: si no hay Docker, el pipeline falla (los tests con
@@ -9,13 +9,21 @@ name: CI
 #      solo pasa si está en ci/skipped-tests-allowlist.json y no venció.
 #      Ver docs/runbooks/tests-omitidos.md.
 # SPIKE-5 agrega regeneración y oasdiff; SPIKE-2 agrega identidad real en Compose.
+#
+# CD (solo push a main o ejecución manual, y solo si TODO el CI pasó):
+#   las imágenes se compilan en GitHub Actions y se publican en GHCR con el SHA;
+#   el VPS no compila nada: descarga, arranca, valida salud y, si falla, vuelve
+#   a la release anterior. Ver docs/runbooks/despliegue-vps.md.
 
 on:
-  workflow_call:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   backend:
@@ -126,3 +134,98 @@ jobs:
       - name: Detener contenedores de CI
         if: always()
         run: docker compose --env-file .env.example -f infra/compose.yaml down
+
+  deploy:
+    needs: [backend, web, contracts, identity]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ steps.release.outputs.origin }}
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r scripts/requirements.txt
+
+      - name: Configurar dominio público (realm + Caddyfile)
+        id: release
+        env:
+          DC_KEYCLOAK_ISSUER_URI: ${{ vars.DC_KEYCLOAK_ISSUER_URI }}
+        run: |
+          python scripts/configure_demo.py
+          echo "origin=${DC_KEYCLOAK_ISSUER_URI%/auth/realms/doggycredit}" >> "$GITHUB_OUTPUT"
+          echo "repo=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compilar y publicar doggycredit-api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.release.outputs.repo }}/doggycredit-api:${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Compilar y publicar doggycredit-web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          push: true
+          tags: ${{ steps.release.outputs.repo }}/doggycredit-web:${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+      - name: Empaquetar release (solo configuración, sin código fuente)
+        env:
+          REPO: ${{ steps.release.outputs.repo }}
+          DC_KEYCLOAK_ISSUER_URI: ${{ vars.DC_KEYCLOAK_ISSUER_URI }}
+        run: |
+          cat > infra/release.env <<EOF
+          DC_API_IMAGE=$REPO/doggycredit-api:$GITHUB_SHA
+          DC_WEB_IMAGE=$REPO/doggycredit-web:$GITHUB_SHA
+          DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
+          EOF
+          tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
+            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json \
+            simulators/wiremock/bureau scripts/deploy.sh
+
+      - name: Desplegar en el VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          install -m 700 -d ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          dir=/srv/doggycredit/releases/$GITHUB_SHA
+          ssh -o BatchMode=yes "$TARGET" "mkdir -p $dir && tar -xzf - -C $dir" < release.tar.gz
+          # Token efímero del job: vale solo mientras dura el job; se cierra la sesión al terminar.
+          printf '%s' "$GH_TOKEN" | ssh -o BatchMode=yes "$TARGET" \
+            "trap 'docker logout ghcr.io >/dev/null' EXIT; docker login ghcr.io -u $GITHUB_ACTOR --password-stdin && cd $dir && bash scripts/deploy.sh"
+
+      - name: Verificar salud desde Internet
+        run: curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 3 "${{ steps.release.outputs.origin }}/actuator/health"
+
+      - name: Eliminar clave temporal
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
