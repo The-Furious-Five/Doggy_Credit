@@ -14,7 +14,7 @@ export interface EvaluacionNueva {
     consentId: string;
     proposito?: string;
     /**
-     * Decimal como string
+     * Decimal positivo como string
      */
     montoSolicitado?: string;
     plazoMeses?: number;
