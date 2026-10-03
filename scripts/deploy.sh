@@ -20,6 +20,12 @@ rollback() {
 }
 trap rollback ERR
 compose up -d --remove-orphans --wait --wait-timeout 300
+# --import-realm no actualiza un realm existente: aplicar el tema de acceso en cada despliegue.
+compose exec -T keycloak bash -c \
+  '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master \
+     --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" &&
+   /opt/keycloak/bin/kcadm.sh update realms/doggycredit -s loginTheme=doggycredit \
+     -s "displayNameHtml=Doggy<span class=\"dc-wordmark-accent\">Credit</span>"'
 origin=$(sed -n 's|^DC_KEYCLOAK_ISSUER_URI=\(.*\)/auth/realms/doggycredit$|\1|p' infra/release.env)
 curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 2 "$origin/actuator/health" > /dev/null
 ln -sfn "$release" "$base/current"
