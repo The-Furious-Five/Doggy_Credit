@@ -8,6 +8,7 @@ import {
   DsDialog,
   DsField,
   DsInput,
+  DsLink,
   DsLogo,
   DsRadio,
   DsToastService,
@@ -96,12 +97,14 @@ describe('Contrato accesible del Design System', () => {
 });
 
 @Component({
-  imports: [DsAlert, DsButton, DsLogo],
+  imports: [DsAlert, DsButton, DsLink, DsLogo],
   template: `
     <ds-alert [tone]="tone()" heading="Aviso" [urgent]="urgent()">Detalle</ds-alert>
     <button dsButton icon variant="quiet" aria-label="Buscar">·</button>
     <ds-logo />
     <ds-logo label="DoggyCredit" />
+    <a dsLink href="/planes">Ver planes</a>
+    <a dsLink appearance="primary" href="/acceso">Empezar</a>
   `,
 })
 class SignalsFixture {
@@ -133,6 +136,16 @@ describe('Señales visuales con significado accesible', () => {
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('button');
     expect(button.classList).toContain('ds-button--icon');
     expect(button.getAttribute('aria-label')).toBe('Buscar');
+  });
+  it('un enlace puede presentarse como botón sin dejar de ser navegación', () => {
+    const fixture = TestBed.createComponent(SignalsFixture);
+    fixture.detectChanges();
+    const [link, cta] = fixture.nativeElement.querySelectorAll('a');
+    expect(link.classList).toContain('ds-link');
+    expect(link.classList).not.toContain('ds-button');
+    expect(cta.classList).toContain('ds-button');
+    expect(cta.getAttribute('data-variant')).toBe('primary');
+    expect(cta.getAttribute('href')).toBe('/acceso');
   });
   it('el logo es decorativo salvo que se le dé un nombre', () => {
     const fixture = TestBed.createComponent(SignalsFixture);

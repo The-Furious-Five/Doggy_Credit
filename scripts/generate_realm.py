@@ -86,6 +86,9 @@ def generate(seed, origin):
                    {"claim.name": "realm_access.roles", "multivalued": "true"})]},
     ]
     return {"realm": "doggycredit", "displayName": "DoggyCredit", "enabled": True,
+            # Wordmark y tema con los colores del Design System (infra/keycloak/themes).
+            "displayNameHtml": 'Doggy<span class="dc-wordmark-accent">Credit</span>',
+            "loginTheme": "doggycredit",
             # La pantalla de acceso de Keycloak también es UI: en español (guía §6.3).
             "internationalizationEnabled": True, "supportedLocales": ["es"], "defaultLocale": "es",
             "sslRequired": "external",
