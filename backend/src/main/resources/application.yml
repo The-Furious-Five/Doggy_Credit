@@ -83,6 +83,22 @@ doggycredit:
       PRO: 300
       ENTERPRISE: 1000
 
+  # D-06: tasa anual de referencia y plazo sugerido por necesidad, solo para
+  # el monto sugerido (CA-04). El máximo y la tasa de cada producto los aplica
+  # la recomendación (C-03). Productivas: tope del D.S. 2055/5403 para micro
+  # (11,5 %, RN-17, por validar); consumo: tasa de referencia de mercado.
+  needs:
+    reference-annual-rate:
+      CAPITAL_TRABAJO: 0.115
+      INVERSION_PRODUCTIVA: 0.115
+      EFICIENCIA_ENERGETICA: 0.115
+      CONSUMO_CONSOLIDACION: 0.18
+    default-term-months:
+      CAPITAL_TRABAJO: 12
+      INVERSION_PRODUCTIVA: 36
+      EFICIENCIA_ENERGETICA: 36
+      CONSUMO_CONSOLIDACION: 24
+
   encryption:
     master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
 
