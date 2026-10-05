@@ -38,6 +38,16 @@ class AuditEvent {
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
+	// C-04: los rellena el trigger audit_link_chain al insertar; la app solo los lee.
+	@Column(name = "chain_seq", insertable = false, updatable = false)
+	private Long chainSeq;
+
+	@Column(name = "prev_hash", length = 64, insertable = false, updatable = false)
+	private String prevHash;
+
+	@Column(name = "row_hash", length = 64, insertable = false, updatable = false)
+	private String rowHash;
+
 	protected AuditEvent() {
 	}
 
@@ -51,6 +61,42 @@ class AuditEvent {
 		this.resourceId = resourceId;
 		this.correlationId = correlationId;
 		this.createdAt = Instant.now();
+	}
+
+	UUID id() {
+		return id;
+	}
+
+	String actor() {
+		return actor;
+	}
+
+	String action() {
+		return action;
+	}
+
+	String resourceType() {
+		return resourceType;
+	}
+
+	UUID resourceId() {
+		return resourceId;
+	}
+
+	String correlationId() {
+		return correlationId;
+	}
+
+	Instant createdAt() {
+		return createdAt;
+	}
+
+	Long chainSeq() {
+		return chainSeq;
+	}
+
+	String rowHash() {
+		return rowHash;
 	}
 
 }

@@ -19,6 +19,7 @@ tags:
   - name: solicitantes
   - name: evaluaciones
   - name: integraciones
+  - name: auditoria
 
 paths:
   /solicitantes:
@@ -273,6 +274,47 @@ paths:
         "404":
           description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
 
+  /auditoria:
+    get:
+      tags: [auditoria]
+      operationId: listarAuditoria
+      summary: Bitácora de auditoría del tenant, de la más reciente a la más antigua (solo TENANT_ADMIN)
+      description: >
+        Paginación por cursor (informe de arquitectura: "cursor en bitácoras").
+        Para la página siguiente se envía como `cursor` el `siguienteCursor` de la
+        respuesta anterior.
+      parameters:
+        - name: desde
+          in: query
+          required: false
+          description: Incluye registros creados en o después de este instante
+          schema: { type: string, format: date-time }
+        - name: hasta
+          in: query
+          required: false
+          description: Incluye registros creados antes de este instante (exclusivo)
+          schema: { type: string, format: date-time }
+        - name: cursor
+          in: query
+          required: false
+          description: Secuencia del último registro de la página anterior
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Página de la bitácora
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaAuditoria"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -473,3 +515,31 @@ components:
         modelVersion: { type: string }
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
+
+    RegistroAuditoria:
+      type: object
+      description: Un registro de la bitácora append-only, con su eslabón de la cadena de hash.
+      properties:
+        id: { type: string, format: uuid }
+        secuencia: { type: integer, format: int64, description: "Posición en la cadena del tenant" }
+        actor: { type: string }
+        accion: { type: string }
+        tipoRecurso: { type: string }
+        idRecurso: { type: string, format: uuid }
+        correlationId: { type: string }
+        creadoEn: { type: string, format: date-time }
+        hash: { type: string, description: "SHA-256 (hex) del registro, que incluye el hash del anterior" }
+      required: [id, secuencia, actor, accion, tipoRecurso, correlationId, creadoEn, hash]
+
+    PaginaAuditoria:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RegistroAuditoria"
+        siguienteCursor:
+          type: integer
+          format: int64
+          description: Ausente si no hay más páginas
+      required: [items]

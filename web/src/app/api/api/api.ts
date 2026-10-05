@@ -1,3 +1,5 @@
+export * from './auditoria.service';
+import { AuditoriaService } from './auditoria.service';
 export * from './consentimientos.service';
 import { ConsentimientosService } from './consentimientos.service';
 export * from './evaluaciones.service';
@@ -6,4 +8,4 @@ export * from './integraciones.service';
 import { IntegracionesService } from './integraciones.service';
 export * from './solicitantes.service';
 import { SolicitantesService } from './solicitantes.service';
-export const APIS = [ConsentimientosService, EvaluacionesService, IntegracionesService, SolicitantesService];
+export const APIS = [AuditoriaService, ConsentimientosService, EvaluacionesService, IntegracionesService, SolicitantesService];

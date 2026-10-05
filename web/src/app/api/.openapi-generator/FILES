@@ -3,6 +3,7 @@ README.md
 api.base.service.ts
 api.module.ts
 api/api.ts
+api/auditoria.service.ts
 api/consentimientos.service.ts
 api/evaluaciones.service.ts
 api/integraciones.service.ts
@@ -20,10 +21,12 @@ model/fuenteIntegracion.ts
 model/integracion.ts
 model/integracionCambio.ts
 model/models.ts
+model/paginaAuditoria.ts
 model/paginaSolicitantes.ts
 model/perfilFinanciero360.ts
 model/perfilFinanciero360FuentesInner.ts
 model/problemDetail.ts
+model/registroAuditoria.ts
 model/segmento.ts
 model/solicitante.ts
 model/solicitanteDetalle.ts
