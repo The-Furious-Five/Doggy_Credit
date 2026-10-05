@@ -4,15 +4,11 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +21,8 @@ import com.doggycredit.assessment.IdempotencyKeyReusedException;
 import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistry;
+import com.doggycredit.consent.Source;
 import com.doggycredit.integration.BureauReport;
-import com.doggycredit.integration.ConnectorGateway;
-import com.doggycredit.integration.SourceConnector;
-import com.doggycredit.integration.SourceUnavailableException;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.BasicScorecard;
 import com.doggycredit.scoring.ScorecardInput;
@@ -39,27 +33,17 @@ class SynchronousAssessmentService implements AssessmentOperations {
 
 	private final CreditAssessmentRepository assessments;
 	private final ApplicantRegistry applicants;
-	private final ConnectorGateway connectorGateway;
-	private final SourceConnector<Optional<BureauReport>> bureauConnector;
+	private final SourceCollector sources;
 	private final BasicScorecard scorecard;
 	private final AuditTrail audit;
-	private final ExecutorService executor;
-	private final Duration collectionBudget;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
-			ConnectorGateway connectorGateway,
-			@Qualifier("bureauConnector") SourceConnector<Optional<BureauReport>> bureauConnector,
-			BasicScorecard scorecard, AuditTrail audit,
-			@Qualifier("assessmentCollectionExecutor") ExecutorService executor,
-			@Value("${doggycredit.assessment.collection-budget:2s}") Duration collectionBudget) {
+			SourceCollector sources, BasicScorecard scorecard, AuditTrail audit) {
 		this.assessments = assessments;
 		this.applicants = applicants;
-		this.connectorGateway = connectorGateway;
-		this.bureauConnector = bureauConnector;
+		this.sources = sources;
 		this.scorecard = scorecard;
 		this.audit = audit;
-		this.executor = executor;
-		this.collectionBudget = collectionBudget;
 	}
 
 	@Override
@@ -77,7 +61,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 
 		String normalizedDocument = DocumentNumber.normalize(command.document());
 		ApplicantProfile applicant = applicants.findRequired(command.tenantId(), normalizedDocument);
-		BureauCollection collection = collectBureau(command.tenantId(), command.consentId(), normalizedDocument);
+		SourceCollection collection = sources.collect(command.tenantId(), command.consentId(), normalizedDocument);
 		BasicScoreResult score = scorecard.score(toScorecardInput(command, applicant, collection));
 		AssessmentStatus status = collection.partial() ? AssessmentStatus.PARCIAL : AssessmentStatus.REVISION_MANUAL;
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
@@ -96,22 +80,13 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			.orElseThrow(AssessmentNotFoundException::new);
 	}
 
-	private BureauCollection collectBureau(UUID tenantId, UUID consentId, String document) {
-		try {
-			return new BureauCollection(connectorGateway.fetchWithin(
-					bureauConnector, tenantId, consentId, document, collectionBudget, executor), false);
-		}
-		catch (SourceUnavailableException exception) {
-			return new BureauCollection(Optional.empty(), true);
-		}
-	}
-
 	private ScorecardInput toScorecardInput(AssessmentCommand command, ApplicantProfile applicant,
-			BureauCollection collection) {
-		Optional<BureauReport> bureau = collection.report();
-		// La mora es desconocida solo si el buró FALLÓ (RN-15: nunca 0 inventado). Si el buró
-		// respondió "sin registro" (informe vacío), es una respuesta válida: sin deudas, mora 0.
-		OptionalInt maxDaysPastDue = collection.partial() ? OptionalInt.empty()
+			SourceCollection collection) {
+		Optional<BureauReport> bureau = bureauReport(collection);
+		// La mora es desconocida solo si el BURÓ falló (RN-15: nunca 0 inventado); que caiga
+		// otra fuente no la vuelve desconocida. Si el buró respondió "sin registro" (informe
+		// vacío), es una respuesta válida: sin deudas, mora 0.
+		OptionalInt maxDaysPastDue = collection.failed(Source.BURO) ? OptionalInt.empty()
 				: OptionalInt.of(bureau.stream()
 					.flatMap(report -> report.endeudamiento().stream())
 					.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
@@ -135,7 +110,11 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		}
 	}
 
-	private record BureauCollection(Optional<BureauReport> report, boolean partial) {
+	/** El conector del buró devuelve {@code Optional<BureauReport>}: vacío = "sin registro". */
+	@SuppressWarnings("unchecked")
+	private static Optional<BureauReport> bureauReport(SourceCollection collection) {
+		return collection.payload(Source.BURO)
+			.flatMap(payload -> (Optional<BureauReport>) payload);
 	}
 
 }
