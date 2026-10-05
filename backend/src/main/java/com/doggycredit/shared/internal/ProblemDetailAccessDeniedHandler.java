@@ -20,7 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * todavía forma de distinguir el motivo del rechazo desde aquí.
  */
 @Component
-class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
+public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
 
     private final SecurityProblemDetailWriter writer;
 

@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { map } from 'rxjs';
+import { TenantService } from '../api';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import {
   DsBadge,
@@ -34,12 +35,27 @@ import {
               </a>
             }
           }
+          @if (user().platformAdmin) {
+            <a dsLink routerLink="/app/admin/tenants" routerLinkActive ariaCurrentWhenActive="page">
+              <ds-icon name="shield" />Administración de tenants
+            </a>
+          }
         </nav>
         <div class="console-plan ds-stack-sm">
-          <strong>Plan Gratis</strong>
-          <ds-progress label="Consultas" [value]="342" [max]="500" />
-          <p class="ds-caption">342 de 500 este mes</p>
-          <a dsLink routerLink="/app/configuracion" fragment="plan">Mejorar a Pro <ds-icon name="arrow" /></a>
+          <strong>Plan {{ tenant()?.plan === 'PRO' ? 'Pro' : (tenant()?.plan === 'ENTERPRISE' ? 'Enterprise' : 'Gratis') }}</strong>
+          @if (usage(); as currentUsage) {
+            @if (currentUsage.limiteMensual === 0) {
+              <p class="ds-caption">{{ currentUsage.evaluacionesMes }} evaluaciones este mes · sin límite</p>
+            } @else {
+              <ds-progress label="Evaluaciones del mes" [value]="currentUsage.evaluacionesMes" [max]="currentUsage.limiteMensual" />
+              <p class="ds-caption">{{ currentUsage.evaluacionesMes }} de {{ currentUsage.limiteMensual }} este mes</p>
+            }
+          } @else {
+            <p class="ds-caption">Cargando uso mensual…</p>
+          }
+          @if (tenant()?.plan !== 'PRO' && tenant()?.plan !== 'ENTERPRISE') {
+            <a dsLink routerLink="/app/configuracion" fragment="plan">Mejorar a Pro <ds-icon name="arrow" /></a>
+          }
         </div>
       </aside>
 
@@ -65,14 +81,19 @@ export class Console {
   private readonly router = inject(Router);
   private readonly theme = inject(DsThemeService);
   private readonly oidc = inject(OidcSecurityService);
+  private readonly tenantService = inject(TenantService);
+  readonly tenant = toSignal(this.tenantService.obtenerTenantActual());
+  readonly usage = toSignal(this.tenantService.obtenerUsoTenant());
   readonly user = toSignal(
     this.oidc.userData$.pipe(
       map(({ userData }) => ({
         name: userData?.name || userData?.preferred_username || 'Usuario',
         tenant: userData?.tenant_id || 'Institución',
+        platformAdmin: Array.isArray(userData?.realm_access?.roles)
+          && userData.realm_access.roles.includes('PLATFORM_ADMIN'),
       })),
     ),
-    { initialValue: { name: 'Usuario', tenant: 'Institución' } },
+    { initialValue: { name: 'Usuario', tenant: 'Institución', platformAdmin: false } },
   );
   readonly path = () => this.router.url.split('#')[0];
 

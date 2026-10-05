@@ -131,6 +131,8 @@ services:
       DC_DB_NAME: ${DC_DB_NAME:-doggycredit}
       DC_DB_USER: ${DC_DB_USER:-doggy_app}
       DC_DB_PASSWORD: ${DC_DB_PASSWORD:?falta DC_DB_PASSWORD en .env}
+      DC_APP_DB_USER: ${DC_APP_DB_USER:-doggycredit_app}
+      DC_APP_DB_PASSWORD: ${DC_APP_DB_PASSWORD:-dev_only_app_role}
       # El issuer es la URL pública (la que ve el navegador); las claves se
       # descargan por la red interna para no depender del certificado de Caddy.
       DC_KEYCLOAK_ISSUER_URI: ${DC_KEYCLOAK_ISSUER_URI:-https://localhost/auth/realms/doggycredit}

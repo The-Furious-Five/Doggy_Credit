@@ -29,6 +29,7 @@ import {
   DsTone,
 } from '../design-system';
 import { day, money, segmentLabel } from './client-format';
+import { SensitiveDataService } from './sensitive-data.service';
 
 type SourceState = PerfilFinanciero360FuentesInner['estado'];
 
@@ -98,7 +99,7 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
               </ds-badge>
             }
           </div>
-          <h1 class="ds-mono">{{ c.documento }}</h1>
+          <h1 class="ds-mono">{{ sensitive.document(c.documento) }}</h1>
           <p class="ds-muted">{{ c.actividad }} · Actualizado {{ day(c.perfil?.creadoEn ?? c.creadoEn) }}</p>
         </div>
         <div class="ds-row">
@@ -111,10 +112,10 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
         <ds-tab value="resumen" label="Resumen">
           @if (c.perfil; as p) {
             <div class="kpis">
-              <ds-card padding="compact"><ds-stat label="Ingreso mensual" [value]="money(p.ingresoMensual)" [detail]="origin(p)" /></ds-card>
-              <ds-card padding="compact"><ds-stat label="Deuda vigente" [value]="money(p.deudaVigente)" [detail]="obligations(p)" /></ds-card>
+              <ds-card padding="compact"><ds-stat label="Ingreso mensual" [value]="sensitive.amount(money(p.ingresoMensual))" [detail]="origin(p)" /></ds-card>
+              <ds-card padding="compact"><ds-stat label="Deuda vigente" [value]="sensitive.amount(money(p.deudaVigente))" [detail]="obligations(p)" /></ds-card>
               <ds-card padding="compact"><ds-stat label="Endeudamiento" [value]="p.endeudamientoPorcentaje ? p.endeudamientoPorcentaje + ' %' : '—'" detail="Cuota sobre ingreso" /></ds-card>
-              <ds-card padding="compact"><ds-stat label="Capacidad de pago" [value]="money(p.capacidadPago)" detail="Mensual, después de egresos" /></ds-card>
+              <ds-card padding="compact"><ds-stat label="Capacidad de pago" [value]="sensitive.amount(money(p.capacidadPago))" detail="Mensual, después de egresos" /></ds-card>
               <ds-card padding="compact"><ds-stat label="Antigüedad" [value]="seniority(p)" detail="En el sistema financiero" /></ds-card>
             </div>
           } @else {
@@ -180,6 +181,7 @@ export class ClientProfile {
   private readonly applicants = inject(SolicitantesService);
   private readonly consentApi = inject(ConsentimientosService);
   private readonly toast = inject(DsToastService);
+  readonly sensitive = inject(SensitiveDataService);
   readonly id = input('');
   readonly confirmDialog = viewChild(DsDialog);
   readonly segmentLabel = segmentLabel;

@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * defecto del contenedor o el 401 sin cuerpo del recurso OAuth2 por defecto.
  */
 @Component
-class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntryPoint {
+public class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final SecurityProblemDetailWriter writer;
 

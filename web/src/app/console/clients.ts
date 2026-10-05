@@ -19,6 +19,7 @@ import {
   DsTable,
 } from '../design-system';
 import { day, money, segmentLabel, segmentLabels } from './client-format';
+import { SensitiveDataService } from './sensitive-data.service';
 
 const PAGE_SIZE = 10;
 
@@ -88,11 +89,11 @@ const PAGE_SIZE = 10;
               <tbody>
                 @for (client of clients.value()!.items; track client.id) {
                   <tr>
-                    <th scope="row"><a dsLink class="ds-mono" [routerLink]="client.id">{{ client.documento }}</a></th>
+                    <th scope="row"><a dsLink class="ds-mono" [routerLink]="client.id">{{ sensitive.document(client.documento) }}</a></th>
                     <td>{{ segmentLabel(client.segmento) }}</td>
                     <td>{{ client.actividad }}</td>
                     <td>{{ client.destinoCredito }}</td>
-                    <td class="num">{{ money({ amount: client.ingresosMensuales, currency: client.moneda }) }}</td>
+                    <td class="num">{{ sensitive.amount(money({ amount: client.ingresosMensuales, currency: client.moneda })) }}</td>
                     <td>{{ day(client.creadoEn) }}</td>
                   </tr>
                 }
@@ -113,6 +114,7 @@ const PAGE_SIZE = 10;
 })
 export class Clients {
   private readonly api = inject(SolicitantesService);
+  readonly sensitive = inject(SensitiveDataService);
   readonly segmentLabel = segmentLabel;
   readonly money = money;
   readonly day = day;

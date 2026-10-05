@@ -129,16 +129,12 @@ class AccessLogAppendOnlyTests {
 	// --- utilidades ------------------------------------------------------------
 
 	/**
-	 * Conexión con el mismo rol efectivo que la app: se entra como el usuario
-	 * del contenedor y se baja a doggycredit_app con SET ROLE, igual que
-	 * TenantAwareDataSource (SPIKE-1). Sin tenant fijado.
+	 * Conexión con el mismo rol efectivo que la app: se entra directo como
+	 * doggycredit_app (DEBT-018). Sin tenant fijado.
 	 */
 	private Connection restrictedConnection() throws SQLException {
-		Connection connection = adminConnection();
+		Connection connection = DriverManager.getConnection(postgres.getJdbcUrl(), "doggycredit_app", "dev_only_app_role");
 		connection.setAutoCommit(false);
-		try (Statement st = connection.createStatement()) {
-			st.execute("SET ROLE doggycredit_app");
-		}
 		return connection;
 	}
 

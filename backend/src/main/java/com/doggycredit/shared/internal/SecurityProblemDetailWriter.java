@@ -23,7 +23,7 @@ import tools.jackson.databind.ObjectMapper;
  * duplicado mínimo en vez de reusarlo.
  */
 @Component
-class SecurityProblemDetailWriter {
+public class SecurityProblemDetailWriter {
 
     private final ObjectMapper mapper;
 

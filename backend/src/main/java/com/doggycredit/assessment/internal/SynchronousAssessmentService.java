@@ -19,9 +19,13 @@ import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.IdempotencyKeyReusedException;
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.billing.QuotaGuard;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistry;
 import com.doggycredit.consent.Source;
+import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.tenancy.TenantInfo;
+import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.integration.BureauReport;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.BasicScorecard;
@@ -36,14 +40,19 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final SourceCollector sources;
 	private final BasicScorecard scorecard;
 	private final AuditTrail audit;
+	private final QuotaGuard quotaGuard;
+	private final TenantRegistry tenantRegistry;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
-			SourceCollector sources, BasicScorecard scorecard, AuditTrail audit) {
+			SourceCollector sources, BasicScorecard scorecard, AuditTrail audit,
+			QuotaGuard quotaGuard, TenantRegistry tenantRegistry) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.sources = sources;
 		this.scorecard = scorecard;
 		this.audit = audit;
+		this.quotaGuard = quotaGuard;
+		this.tenantRegistry = tenantRegistry;
 	}
 
 	@Override
@@ -58,6 +67,9 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			}
 			return replay.get().toResult();
 		}
+
+		TenantInfo tenant = tenantRegistry.requireById(TenantId.of(command.tenantId()));
+		quotaGuard.requireEvaluationQuota(command.tenantId(), tenant.plan());
 
 		String normalizedDocument = DocumentNumber.normalize(command.document());
 		ApplicantProfile applicant = applicants.findRequired(command.tenantId(), normalizedDocument);
