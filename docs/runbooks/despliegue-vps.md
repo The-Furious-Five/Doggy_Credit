@@ -1,0 +1,57 @@
+# Despliegue en VPS (CI/CD)
+
+Workflow: `.github/workflows/ci-cd.yml`.
+
+- **PR a main**: backend, web, contracts (incluye oasdiff) e identity. No despliega.
+- **Push a main** (o *Run workflow* manual sobre main): los mismos jobs y, solo si
+  todos pasan, `deploy`.
+
+`deploy` compila **en GitHub Actions** las imágenes `doggycredit-api` y
+`doggycredit-web`, las publica en GHCR con el SHA del commit y envía al VPS un
+paquete de configuración (compose, Caddyfile y realm con el dominio público; sin
+código fuente). En el VPS `scripts/deploy.sh` descarga las imágenes, arranca con
+`infra/compose.prod.yaml`, valida `/actuator/health` por HTTPS y, si algo falla,
+vuelve a la release anterior. El job verifica además la salud desde Internet.
+
+## Preparar el VPS (una vez)
+
+1. Docker Engine + Docker Compose **>= 2.24**, `curl`. Puertos 443 abiertos y DNS
+   del dominio apuntando al VPS (Caddy obtiene el certificado por TLS-ALPN).
+2. Usuario de despliegue en el grupo `docker`, dueño de `/srv/doggycredit`.
+3. `/srv/doggycredit/.env` (permiso 600) con las variables de `.env.example` y
+   valores reales. Obligatorias en producción además: `DC_MASTER_KEY` propia
+   (la API arranca con perfil `prod` y rechaza la clave de demo) y
+   `DC_HTTP_PORT=443`. `DC_KEYCLOAK_ISSUER_URI` la fija el pipeline.
+
+## Configurar GitHub (una vez)
+
+Settings → Environments → `production` (opcional: *required reviewers* para
+aprobar cada despliegue).
+
+| Tipo | Nombre | Valor |
+|------|--------|-------|
+| Variable | `DC_KEYCLOAK_ISSUER_URI` | `https://DOMINIO/auth/realms/doggycredit` |
+| Secret | `VPS_HOST` | IP o DNS del VPS |
+| Secret | `VPS_USER` | usuario de despliegue |
+| Secret | `VPS_SSH_KEY` | clave privada ed25519 (su pública en `authorized_keys`) |
+| Secret | `VPS_KNOWN_HOSTS` | salida de `ssh-keyscan VPS_HOST`, huella verificada |
+
+GHCR usa el `GITHUB_TOKEN` del job: no hace falta un PAT. El VPS inicia sesión
+solo durante el despliegue y la cierra al terminar.
+
+## Operación
+
+- Release activa: `/srv/doggycredit/current` → `releases/<sha>`. Se conservan 3
+  releases y las imágenes de la actual y la anterior.
+- Volver a una versión: *Run workflow* no despliega un SHA arbitrario; hacer
+  `git revert` en main. Manual en el VPS:
+  `cd /srv/doggycredit/releases/<sha> && bash scripts/deploy.sh`.
+- Logs: `cd /srv/doggycredit/current && docker compose --env-file ../../.env --env-file infra/release.env -f infra/compose.yaml -f infra/compose.prod.yaml logs -f doggycredit-api`.
+- Las migraciones Flyway no se revierten: deben ser compatibles con la release anterior.
+- WireMock no publica puertos en el VPS. Grafana solo escucha en loopback:
+  `ssh -L 3300:127.0.0.1:3300 usuario@VPS` y abrir http://localhost:3300.
+
+## Pendiente para producción plena
+
+Keycloak sigue en `start-dev` (base H2 en volumen). Pasarlo a `start` con
+PostgreSQL y `--hostname` es un cambio aparte que conviene probar primero en local.

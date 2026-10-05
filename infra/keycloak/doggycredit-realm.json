@@ -2,6 +2,8 @@
   "realm": "doggycredit",
   "displayName": "DoggyCredit",
   "enabled": true,
+  "displayNameHtml": "Doggy<span class=\"dc-wordmark-accent\">Credit</span>",
+  "loginTheme": "doggycredit",
   "internationalizationEnabled": true,
   "supportedLocales": [
     "es"

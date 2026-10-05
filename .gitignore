@@ -37,3 +37,5 @@ ml/data/generated/   # reproducible desde generate_synthetic.py + la semilla fij
 **/__pycache__/
 .venv/
 web/out-tsc/
+
+tmp/

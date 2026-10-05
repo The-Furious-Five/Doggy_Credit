@@ -5,6 +5,7 @@ api.module.ts
 api/api.ts
 api/consentimientos.service.ts
 api/evaluaciones.service.ts
+api/solicitantes.service.ts
 configuration.ts
 encoder.ts
 git_push.sh
@@ -15,6 +16,8 @@ model/evaluacion.ts
 model/evaluacionNueva.ts
 model/models.ts
 model/problemDetail.ts
+model/solicitante.ts
+model/solicitanteNuevo.ts
 param.ts
 provide-api.ts
 query.params.ts

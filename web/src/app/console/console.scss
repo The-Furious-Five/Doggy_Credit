@@ -1,0 +1,132 @@
+@use '../design-system/breakpoints' as screen;
+
+.console {
+  display: grid;
+  grid-template-columns: var(--ds-sidebar-width) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+// Navegación lateral
+.console-side {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-6);
+  height: 100dvh;
+  padding: var(--ds-space-4) var(--ds-space-3);
+  overflow-y: auto;
+  border-right: var(--ds-hairline) solid var(--ds-border);
+  background: var(--ds-surface);
+}
+.console-side__brand {
+  padding-inline: var(--ds-space-2);
+}
+.console-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-1);
+}
+.console-nav__group {
+  padding: var(--ds-space-4) var(--ds-space-3) var(--ds-space-1);
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-semibold);
+}
+.console-nav a {
+  gap: var(--ds-space-3);
+  min-height: var(--ds-control-height-sm);
+  padding-inline: var(--ds-space-3);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-muted);
+  font-size: var(--ds-text-sm);
+  white-space: nowrap;
+}
+.console-nav a:hover {
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
+  text-decoration: none;
+}
+.console-nav a[aria-current='page'] {
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
+  font-weight: var(--ds-weight-semibold);
+}
+.console-nav .ds-icon {
+  width: var(--ds-icon-size-sm);
+  height: var(--ds-icon-size-sm);
+}
+.console-nav a:hover .ds-icon {
+  transform: none;
+}
+.console-plan {
+  margin-top: auto;
+  padding: var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-muted);
+  font-size: var(--ds-text-sm);
+}
+
+// Barra superior y contenido
+.console-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.console-top {
+  position: sticky;
+  top: 0;
+  z-index: var(--ds-z-sticky);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-2) var(--ds-space-8);
+  border-bottom: var(--ds-hairline) solid var(--ds-border);
+  background: var(--ds-surface);
+}
+.console-top__tenant {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  font-weight: var(--ds-weight-semibold);
+}
+.console-main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--ds-content-width);
+  margin-inline: auto;
+  padding: var(--ds-space-10) var(--ds-space-8) var(--ds-space-16);
+}
+
+@include screen.compact {
+  .console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .console-side {
+    position: static;
+    height: auto;
+    gap: var(--ds-space-2);
+    padding: var(--ds-space-3) var(--ds-space-4) 0;
+    border-right: 0;
+    border-bottom: var(--ds-hairline) solid var(--ds-border);
+  }
+  // En móvil la navegación es una fila desplazable horizontalmente.
+  .console-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: var(--ds-space-2);
+  }
+  .console-nav__group,
+  .console-plan {
+    display: none;
+  }
+  .console-top {
+    position: static;
+    padding-inline: var(--ds-space-4);
+  }
+  .console-main {
+    padding: var(--ds-space-6) var(--ds-space-4) var(--ds-space-12);
+  }
+}

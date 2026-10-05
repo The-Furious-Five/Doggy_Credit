@@ -99,7 +99,7 @@ la ruta), nunca desde sus archivos internos.
 | API | Contrato |
 | --- | --- |
 | `button[dsButton]` | `variant`: primary/secondary/quiet/danger; `busy`, `disabled`, `full`, `icon`; `type` por defecto button. Busy bloquea clics y expone aria-busy. `icon` crea un botón circular solo con icono y exige `aria-label`. Danger es texto rojo sobre superficie neutra. |
-| `a[dsLink]` | Navegación real con href o routerLink. No usar botones para navegar. |
+| `a[dsLink]` | Navegación real con href o routerLink. No usar botones para navegar. `appearance`: link (defecto)/primary/secondary/quiet presenta el enlace como botón para llamadas a la acción que cambian de página. |
 | `ds-card` | Superficie no interactiva. `padding`: normal/compact. No convertir toda la tarjeta en un botón implícito. |
 | `ds-badge` | `tone`: neutral/success/warning/danger/info. Texto neutro con un punto sólido del tono (neutral sin punto). Siempre texto, nunca solo color. |
 | `ds-alert` | `heading` obligatorio, contenido proyectado y `tone`. Superficie neutra con icono del tono. `urgent` activa role=alert; por defecto role=status. |
@@ -118,7 +118,7 @@ la ruta), nunca desde sus archivos internos.
 | `ds-progress` | Barra de progreso con `label`, `value` (null = indeterminado) y `max`. Sin movimiento cuando la persona lo prefiere. |
 | `input[dsCheckbox]` | Declarar **type="checkbox"**; envolver en label.ds-choice. Compatible con ngModel/formControl. Dibujo propio; en `forced-colors` vuelve al control nativo. |
 | `input[dsRadio]` | Declarar **type="radio"** y name común; envolver en label. Se puede usar dentro de fieldset.ds-segmented con legend. |
-| `ds-icon` | Iconos decorativos originales centralizados: arrow/check/close/plus/shield/search/chevron/moon/info/success/warning/danger/tray/building/flask. `name` tipado. El control contenedor debe tener nombre accesible. |
+| `ds-icon` | Iconos decorativos originales centralizados: arrow/check/close/plus/shield/search/chevron/moon/sun/info/success/warning/danger/tray/building/flask/grid/user/users/chart/plug/code/sliders/bolt/spark/leaf/store/coin/wallet/database/lock/key/logout. `name` tipado. El control contenedor debe tener nombre accesible. |
 | `ds-spinner` | `label` descriptivo; role=status. No ocultar toda la pantalla por una operación local. |
 | `ds-skeleton` | Placeholder decorativo, aria-hidden; acompañar una región con estado de carga legible. |
 | `ds-empty-state` | `heading`, `description` e `icon` opcional (tray); proyectar una acción útil, si corresponde. |

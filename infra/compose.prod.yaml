@@ -1,0 +1,40 @@
+# Override de producción (VPS). Se usa junto a compose.yaml:
+#   docker compose --env-file /srv/doggycredit/.env --env-file infra/release.env \
+#     -f infra/compose.yaml -f infra/compose.prod.yaml up -d
+# Las imágenes vienen compiladas de GitHub Actions (GHCR): aquí no se construye.
+# Requiere Docker Compose >= 2.24 (etiquetas !reset).
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  postgres: *restart
+  keycloak: *restart
+
+  wiremock-bureau:
+    <<: *restart
+    # Diagnóstico local únicamente: en el VPS no se publica al host.
+    ports: !reset []
+
+  otel-lgtm:
+    <<: *restart
+    # Grafana solo en loopback: acceder con `ssh -L 3300:127.0.0.1:3300 VPS`.
+    ports: !override
+      - "127.0.0.1:3300:3000"
+
+  doggycredit-api:
+    <<: *restart
+    build: !reset null
+    image: ${DC_API_IMAGE:?falta DC_API_IMAGE en release.env}
+    environment:
+      # Con el perfil prod la API se niega a arrancar con la clave maestra de demo.
+      SPRING_PROFILES_ACTIVE: prod
+      DC_MASTER_KEY: ${DC_MASTER_KEY:?falta DC_MASTER_KEY en .env}
+
+  caddy:
+    <<: *restart
+    build: !reset null
+    image: ${DC_WEB_IMAGE:?falta DC_WEB_IMAGE en release.env}
+    volumes:
+      # Caddyfile con el dominio público, generado en CI por configure_demo.py.
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro

@@ -1,0 +1,209 @@
+<a dsLink class="ds-skip" routerLink="/" fragment="inicio">Saltar al contenido</a>
+<header class="site-header">
+  <div class="ds-container site-header__inner">
+    <a dsLink routerLink="/" aria-label="DoggyCredit, inicio"><ds-brand /></a>
+    <nav class="site-nav" aria-label="Secciones">
+      <a dsLink routerLink="/" fragment="producto">Producto</a>
+      <a dsLink routerLink="/" fragment="integraciones">Integraciones</a>
+      <a dsLink routerLink="/" fragment="seguridad">Seguridad</a>
+      <a dsLink routerLink="/" fragment="planes">Planes</a>
+    </nav>
+    <div class="ds-row">
+      <a dsLink class="site-header__login" routerLink="/acceso">Iniciar sesión</a>
+      <a dsLink appearance="primary" routerLink="/acceso">Empezar gratis</a>
+    </div>
+  </div>
+</header>
+
+<main id="inicio" tabindex="-1">
+  <section class="ds-container hero" aria-labelledby="hero-title">
+    <div class="hero__copy ds-stack">
+      <ds-badge tone="success">SaaS para instituciones financieras y fintechs</ds-badge>
+      <h1 id="hero-title" class="ds-display hero__title">Datos dispersos.<br />Decisiones claras.</h1>
+      <p class="ds-lead">
+        DoggyCredit centraliza el perfil financiero de tus clientes, entiende qué necesitan y
+        recomienda el crédito adecuado: microcréditos, ecológicos o PYME.
+      </p>
+      <div class="ds-row">
+        <a dsLink appearance="primary" routerLink="/acceso">Crear cuenta gratis <ds-icon name="arrow" /></a>
+        <a dsLink appearance="secondary" routerLink="/" fragment="producto">Cómo funciona</a>
+      </div>
+      <p class="ds-caption">Sin tarjeta de crédito · 500 consultas al mes incluidas</p>
+    </div>
+
+    <ds-card class="preview">
+      <div class="ds-stack">
+        <div class="ds-row ds-between">
+          <div class="ds-row">
+            <span class="icon-tile"><ds-icon name="user" /></span>
+            <div>
+              <strong>Perfil financiero</strong>
+              <p class="ds-caption">Ejemplo ilustrativo</p>
+            </div>
+          </div>
+          <ds-badge tone="success">Riesgo bajo</ds-badge>
+        </div>
+        <div class="preview__score">
+          <ds-stat label="Score DoggyCredit" value="742" detail="Escala 300 – 850" />
+          <ds-stat label="Capacidad de pago" value="Bs 3.400" detail="Mensual estimada" />
+        </div>
+        <div class="ds-stack-sm">
+          <ds-progress label="Historial de pagos" [value]="88" />
+          <ds-progress label="Nivel de endeudamiento" [value]="34" />
+          <ds-progress label="Estabilidad de ingresos" [value]="71" />
+        </div>
+        <hr class="ds-divider" />
+        <div class="ds-row ds-between">
+          <div class="ds-row">
+            <span class="icon-tile"><ds-icon name="leaf" /></span>
+            <div>
+              <strong>Crédito ecológico</strong>
+              <p class="ds-caption">Necesidad detectada: eficiencia energética</p>
+            </div>
+          </div>
+          <ds-badge>Recomendado</ds-badge>
+        </div>
+      </div>
+    </ds-card>
+  </section>
+
+  <section id="integraciones" class="ds-container sources" aria-labelledby="sources-title">
+    <h2 id="sources-title" class="ds-caption">Un solo perfil a partir de todo tu ecosistema</h2>
+    <ul class="sources__list">
+      @for (source of sources; track source.label) {
+        <li><ds-icon [name]="source.icon" />{{ source.label }}</li>
+      }
+    </ul>
+  </section>
+
+  <section id="producto" class="ds-container section ds-stack" aria-labelledby="how-title">
+    <div class="section__heading ds-stack-sm">
+      <p class="ds-eyebrow">Cómo funciona</p>
+      <h2 id="how-title">Conecta, analiza, decide.</h2>
+      <p class="ds-lead">Tres pasos entre una solicitud y una decisión explicable.</p>
+    </div>
+    <ol class="steps">
+      @for (step of steps; track step.title; let i = $index) {
+        <li class="ds-stack-sm">
+          <span class="icon-tile"><ds-icon [name]="step.icon" /></span>
+          <p class="ds-caption">Paso {{ i + 1 }}</p>
+          <h3>{{ step.title }}</h3>
+          <p class="ds-muted">{{ step.text }}</p>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section class="ds-container section ds-stack" aria-labelledby="products-title">
+    <div class="section__heading ds-stack-sm">
+      <p class="ds-eyebrow">Productos</p>
+      <h2 id="products-title">El crédito correcto para cada necesidad.</h2>
+    </div>
+    <div class="ds-grid">
+      @for (kind of productKinds; track kind) {
+        <ds-card>
+          <div class="ds-stack-sm">
+            <span class="icon-tile"><ds-icon [name]="products[kind].icon" /></span>
+            <h3>{{ products[kind].name }}</h3>
+            <p class="ds-muted">{{ products[kind].summary }}</p>
+            <dl class="facts">
+              <div><dt class="ds-caption">Montos</dt><dd>{{ products[kind].range }}</dd></div>
+              <div><dt class="ds-caption">Plazos</dt><dd>{{ products[kind].term }}</dd></div>
+            </dl>
+          </div>
+        </ds-card>
+      }
+    </div>
+  </section>
+
+  <section class="ds-container section ds-stack" aria-labelledby="features-title">
+    <div class="section__heading ds-stack-sm">
+      <p class="ds-eyebrow">Plataforma</p>
+      <h2 id="features-title">Todo lo que tu equipo de riesgo necesita.</h2>
+    </div>
+    <ul class="features">
+      @for (feature of features; track feature.title) {
+        <li class="ds-stack-sm">
+          <ds-icon class="features__icon" [name]="feature.icon" />
+          <h3>{{ feature.title }}</h3>
+          <p class="ds-muted">{{ feature.text }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section id="seguridad" class="ds-brand-surface security" aria-labelledby="security-title">
+    <div class="ds-container security__inner">
+      <div class="ds-stack-sm security__intro">
+        <p class="ds-eyebrow">Seguridad y arquitectura</p>
+        <h2 id="security-title">Datos sensibles, tratados como tales.</h2>
+        <p class="ds-lead">
+          Cada institución opera en su propio espacio. Nada se comparte entre clientes de DoggyCredit.
+        </p>
+      </div>
+      <ul class="security__list">
+        @for (item of security; track item.title) {
+          <li>
+            <ds-icon [name]="item.icon" />
+            <div>
+              <strong>{{ item.title }}</strong>
+              <p class="ds-muted">{{ item.text }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section id="planes" class="ds-container section ds-stack" aria-labelledby="plans-title">
+    <div class="section__heading section__heading--center ds-stack-sm">
+      <p class="ds-eyebrow">Planes</p>
+      <h2 id="plans-title">Empieza gratis. Crece cuando lo necesites.</h2>
+    </div>
+    <div class="plans">
+      @for (plan of plans; track plan.id) {
+        <ds-card class="plan" [class.plan--featured]="plan.id === 'pro'">
+          <div class="ds-stack">
+            <div class="ds-stack-sm">
+              <div class="ds-row ds-between">
+                <h3>{{ plan.name }}</h3>
+                @if (plan.id === 'pro') {
+                  <ds-badge tone="info">Más elegido</ds-badge>
+                }
+              </div>
+              <p class="ds-muted">{{ plan.summary }}</p>
+            </div>
+            <p><span class="plan__price">{{ plan.price }}</span> <span class="ds-caption">{{ plan.period }}</span></p>
+            <ul class="checklist">
+              @for (feature of plan.features; track feature) {
+                <li><ds-icon name="check" />{{ feature }}</li>
+              }
+            </ul>
+            <a dsLink [appearance]="plan.id === 'pro' ? 'primary' : 'secondary'" routerLink="/acceso">
+              {{ plan.id === 'pro' ? 'Probar Pro' : 'Crear cuenta gratis' }}
+            </a>
+          </div>
+        </ds-card>
+      }
+    </div>
+    <p class="ds-caption plans__note">¿Volumen alto o despliegue dedicado? Escríbenos y armamos un plan a medida.</p>
+  </section>
+
+  <section class="ds-container section cta" aria-labelledby="cta-title">
+    <h2 id="cta-title">Tu próxima decisión de crédito, con más contexto.</h2>
+    <a dsLink appearance="primary" routerLink="/acceso">Empezar gratis <ds-icon name="arrow" /></a>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="ds-container ds-row ds-between">
+    <div class="ds-row">
+      <ds-brand />
+      <span class="ds-caption">© 2026 Doggy Software</span>
+    </div>
+    <nav class="ds-row" aria-label="Pie de página">
+      <a dsLink routerLink="/acceso">Acceso</a>
+      <a dsLink routerLink="/design-system">Design System</a>
+    </nav>
+  </div>
+</footer>

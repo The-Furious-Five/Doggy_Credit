@@ -1,0 +1,175 @@
+/*
+ * Pantalla de acceso DoggyCredit sobre keycloak.v2.
+ * Valores copiados de web/src/app/design-system/_tokens.scss (Keycloak no puede
+ * leer los tokens de la SPA): mantener sincronizados si cambia la paleta.
+ * Colores sólidos, sin degradados ni desenfoques, igual que el Design System.
+ */
+:root {
+  --dc-pine: #10403c;
+  --dc-honey: #d59132;
+  --dc-ivory: #fffefd;
+  --dc-surface: #fffefd;
+  --dc-surface-muted: #eeeee9;
+  --dc-text: #1b201f;
+  --dc-muted: #5d6461;
+  --dc-border: #e2e1db;
+  --dc-control-border: #8a8f8b;
+  --dc-primary: #1a5149;
+  --dc-primary-hover: #10403c;
+  --dc-on-primary: #fffefd;
+  --dc-link: #1a5149;
+  --dc-danger: #b23a2f;
+  --dc-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+
+  --pf-v5-global--FontFamily--text: var(--dc-font);
+  --pf-v5-global--FontFamily--heading: var(--dc-font);
+  --pf-v5-global--FontFamily--sans-serif: var(--dc-font);
+  --pf-v5-global--primary-color--100: var(--dc-primary);
+  --pf-v5-global--primary-color--200: var(--dc-primary-hover);
+  --pf-v5-global--active-color--100: var(--dc-primary);
+  --pf-v5-global--link--Color: var(--dc-link);
+  --pf-v5-global--link--Color--hover: var(--dc-primary-hover);
+  --pf-v5-global--danger-color--100: var(--dc-danger);
+  --pf-v5-global--Color--100: var(--dc-text);
+  --pf-v5-global--Color--200: var(--dc-muted);
+  --pf-v5-global--BackgroundColor--100: var(--dc-surface);
+  --pf-v5-global--BorderColor--100: var(--dc-control-border);
+  --keycloak-card-top-color: transparent;
+}
+
+html.pf-v5-theme-dark {
+  --dc-surface: #181c1b;
+  --dc-surface-muted: #222726;
+  --dc-text: #f4f3ef;
+  --dc-muted: #a2a9a6;
+  --dc-border: #2a302e;
+  --dc-control-border: #6c7471;
+  --dc-primary: #2b6e5f;
+  --dc-primary-hover: #327a6a;
+  --dc-link: #7bbba7;
+  --dc-danger: #f08a7e;
+}
+
+/* Fondo: superficie de marca en verde pino sólido. */
+.login-pf body,
+body#keycloak-bg {
+  background: var(--dc-pine);
+  font-family: var(--dc-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Marca: emblema + wordmark marfil/miel. */
+#kc-header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dc-ivory) !important;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  text-transform: none;
+}
+#kc-header-wrapper::before {
+  content: '';
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--dc-ivory) url('../img/doggycredit-mark.svg') center / 86% no-repeat;
+}
+.dc-wordmark-accent {
+  color: var(--dc-honey);
+}
+
+/* Tarjeta */
+.pf-v5-c-login__container {
+  grid-template-columns: minmax(0, 28rem);
+}
+.pf-v5-c-login__main {
+  border: 1px solid var(--dc-border);
+  border-radius: 1.25rem;
+  background: var(--dc-surface);
+  color: var(--dc-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 24px 56px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+}
+div.pf-v5-c-login__main-header.pf-v5-c-login__main-header {
+  grid-template-columns: 1fr auto;
+  border-top: 0;
+  padding-top: 2.5rem;
+}
+.pf-v5-c-login__main-header .pf-v5-c-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.034em;
+  color: var(--dc-text);
+}
+
+/* Controles: altura 44 px, radio md, borde 3:1 y foco visible. */
+.pf-v5-c-form__label-text {
+  font-weight: 600;
+  color: var(--dc-text);
+}
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after {
+  display: none;
+}
+.pf-v5-c-form-control {
+  min-height: 2.75rem;
+  border: 1px solid var(--dc-control-border);
+  border-radius: 0.75rem;
+  background: var(--dc-surface);
+  color: var(--dc-text);
+}
+.pf-v5-c-form-control:hover {
+  border-color: var(--dc-text);
+}
+.pf-v5-c-form-control:focus-within {
+  border-color: var(--dc-primary);
+  box-shadow: 0 0 0 1px var(--dc-primary);
+}
+.pf-v5-c-form-control input:focus-visible {
+  outline: none;
+}
+.pf-v5-c-input-group {
+  gap: 0.5rem;
+}
+.pf-v5-c-button.pf-m-control {
+  min-width: 2.75rem;
+  border-radius: 0.75rem;
+  background: var(--dc-surface-muted);
+  color: var(--dc-text);
+}
+.pf-v5-c-button.pf-m-control::after {
+  display: none;
+}
+.pf-v5-c-button {
+  --pf-v5-c-button--BorderRadius: 0.75rem;
+  --pf-v5-c-button--FontWeight: 600;
+}
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--dc-primary);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--dc-primary-hover);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--dc-primary-hover);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--dc-primary-hover);
+  --pf-v5-c-button--m-primary--Color: var(--dc-on-primary);
+  min-height: 2.75rem;
+}
+:focus-visible {
+  outline: 2px solid var(--dc-primary);
+  outline-offset: 2px;
+}
+.pf-v5-c-login__main-footer-band {
+  border-top: 1px solid var(--dc-border);
+  background: var(--dc-surface-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
