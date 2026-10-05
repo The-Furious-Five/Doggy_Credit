@@ -112,8 +112,19 @@ degrada al básico. En `modelVersion` de la evaluación queda `scoring-v2` o
   600 puntos con PD 20 % (la tasa del portafolio sintético) y cada 50 puntos
   duplican las odds. Bandas: A ≥ 750 · B 600–749 · C 450–599 · D 300–449 ·
   E < 300.
-- **Razones:** contribución exacta de cada variable, c_i = β_i·z_i, en puntos
-  del score. Se devuelven las 4 de mayor impacto (RF-SCO-03).
+- **Razones (D-05):** contribución exacta de cada variable, c_i = β_i·z_i,
+  en puntos del score, sumada por factor de la vista (`scoring.ScoreFactor`):
+
+  | Código | En la vista | Variables |
+  |---|---|---|
+  | `HISTORIAL_PAGOS` | Historial de pagos | mora 12 m, peor calificación, antigüedad en el sistema |
+  | `CAPACIDAD_PAGO` | Capacidad de pago | DTI, egresos/ingresos, meses con flujo negativo |
+  | `ESTABILIDAD_INGRESOS` | Estabilidad de ingresos | ingreso, volatilidad, PYME, ventas, saldo en cuentas |
+  | `USO_CREDITO` | Uso de crédito disponible | acreedores y uso de la billetera |
+
+  Siempre son las 4 razones, ordenadas por impacto. Signo positivo = suma
+  puntos. Sumadas, dan la distancia al score de un titular con todas las
+  variables en su media (`ScoreExplanationGoldenSetTest`).
 
 ## Plan B (si ONNX Runtime da problemas en algún entorno)
 

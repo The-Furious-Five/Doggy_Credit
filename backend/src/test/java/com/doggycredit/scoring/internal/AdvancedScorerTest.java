@@ -77,7 +77,7 @@ class AdvancedScorerTest {
 			@SuppressWarnings("unchecked")
 			Map<String, Number> byName = (Map<String, Number>) profile.get("features");
 			BasicScoreResult result = scorer.score(features(byName));
-			assertThat(result.reasons()).hasSizeBetween(3, 4);
+			assertThat(result.reasons()).hasSize(4);
 			assertThat(result.reasons()).isSortedAccordingTo(java.util.Comparator.comparingInt(
 					(com.doggycredit.scoring.ScoreReason r) -> Math.abs(r.pointImpact())).reversed());
 
