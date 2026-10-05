@@ -165,6 +165,12 @@
 			<artifactId>onnxruntime</artifactId>
 			<version>1.22.0</version>
 		</dependency>
+		<!-- A-07: rate limit por tenant, en memoria (DEBT-003: con una segunda réplica pasa a Redis). -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j_jdk17-core</artifactId>
+			<version>8.16.0</version>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
