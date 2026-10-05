@@ -4,6 +4,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.PageRequest;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,9 @@ import com.doggycredit.shared.UnknownApplicantException;
 
 @Service
 class ApplicantService implements ApplicantRegistry, ApplicantDocuments {
+
+	/** UNIQUE (tenant_id, document_ref) de V2026_09_29_1500__customer_create_applicants.sql. */
+	private static final String DOCUMENT_UNIQUE_CONSTRAINT = "applicants_tenant_document_uk";
 
 	private final ApplicantRepository applicants;
 	private final FieldEncryption encryption;
@@ -53,7 +58,19 @@ class ApplicantService implements ApplicantRegistry, ApplicantDocuments {
 				registration.activity().strip(), registration.activitySeniorityMonths(),
 				registration.monthlyIncome(), registration.currency(), registration.creditDestination().strip(),
 				registration.segment().name());
-		applicants.save(applicant);
+		try {
+			// saveAndFlush: el INSERT sale ya, así el choque con el UNIQUE se captura aquí
+			// y no al hacer commit, fuera de este método.
+			applicants.saveAndFlush(applicant);
+		}
+		catch (DataIntegrityViolationException exception) {
+			// Dos altas simultáneas pueden pasar el existsBy... a la vez: la base de datos
+			// decide y la perdedora responde 409, no 500.
+			if (violates(exception, DOCUMENT_UNIQUE_CONSTRAINT)) {
+				throw new ApplicantAlreadyExistsException();
+			}
+			throw exception;
+		}
 		audit.record(tenantId, "APPLICANT_CREATED", "APPLICANT", applicant.id());
 		return toProfile(tenantId, applicant);
 	}
@@ -93,6 +110,16 @@ class ApplicantService implements ApplicantRegistry, ApplicantDocuments {
 	public Optional<String> documentOf(UUID tenantId, UUID applicantId) {
 		return applicants.findByIdAndTenantId(applicantId, tenantId)
 			.map(applicant -> encryption.decrypt(tenantId, applicant.documentCiphertext()));
+	}
+
+	private static boolean violates(DataIntegrityViolationException exception, String constraint) {
+		for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+			if (cause instanceof ConstraintViolationException violation
+					&& constraint.equalsIgnoreCase(violation.getConstraintName())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private ApplicantProfile toProfile(UUID tenantId, Applicant applicant) {
