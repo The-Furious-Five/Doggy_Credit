@@ -49,6 +49,7 @@ services:
       DC_SEED_ADMIN_PASSWORD_2: ${DC_SEED_ADMIN_PASSWORD_2:?falta DC_SEED_ADMIN_PASSWORD_2 en .env}
       DC_SEED_M2M_SECRET: ${DC_SEED_M2M_SECRET:?falta DC_SEED_M2M_SECRET en .env}
       DC_SEED_M2M_SECRET_2: ${DC_SEED_M2M_SECRET_2:?falta DC_SEED_M2M_SECRET_2 en .env}
+      DC_KEYCLOAK_API_ADMIN_SECRET: ${DC_KEYCLOAK_API_ADMIN_SECRET:?falta DC_KEYCLOAK_API_ADMIN_SECRET en .env}
     volumes:
       - ./keycloak/doggycredit-realm.json:/opt/keycloak/data/import/doggycredit-realm.json:ro
       # Tema de la pantalla de acceso con los colores del Design System.
@@ -104,6 +105,9 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/doggycredit/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: doggycredit-api
       DC_INTEGRATION_BUREAU_URL: http://wiremock-bureau:8080
+      # D-09: la API administra los clientes de las claves de API por la red interna.
+      DC_KEYCLOAK_ADMIN_URL: http://keycloak:8080/auth
+      DC_KEYCLOAK_API_ADMIN_SECRET: ${DC_KEYCLOAK_API_ADMIN_SECRET:?falta DC_KEYCLOAK_API_ADMIN_SECRET en .env}
     depends_on:
       postgres:
         condition: service_healthy

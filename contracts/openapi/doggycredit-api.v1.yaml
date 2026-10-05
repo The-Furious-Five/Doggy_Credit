@@ -18,6 +18,7 @@ tags:
   - name: consentimientos
   - name: solicitantes
   - name: evaluaciones
+  - name: claves-api
 
 paths:
   /solicitantes:
@@ -116,6 +117,77 @@ paths:
           $ref: "#/components/responses/NoAutenticado"
         "404":
           description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
+
+  /api-keys:
+    get:
+      tags: [claves-api]
+      operationId: listarClavesApi
+      summary: Claves de API vigentes del tenant, de la más reciente a la más antigua (solo TENANT_ADMIN)
+      responses:
+        "200":
+          description: Claves vigentes (las revocadas no se listan)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClaveApi"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+    post:
+      tags: [claves-api]
+      operationId: crearClaveApi
+      summary: Crea una clave de API (client credentials de Keycloak) para el tenant (solo TENANT_ADMIN)
+      description: >
+        La clave es un cliente OAuth 2.0 `client_credentials` cuyo token lleva el
+        `tenant_id` de quien la crea y el rol `API_CLIENT`. El secreto se devuelve
+        una sola vez, en esta respuesta; después solo se conservan sus últimos 4
+        caracteres. `produccion` requiere el plan PRO (FEATURE_NOT_IN_PLAN en FREE).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaveApiNueva"
+      responses:
+        "201":
+          description: Clave creada; `secreto` no vuelve a mostrarse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaveApiCreada"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "502":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /api-keys/{id}:
+    delete:
+      tags: [claves-api]
+      operationId: revocarClaveApi
+      summary: Revoca una clave de API; desde ese momento no obtiene tokens nuevos (solo TENANT_ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Clave revocada
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
+        "502":
+          $ref: "#/components/responses/ErrorNegocio"
 
 components:
   securitySchemes:
@@ -231,3 +303,30 @@ components:
         modelVersion: { type: string }
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
+
+    ClaveApiNueva:
+      type: object
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 80, description: "Para reconocerla después, p. ej. App móvil" }
+        entorno: { type: string, enum: [sandbox, produccion], default: sandbox }
+      required: [nombre]
+
+    ClaveApi:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        clientId: { type: string, description: "client_id para el grant client_credentials" }
+        sufijoSecreto: { type: string, minLength: 4, maxLength: 4, description: "Últimos 4 caracteres del secreto, para reconocerla" }
+        entorno: { type: string, enum: [sandbox, produccion] }
+        creadaEn: { type: string, format: date-time }
+      required: [id, nombre, clientId, sufijoSecreto, entorno, creadaEn]
+
+    ClaveApiCreada:
+      allOf:
+        - $ref: "#/components/schemas/ClaveApi"
+        - type: object
+          properties:
+            secreto: { type: string, description: "client_secret; solo aparece en la respuesta de creación" }
+            tokenUrl: { type: string, format: uri, description: "Endpoint de token de Keycloak para el grant client_credentials" }
+          required: [secreto, tokenUrl]

@@ -96,3 +96,15 @@ errors:
     status: 404
     title: "Evaluación no encontrada"
     detail_template: "La evaluación no existe o pertenece a otro tenant."
+
+  - code: INSUFFICIENT_ROLE
+    type: insufficient-role
+    status: 403
+    title: "Rol insuficiente"
+    detail_template: "La operación requiere el rol {rol}."
+
+  - code: API_KEY_NOT_FOUND
+    type: api-key-not-found
+    status: 404
+    title: "Clave de API no encontrada"
+    detail_template: "La clave no existe, ya fue revocada o pertenece a otro tenant."

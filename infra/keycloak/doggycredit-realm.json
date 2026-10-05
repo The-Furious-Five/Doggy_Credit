@@ -299,6 +299,19 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "doggycredit-api-admin",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${DC_KEYCLOAK_API_ADMIN_SECRET}",
+      "defaultClientScopes": [
+        "basic"
+      ],
+      "protocolMappers": []
     }
   ],
   "users": [
@@ -396,6 +409,20 @@
       "realmRoles": [
         "API_CLIENT"
       ]
+    },
+    {
+      "username": "service-account-doggycredit-api-admin",
+      "enabled": true,
+      "serviceAccountClientId": "doggycredit-api-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-clients",
+          "view-clients",
+          "manage-users",
+          "view-users",
+          "view-realm"
+        ]
+      }
     }
   ]
 }

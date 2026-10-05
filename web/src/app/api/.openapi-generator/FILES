@@ -3,6 +3,7 @@ README.md
 api.base.service.ts
 api.module.ts
 api/api.ts
+api/clavesApi.service.ts
 api/consentimientos.service.ts
 api/evaluaciones.service.ts
 api/solicitantes.service.ts
@@ -10,6 +11,9 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/claveApi.ts
+model/claveApiCreada.ts
+model/claveApiNueva.ts
 model/consentimiento.ts
 model/consentimientoNuevo.ts
 model/evaluacion.ts

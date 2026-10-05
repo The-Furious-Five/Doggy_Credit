@@ -9,6 +9,12 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# D-09: cuenta de servicio con la que la API crea y borra los clientes de las
+# claves de API. Sin mapper de tenant ni audiencia doggycredit-api: su token
+# no sirve contra la API (la rechazan la audiencia y TenantClaimFilter).
+API_ADMIN_CLIENT = "doggycredit-api-admin"
+API_ADMIN_ROLES = ["manage-clients", "view-clients", "manage-users", "view-users", "view-realm"]
+
 def mapper(name, kind, config):
     return {"name": name, "protocol": "openid-connect", "protocolMapper": kind,
             "config": {"access.token.claim": "true", "id.token.claim": "true",
@@ -66,6 +72,14 @@ def generate(seed, origin):
             users.append({"username": "service-account-" + client["client_id"],
                           "enabled": True, "serviceAccountClientId": client["client_id"],
                           "attributes": {"tenant_id": [tid]}, "realmRoles": ["API_CLIENT"]})
+    clients.append({"clientId": API_ADMIN_CLIENT, "protocol": "openid-connect",
+                    "publicClient": False, "standardFlowEnabled": False,
+                    "directAccessGrantsEnabled": False, "serviceAccountsEnabled": True,
+                    "secret": "${DC_KEYCLOAK_API_ADMIN_SECRET}",
+                    "defaultClientScopes": ["basic"], "protocolMappers": []})
+    users.append({"username": "service-account-" + API_ADMIN_CLIENT, "enabled": True,
+                  "serviceAccountClientId": API_ADMIN_CLIENT,
+                  "clientRoles": {"realm-management": API_ADMIN_ROLES}})
     scopes = sorted({s for t in seed["tenants"] for c in t["clientes_m2m"] for s in c["scopes"]})
     standard_scopes = [
         # Keycloak 25+ emite `sub` solo desde el scope `basic`; al declarar los

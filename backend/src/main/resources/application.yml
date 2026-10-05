@@ -58,6 +58,17 @@ doggycredit:
   encryption:
     master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
 
+  # D-09: administración de clientes de Keycloak para las claves de API.
+  # base-url es la red interna; public-issuer-uri, lo que ve el integrador.
+  keycloak:
+    admin:
+      base-url: ${DC_KEYCLOAK_ADMIN_URL:http://localhost:8081/auth}
+      realm: doggycredit
+      client-id: doggycredit-api-admin
+      client-secret: ${DC_KEYCLOAK_API_ADMIN_SECRET:}
+      public-issuer-uri: ${DC_KEYCLOAK_ISSUER_URI:https://localhost/auth/realms/doggycredit}
+      timeout: 3s
+
 management:
   endpoints:
     web:
