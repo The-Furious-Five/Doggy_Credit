@@ -2,6 +2,7 @@ import { Component, inject, linkedSignal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import {
   DsAlert,
   DsBadge,
@@ -10,8 +11,6 @@ import {
   DsField,
   DsIcon,
   DsInput,
-  DsOption,
-  DsSelect,
   DsSwitch,
   DsTab,
   DsTable,
@@ -19,6 +18,7 @@ import {
   DsToastService,
 } from '../design-system';
 import { plans } from '../data';
+import { TenantService } from '../api';
 
 @Component({
   selector: 'dc-settings',
@@ -31,7 +31,6 @@ import { plans } from '../data';
     DsField,
     DsIcon,
     DsInput,
-    DsSelect,
     DsSwitch,
     DsTab,
     DsTable,
@@ -49,18 +48,19 @@ import { plans } from '../data';
     <ds-tabs label="Secciones de configuración" [(selected)]="tab">
       <ds-tab value="organizacion" label="Organización">
         <ds-card>
-          <form class="ds-stack form" (ngSubmit)="toast.show('Cambios guardados.')">
+          <form class="ds-stack form" (ngSubmit)="saveOrganization()">
             <ds-field label="Nombre de la institución" required>
-              <input dsInput name="org" [(ngModel)]="org" />
-            </ds-field>
-            <ds-field label="Región de datos" hint="Dónde se almacenan los datos de tus clientes.">
-              <ds-select name="region" [options]="regions" [(ngModel)]="region" />
+              <input dsInput name="org" [(ngModel)]="org" minlength="2" maxlength="100" />
             </ds-field>
             <dl class="ds-stack-sm">
-              <dt class="ds-caption">Identificador de institución (tenant)</dt>
-              <dd class="ds-mono">tnt_horizonte_7f3c</dd>
+              <dt class="ds-caption">País y moneda de operación</dt>
+              <dd>{{ tenant()?.pais }} · {{ tenant()?.moneda }}</dd>
             </dl>
-            <div class="ds-actions"><button dsButton type="submit">Guardar cambios</button></div>
+            <dl class="ds-stack-sm">
+              <dt class="ds-caption">Identificador de institución (tenant)</dt>
+              <dd class="ds-mono">{{ tenant()?.id ?? 'Cargando…' }}</dd>
+            </dl>
+            <div class="ds-actions"><button dsButton type="submit" [busy]="savingOrganization">Guardar cambios</button></div>
           </form>
         </ds-card>
       </ds-tab>
@@ -68,21 +68,24 @@ import { plans } from '../data';
       <ds-tab value="equipo" label="Equipo">
         <ds-card>
           <div class="card-head">
-            <h2>Usuarios</h2>
-            <button dsButton variant="secondary" (click)="toast.show('Invitaciones disponibles próximamente.')"><ds-icon name="plus" />Invitar</button>
+            <h2>Usuarios con acceso</h2>
           </div>
           <div class="ds-table-scroll" tabindex="0" aria-label="Usuarios">
             <table dsTable>
               <caption class="ds-sr-only">Usuarios de la institución</caption>
               <thead><tr><th scope="col">Nombre</th><th scope="col">Rol</th><th scope="col">Estado</th></tr></thead>
               <tbody>
-                <tr><th scope="row">Ana Gutiérrez</th><td>Administradora</td><td><ds-badge tone="success">Activa</ds-badge></td></tr>
-                <tr><th scope="row">Jorge Salinas</th><td>Analista de riesgo</td><td><ds-badge tone="success">Activo</ds-badge></td></tr>
-                <tr><th scope="row">Carla Méndez</th><td>Oficial de crédito</td><td><ds-badge tone="warning">Invitación enviada</ds-badge></td></tr>
+                @for (member of team(); track member.nombre) {
+                  <tr>
+                    <th scope="row">{{ member.nombre }}@if (member.email) { <span class="ds-caption"> · {{ member.email }}</span> }</th>
+                    <td>{{ member.rol }}</td>
+                    <td><ds-badge [tone]="member.estado === 'ACTIVO' ? 'success' : 'warning'">{{ member.estado === 'ACTIVO' ? 'Activo/a' : 'Invitación enviada' }}</ds-badge></td>
+                  </tr>
+                }
               </tbody>
             </table>
           </div>
-          <p class="ds-caption">3 de 3 usuarios del plan Gratis.</p>
+          <p class="ds-caption">Miembros activos incluidos en la sesión de identidad.</p>
         </ds-card>
       </ds-tab>
 
@@ -93,7 +96,7 @@ import { plans } from '../data';
               <div class="ds-stack">
                 <div class="ds-row ds-between">
                   <h2>{{ plan.name }}</h2>
-                  @if (plan.id === 'free') {
+                  @if (tenant()?.plan === plan.id.toUpperCase()) {
                     <ds-badge tone="success">Plan actual</ds-badge>
                   }
                 </div>
@@ -103,7 +106,7 @@ import { plans } from '../data';
                     <li>{{ feature }}<ds-icon name="check" /></li>
                   }
                 </ul>
-                @if (plan.id === 'pro') {
+                @if (plan.id === 'pro' && tenant()?.plan !== 'PRO') {
                   <button dsButton (click)="toast.show('Te contactaremos para activar Pro.')">Mejorar a Pro</button>
                 }
               </div>
@@ -115,12 +118,14 @@ import { plans } from '../data';
       <ds-tab value="seguridad" label="Seguridad">
         <ds-card>
           <div class="ds-stack">
-            <ds-switch [(ngModel)]="mfa">Exigir verificación en dos pasos a todo el equipo</ds-switch>
-            <ds-switch [(ngModel)]="ipAllowlist">Permitir acceso solo desde redes autorizadas</ds-switch>
-            <ds-switch [(ngModel)]="maskData">Ocultar documentos y montos a roles sin permiso</ds-switch>
-            <ds-field label="Retención de datos de clientes">
-              <ds-select [options]="retention" [(ngModel)]="retentionValue" />
-            </ds-field>
+            <form class="ds-stack" (ngSubmit)="saveSecurityPreferences()">
+              <ds-switch [ngModel]="maskData()" (ngModelChange)="maskData.set($event)" name="maskData">
+                Ocultar documentos y montos a roles sin permiso
+              </ds-switch>
+              <div class="ds-actions">
+                <button dsButton type="submit" [busy]="savingPreferences">Guardar preferencia</button>
+              </div>
+            </form>
             <ds-alert heading="Registro de auditoría activo">
               Cada consulta, cambio de permisos y exportación queda registrada con usuario y finalidad.
             </ds-alert>
@@ -134,20 +139,43 @@ export class Settings {
   readonly toast = inject(DsToastService);
   private readonly fragment = toSignal(inject(ActivatedRoute).fragment);
   readonly tab = linkedSignal(() => this.fragment() ?? 'organizacion');
+
+  private readonly tenantService = inject(TenantService);
+  readonly tenant = toSignal(this.tenantService.obtenerTenantActual());
+  readonly team = toSignal(this.tenantService.listarEquipo(), { initialValue: [] });
+  readonly preferences = toSignal(this.tenantService.obtenerPreferenciasTenant());
+  readonly maskData = linkedSignal(() => this.preferences()?.enmascararDatos ?? true);
+
   readonly plans = plans;
-  readonly regions: DsOption<string>[] = [
-    { value: 'sa', label: 'Sudamérica' },
-    { value: 'us', label: 'Estados Unidos' },
-  ];
-  readonly retention: DsOption<string>[] = [
-    { value: '12', label: '12 meses' },
-    { value: '24', label: '24 meses' },
-    { value: '60', label: '5 años (requisito regulatorio)' },
-  ];
-  org = 'Cooperativa Horizonte';
-  region = 'sa';
-  mfa = true;
-  ipAllowlist = false;
-  maskData = true;
-  retentionValue = '60';
+  readonly org = linkedSignal(() => this.tenant()?.nombre ?? '');
+  savingOrganization = false;
+  savingPreferences = false;
+
+  async saveOrganization(): Promise<void> {
+    this.savingOrganization = true;
+    try {
+      const updated = await firstValueFrom(this.tenantService.actualizarOrganizacionTenant({ nombre: this.org() }));
+      this.org.set(updated.nombre);
+      this.toast.show('Nombre de la institución actualizado.');
+    } catch {
+      this.toast.show('No se pudo guardar. Revisa tus permisos e inténtalo de nuevo.');
+    } finally {
+      this.savingOrganization = false;
+    }
+  }
+
+  async saveSecurityPreferences(): Promise<void> {
+    this.savingPreferences = true;
+    try {
+      const updated = await firstValueFrom(this.tenantService.actualizarPreferenciasTenant({
+        enmascararDatos: this.maskData(),
+      }));
+      this.maskData.set(updated.enmascararDatos);
+      this.toast.show('Preferencia de enmascarado actualizada.');
+    } catch {
+      this.toast.show('No se pudo guardar. Revisa tus permisos e inténtalo de nuevo.');
+    } finally {
+      this.savingPreferences = false;
+    }
+  }
 }

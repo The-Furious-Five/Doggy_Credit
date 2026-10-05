@@ -18,6 +18,8 @@ tags:
   - name: consentimientos
   - name: solicitantes
   - name: evaluaciones
+  - name: tenant
+  - name: admin
 
 paths:
   /solicitantes:
@@ -117,6 +119,157 @@ paths:
         "404":
           description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
 
+  /tenant/actual:
+    get:
+      tags: [tenant]
+      operationId: obtenerTenantActual
+      summary: Devuelve los datos del tenant autenticado (extraídos del JWT)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantActual'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+
+  /tenant/actual/equipo:
+    get:
+      tags: [tenant]
+      operationId: listarEquipo
+      summary: Lista los miembros del equipo del tenant actual
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MiembroEquipo'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+
+  /tenant/actual/preferencias:
+    get:
+      tags: [tenant]
+      operationId: obtenerPreferenciasTenant
+      summary: Consulta las preferencias de seguridad del tenant actual
+      responses:
+        "200":
+          description: Preferencias actuales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenciasTenant'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+    patch:
+      tags: [tenant]
+      operationId: actualizarPreferenciasTenant
+      summary: Actualiza las preferencias de seguridad (solo TENANT_ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferenciasTenant'
+      responses:
+        "200":
+          description: Preferencias actualizadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenciasTenant'
+        "403":
+          description: Sin permisos
+
+  /tenant/actual/uso:
+    get:
+      tags: [tenant]
+      operationId: obtenerUsoTenant
+      summary: Consulta uso de evaluaciones del mes y límite del plan actual
+      responses:
+        "200":
+          description: Uso mensual actual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsoTenant'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+
+  /tenant/actual/organizacion:
+    patch:
+      tags: [tenant]
+      operationId: actualizarOrganizacionTenant
+      summary: Actualiza el nombre visible de la institución (solo TENANT_ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizacionTenantPatch'
+      responses:
+        "200":
+          description: Organización actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantActual'
+        "403":
+          description: Sin permisos
+
+  /admin/tenants:
+    get:
+      tags: [admin]
+      operationId: listarTenants
+      summary: Lista todos los tenants (solo PLATFORM_ADMIN)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TenantActual'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+        "403":
+          description: Sin permisos de administración
+
+  /admin/tenants/{id}:
+    patch:
+      tags: [admin]
+      operationId: actualizarTenant
+      summary: Activa o desactiva un tenant (solo PLATFORM_ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantPatch'
+      responses:
+        "200":
+          description: Tenant actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantActual'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+        "403":
+          description: Sin permisos
+        "404":
+          description: Tenant no encontrado
+
 components:
   securitySchemes:
     bearerAuth:
@@ -159,6 +312,28 @@ components:
         correlationId: { type: string }
         timestamp: { type: string, format: date-time }
       required: [type, title, status, code, correlationId]
+
+    TenantActual:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        nit: { type: string }
+        tipo: { type: string, enum: [IMF, FINTECH, BANCO, COOPERATIVA] }
+        plan: { type: string, enum: [FREE, PRO, ENTERPRISE] }
+        pais: { type: string }
+        moneda: { type: string }
+        activo: { type: boolean }
+      required: [id, nombre, nit, tipo, plan, pais, moneda, activo]
+
+    MiembroEquipo:
+      type: object
+      properties:
+        nombre: { type: string }
+        email: { type: string }
+        rol: { type: string }
+        estado: { type: string, enum: [ACTIVO, INVITADO, DESACTIVADO] }
+      required: [nombre, rol, estado]
 
     ConsentimientoNuevo:
       type: object
@@ -231,3 +406,28 @@ components:
         modelVersion: { type: string }
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
+
+    TenantPatch:
+      type: object
+      properties:
+        activo: { type: boolean }
+        plan: { type: string, enum: [FREE, PRO, ENTERPRISE] }
+
+    PreferenciasTenant:
+      type: object
+      properties:
+        enmascararDatos: { type: boolean }
+      required: [enmascararDatos]
+
+    UsoTenant:
+      type: object
+      properties:
+        evaluacionesMes: { type: integer, minimum: 0 }
+        limiteMensual: { type: integer, minimum: 0, description: 0 means unlimited }
+      required: [evaluacionesMes, limiteMensual]
+
+    OrganizacionTenantPatch:
+      type: object
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 100 }
+      required: [nombre]

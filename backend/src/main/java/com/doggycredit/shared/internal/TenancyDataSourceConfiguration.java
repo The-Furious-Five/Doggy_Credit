@@ -8,6 +8,7 @@ import org.hibernate.cfg.MultiTenancySettings;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.boot.flyway.autoconfigure.FlywayDataSource;
@@ -55,33 +56,22 @@ class TenancyDataSourceConfiguration {
     }
 
     /**
-     * Dos conexiones a la misma base, con dos propósitos distintos. Ambas
-     * se construyen a mano, a partir de {@link JdbcConnectionDetails} y no
-     * de las propiedades {@code spring.datasource.*} directamente, para
-     * que funcionen igual en producción y en los tests con Testcontainers
-     * (la URL dinámica que arma {@code @ServiceConnection} llega por ahí,
-     * no por properties).
-     * <p>
-     * Se definen los dos bean a mano —no se deja que
-     * {@code DataSourceAutoConfiguration} cree el suyo y se envuelve
-     * después— porque intentarlo así (bean de tipo {@code DataSource}
-     * adicional, o un {@code BeanPostProcessor} que lo envuelve) hace que
-     * {@code @ConditionalOnMissingBean(DataSource.class)} nunca cree el
-     * original, o que otros beans terminen enganchados al bean equivocado
-     * sin un {@code @Primary} explícito. Comprobado dos veces: primero con
-     * una referencia circular en el arranque, después con
-     * {@code JdbcTemplate.getDataSource()} devolviendo el datasource de
-     * Flyway en vez del de la aplicación.
+     * La conexión de aplicación usa credenciales restringidas de
+     * {@code doggycredit.datasource.*}; la de Flyway conserva las credenciales
+     * administrativas de {@code spring.datasource.*}. Ambas reutilizan la URL
+     * dinámica de {@link JdbcConnectionDetails} cuando Testcontainers la aporta.
      */
     @Bean
-    @ConfigurationProperties("spring.datasource.hikari")
+    @ConfigurationProperties("doggycredit.datasource.hikari")
     HikariDataSource rawAppDataSource(ObjectProvider<JdbcConnectionDetails> details,
-            DataSourceProperties properties) {
-        return builderFor(details, properties).type(HikariDataSource.class).build();
+            @Value("${doggycredit.datasource.url}") String url,
+            @Value("${doggycredit.datasource.username}") String username,
+            @Value("${doggycredit.datasource.password}") String password) {
+        return builderFor(details, url, username, password).type(HikariDataSource.class).build();
     }
 
     /**
-     * La que usan JPA y JdbcTemplate: hace {@code SET ROLE} y fija
+     * La que usan JPA y JdbcTemplate: fija
      * {@code app.tenant_id} en cada conexión (ver {@link TenantAwareDataSource}).
      */
     @Bean
@@ -101,29 +91,22 @@ class TenancyDataSourceConfiguration {
     @FlywayDataSource
     DataSource flywayDataSource(ObjectProvider<JdbcConnectionDetails> details,
             DataSourceProperties properties) {
-        return builderFor(details, properties).type(SimpleDriverDataSource.class).build();
+        return builderFor(details, properties.determineUrl(), properties.determineUsername(), properties.determinePassword())
+                .type(SimpleDriverDataSource.class).build();
     }
 
-    /**
-     * {@code @ServiceConnection} (tests) registra un {@link JdbcConnectionDetails};
-     * en producción no existe ninguno: Spring Boot solo crea el suyo dentro de
-     * la configuración que se desactiva cuando ya hay un {@code DataSource}
-     * definido, como aquí. Por eso se cae a {@link DataSourceProperties}
-     * ({@code spring.datasource.*}), que sí se registra siempre. Lo cubre
-     * {@code ProductionDataSourceWiringTest}.
-     */
     private static DataSourceBuilder<?> builderFor(ObjectProvider<JdbcConnectionDetails> details,
-            DataSourceProperties properties) {
+            String url, String username, String password) {
         JdbcConnectionDetails connection = details.getIfAvailable();
         if (connection != null) {
             return DataSourceBuilder.create()
                     .url(connection.getJdbcUrl())
-                    .username(connection.getUsername())
-                    .password(connection.getPassword());
+                    .username(username)
+                    .password(password);
         }
         return DataSourceBuilder.create()
-                .url(properties.determineUrl())
-                .username(properties.determineUsername())
-                .password(properties.determinePassword());
+                .url(url)
+                .username(username)
+                .password(password);
     }
 }

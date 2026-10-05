@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
@@ -17,6 +18,7 @@ import jakarta.persistence.Table;
  * iniciales se siembran desde {@code seed/tenants.yaml}.
  */
 @Entity
+@DynamicUpdate
 @Table(schema = "tenancy", name = "tenants")
 public class Tenant {
 
@@ -88,5 +90,17 @@ public class Tenant {
 
     boolean isActivo() {
         return activo;
+    }
+
+    void setPlan(String plan) {
+        this.plan = plan;
+    }
+
+    void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    void setActivo(boolean activo) {
+        this.activo = activo;
     }
 }

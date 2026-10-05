@@ -46,7 +46,8 @@ import java.io.IOException;
  * de la separación.
  */
 @Configuration(proxyBeanMethods = false)
-class IdentitySecurityConfiguration {
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity(proxyTargetClass = true)
+public class IdentitySecurityConfiguration {
     @Bean
     SecurityFilterChain identitySecurity(HttpSecurity http,
             ProblemDetailAuthenticationEntryPoint entryPoint,

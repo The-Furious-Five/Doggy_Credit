@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -15,6 +15,7 @@ import {
   DsTable,
 } from '../design-system';
 import { clients, products, segmentOptions } from '../data';
+import { SensitiveDataService } from './sensitive-data.service';
 
 const normalize = (text: string) =>
   text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -77,7 +78,7 @@ const normalize = (text: string) =>
                 @for (client of filtered(); track client.id) {
                   <tr>
                     <th scope="row"><a dsLink [routerLink]="client.id">{{ client.name }}</a></th>
-                    <td class="ds-mono">{{ client.document }}</td>
+                    <td class="ds-mono">{{ sensitive.document(client.document) }}</td>
                     <td>{{ client.segment }}</td>
                     <td class="num">{{ client.score }}</td>
                     <td>{{ client.need }}</td>
@@ -100,6 +101,7 @@ const normalize = (text: string) =>
   `,
 })
 export class Clients {
+  readonly sensitive = inject(SensitiveDataService);
   readonly products = products;
   readonly segments = segmentOptions;
   readonly query = signal('');

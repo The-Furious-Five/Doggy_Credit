@@ -17,6 +17,7 @@ import {
   DsToastService,
 } from '../design-system';
 import { clients, productKinds, products } from '../data';
+import { SensitiveDataService } from './sensitive-data.service';
 
 @Component({
   selector: 'dc-client-profile',
@@ -46,7 +47,7 @@ import { clients, productKinds, products } from '../data';
         </div>
         <h1>{{ client().name }}</h1>
         <p class="ds-muted">
-          Documento <span class="ds-mono">{{ client().document }}</span> · Actualizado {{ client().updated }}
+          Documento <span class="ds-mono">{{ sensitive.document(client().document) }}</span> · Actualizado {{ client().updated }}
         </p>
       </div>
       <div class="ds-row">
@@ -59,8 +60,8 @@ import { clients, productKinds, products } from '../data';
       <ds-tab value="resumen" label="Resumen">
         <div class="ds-stack">
           <div class="kpis">
-            <ds-card padding="compact"><ds-stat label="Ingreso mensual" value="Bs 9.800" detail="Promedio de 6 meses" /></ds-card>
-            <ds-card padding="compact"><ds-stat label="Deuda vigente" value="Bs 21.400" detail="3 obligaciones" /></ds-card>
+            <ds-card padding="compact"><ds-stat label="Ingreso mensual" [value]="sensitive.amount('Bs 9.800')" detail="Promedio de 6 meses" /></ds-card>
+            <ds-card padding="compact"><ds-stat label="Deuda vigente" [value]="sensitive.amount('Bs 21.400')" detail="3 obligaciones" /></ds-card>
             <ds-card padding="compact"><ds-stat label="Endeudamiento" value="34 %" detail="Cuota sobre ingreso" /></ds-card>
             <ds-card padding="compact"><ds-stat label="Antigüedad" value="6 años" detail="En el sistema financiero" /></ds-card>
           </div>
@@ -121,7 +122,7 @@ import { clients, productKinds, products } from '../data';
                 <h3>{{ products[kind].name }}</h3>
                 <p class="ds-muted">{{ products[kind].summary }}</p>
                 <dl class="facts">
-                  <div><dt class="ds-caption">Monto sugerido</dt><dd>{{ products[kind].range }}</dd></div>
+                  <div><dt class="ds-caption">Monto sugerido</dt><dd>{{ sensitive.amount(products[kind].range) }}</dd></div>
                   <div><dt class="ds-caption">Plazo</dt><dd>{{ products[kind].term }}</dd></div>
                 </dl>
                 <button dsButton [variant]="kind === client().product ? 'primary' : 'secondary'" (click)="propose(products[kind].name)">
@@ -155,6 +156,7 @@ import { clients, productKinds, products } from '../data';
 })
 export class ClientProfile {
   private readonly toast = inject(DsToastService);
+  readonly sensitive = inject(SensitiveDataService);
   readonly id = input('');
   readonly client = computed(() => clients.find((c) => c.id === this.id()) ?? clients[0]);
   readonly products = products;

@@ -6,8 +6,6 @@ spring:
     url: jdbc:postgresql://${DC_DB_HOST:localhost}:${DC_DB_PORT:5432}/${DC_DB_NAME:doggycredit}
     username: ${DC_DB_USER:doggy_app}
     password: ${DC_DB_PASSWORD:doggy_app}
-    hikari:
-      maximum-pool-size: 10
 
   jpa:
     open-in-view: false
@@ -28,6 +26,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    placeholders:
+      appDbPassword: ${DC_APP_DB_PASSWORD:dev_only_app_role}
 
   # SPIKE-2 (Franco, con Nicole) fija el issuer real cuando el realm exista.
   # Sin esta propiedad configurada, el resource server no arranca: es
@@ -42,6 +42,12 @@ server:
   port: 8080
 
 doggycredit:
+  datasource:
+    url: jdbc:postgresql://${DC_DB_HOST:localhost}:${DC_DB_PORT:5432}/${DC_DB_NAME:doggycredit}
+    username: ${DC_APP_DB_USER:doggycredit_app}
+    password: ${DC_APP_DB_PASSWORD:dev_only_app_role}
+    hikari:
+      maximum-pool-size: 10
   correlation:
     header: ${DC_CORRELATION_HEADER:X-Correlation-Id}
   integration:

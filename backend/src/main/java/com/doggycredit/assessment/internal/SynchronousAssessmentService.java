@@ -22,8 +22,12 @@ import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.IdempotencyKeyReusedException;
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.billing.QuotaGuard;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistry;
+import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.tenancy.TenantInfo;
+import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.integration.BureauReport;
 import com.doggycredit.integration.ConnectorGateway;
 import com.doggycredit.integration.SourceConnector;
@@ -44,13 +48,16 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final AuditTrail audit;
 	private final ExecutorService executor;
 	private final Duration collectionBudget;
+	private final QuotaGuard quotaGuard;
+	private final TenantRegistry tenantRegistry;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			ConnectorGateway connectorGateway,
 			@Qualifier("bureauConnector") SourceConnector<Optional<BureauReport>> bureauConnector,
 			BasicScorecard scorecard, AuditTrail audit,
 			@Qualifier("assessmentCollectionExecutor") ExecutorService executor,
-			@Value("${doggycredit.assessment.collection-budget:2s}") Duration collectionBudget) {
+			@Value("${doggycredit.assessment.collection-budget:2s}") Duration collectionBudget,
+			QuotaGuard quotaGuard, TenantRegistry tenantRegistry) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.connectorGateway = connectorGateway;
@@ -59,6 +66,8 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.audit = audit;
 		this.executor = executor;
 		this.collectionBudget = collectionBudget;
+		this.quotaGuard = quotaGuard;
+		this.tenantRegistry = tenantRegistry;
 	}
 
 	@Override
@@ -73,6 +82,9 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			}
 			return replay.get().toResult();
 		}
+
+		TenantInfo tenant = tenantRegistry.requireById(TenantId.of(command.tenantId()));
+		quotaGuard.requireEvaluationQuota(command.tenantId(), tenant.plan());
 
 		String normalizedDocument = DocumentNumber.normalize(command.document());
 		ApplicantProfile applicant = applicants.findRequired(command.tenantId(), normalizedDocument);
