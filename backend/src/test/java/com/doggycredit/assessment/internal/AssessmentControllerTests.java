@@ -31,8 +31,10 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import com.doggycredit.TestcontainersConfiguration;
+import com.doggycredit.TestTenants;
 import com.doggycredit.consent.Source;
 import com.doggycredit.integration.BureauConnector;
 import com.doggycredit.integration.BureauReport;
@@ -58,12 +60,16 @@ class AssessmentControllerTests {
 	@Autowired
 	JdbcTemplate jdbc;
 
+	@Autowired
+	PostgreSQLContainer postgres;
+
 	@MockitoBean(name = "bureauConnector")
 	BureauConnector bureau;
 
 	@BeforeEach
 	void configureBureauAndData() throws Exception {
 		when(bureau.source()).thenReturn(Source.BURO);
+		TestTenants.register(postgres, TENANT, "FREE");
 		registerApplicant();
 		comoTenant(() -> jdbc.update("""
 				insert into consent.consents (id, tenant_id, titular_documento, fuentes, finalidad, vigencia_dias,

@@ -28,8 +28,10 @@ import org.springframework.modulith.test.EnableScenarios;
 import org.springframework.modulith.test.Scenario;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import com.doggycredit.TestcontainersConfiguration;
+import com.doggycredit.TestTenants;
 import com.doggycredit.assessment.AssessmentCommand;
 import com.doggycredit.assessment.AssessmentOperations;
 import com.doggycredit.assessment.CreditAssessmentCompleted;
@@ -60,6 +62,9 @@ class AssessmentEventsTests {
 	JdbcTemplate jdbc;
 
 	@Autowired
+	PostgreSQLContainer postgres;
+
+	@Autowired
 	AssessmentOperations assessments;
 
 	@MockitoBean(name = "bureauConnector")
@@ -68,6 +73,7 @@ class AssessmentEventsTests {
 	@BeforeEach
 	void applicantAndConsent() throws Exception {
 		when(bureau.source()).thenReturn(Source.BURO);
+		TestTenants.register(postgres, TENANT.toString(), "FREE");
 		if (comoTenant(() -> jdbc.queryForObject("select count(*) from customer.applicants where tenant_id = ?",
 				Integer.class, TENANT)) == 0) {
 			mvc.perform(post("/solicitantes")

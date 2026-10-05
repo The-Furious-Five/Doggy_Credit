@@ -91,7 +91,12 @@ class TenancyDataSourceConfiguration {
     @FlywayDataSource
     DataSource flywayDataSource(ObjectProvider<JdbcConnectionDetails> details,
             DataSourceProperties properties) {
-        return builderFor(details, properties.determineUrl(), properties.determineUsername(), properties.determinePassword())
+        // Con Testcontainers el administrador es el usuario del contenedor, no
+        // el de spring.datasource.*: se toman sus credenciales.
+        JdbcConnectionDetails connection = details.getIfAvailable();
+        String username = connection != null ? connection.getUsername() : properties.determineUsername();
+        String password = connection != null ? connection.getPassword() : properties.determinePassword();
+        return builderFor(details, properties.determineUrl(), username, password)
                 .type(SimpleDriverDataSource.class).build();
     }
 

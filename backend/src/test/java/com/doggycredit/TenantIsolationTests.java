@@ -74,9 +74,9 @@ class TenantIsolationTests {
         // Create an applicant as Tenant A
         comoTenant(TENANT_A, () -> {
             jdbc.update("""
-                insert into customer.applicants (id, tenant_id, document_ref, document_ciphertext, actividad,
-                  antiguedad_actividad_meses, ingresos_mensuales, moneda, destino_credito)
-                values (?, ?::uuid, ?, ?, 'Comercio ais', 12, 1000, 'BOB', 'Cap ais')
+                insert into customer.applicants (id, tenant_id, document_ref, document_ciphertext, activity,
+                  activity_seniority_months, monthly_income, income_currency, credit_destination, created_at)
+                values (?, ?::uuid, ?, ?, 'Comercio ais', 12, 1000, 'BOB', 'Cap ais', now())
                 on conflict do nothing
                 """, applicantId, TENANT_A, docRef, docCrypt);
             return null;
@@ -115,16 +115,18 @@ class TenantIsolationTests {
                 """, consentId, TENANT_A, document);
 
             jdbc.update("""
-                insert into customer.applicants (id, tenant_id, document_ref, document_ciphertext, actividad,
-                  antiguedad_actividad_meses, ingresos_mensuales, moneda, destino_credito)
-                values (?, ?::uuid, ?, ?, 'Comercio ais', 12, 1000, 'BOB', 'Cap ais')
+                insert into customer.applicants (id, tenant_id, document_ref, document_ciphertext, activity,
+                  activity_seniority_months, monthly_income, income_currency, credit_destination, created_at)
+                values (?, ?::uuid, ?, ?, 'Comercio ais', 12, 1000, 'BOB', 'Cap ais', now())
                 on conflict do nothing
                 """, applicantId, TENANT_A, document, document);
 
             jdbc.update("""
-                insert into assessment.evaluations (id, tenant_id, idempotency_key, applicant_id, consent_id,
-                  proposito, monto_solicitado, monto_solicitado_moneda, plazo_meses, estado, score, banda, model_version, created_at)
-                values (?, ?::uuid, ?, ?::uuid, ?::uuid, 'Cap ais', 3000, 'BOB', 12, 'PREAPROBADO', 800, 'A', 'basic-v1', now())
+                insert into assessment.credit_assessments (id, tenant_id, idempotency_key, request_hash, applicant_id,
+                  consent_id, purpose, requested_amount, term_months, status, score, band, reasons, model_version,
+                  correlation_id, created_at)
+                values (?, ?::uuid, ?, 'hash-ais', ?::uuid, ?::uuid, 'Cap ais', 3000, 12, 'PREAPROBADO', 800, 'A',
+                  '{r1,r2,r3}'::text[], 'basic-v1', 'corr-ais', now())
                 on conflict do nothing
                 """, assessmentId, TENANT_A, "idem-" + assessmentId, applicantId, consentId);
             return null;

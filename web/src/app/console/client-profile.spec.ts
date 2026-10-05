@@ -15,6 +15,7 @@ import {
   DineroCurrencyEnum,
 } from '../api';
 import { ClientProfile } from './client-profile';
+import { SensitiveDataService } from './sensitive-data.service';
 
 const bob = (amount: string) => ({ amount, currency: DineroCurrencyEnum.Bob });
 
@@ -62,6 +63,7 @@ describe('Perfil del cliente (B-09)', () => {
         provideRouter([]),
         { provide: SolicitantesService, useValue: applicants },
         { provide: ConsentimientosService, useValue: consents },
+        { provide: SensitiveDataService, useValue: { document: (v: string) => v, amount: (v: string) => v } },
       ],
     });
     const fixture = TestBed.createComponent(ClientProfile);

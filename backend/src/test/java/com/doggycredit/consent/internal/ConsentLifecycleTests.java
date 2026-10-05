@@ -27,9 +27,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.doggycredit.TestcontainersConfiguration;
+import com.doggycredit.TestTenants;
 import com.doggycredit.consent.ConsentRequiredException;
 import com.doggycredit.consent.Source;
 import com.doggycredit.integration.BankConnector;
@@ -56,6 +58,9 @@ class ConsentLifecycleTests {
 	@Autowired
 	ConnectorGateway gateway;
 
+	@Autowired
+	PostgreSQLContainer postgres;
+
 	@MockitoBean(name = "bureauConnector")
 	BureauConnector bureau;
 
@@ -64,6 +69,7 @@ class ConsentLifecycleTests {
 
 	@Test
 	void revocarYLuegoEvaluarResponde422() throws Exception {
+		TestTenants.register(postgres, TENANT, "FREE");
 		when(bureau.source()).thenReturn(Source.BURO);
 		when(bureau.fetch(any(), anyString())).thenReturn(Optional.of(new BureauReport(TipoTitular.PERSONA, 12,
 				List.of(), new Linaje(Source.BURO, "v1", "v1", "f", "a".repeat(64), Instant.now()))));

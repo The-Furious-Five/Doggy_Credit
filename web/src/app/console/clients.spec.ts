@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { PaginaSolicitantes, Segmento, SolicitanteMonedaEnum, SolicitantesService } from '../api';
 import { Clients } from './clients';
+import { SensitiveDataService } from './sensitive-data.service';
 
 const page = (n: number, total = n): PaginaSolicitantes => ({
   total,
@@ -25,7 +26,11 @@ describe('Clientes (B-09)', () => {
 
   async function render(): Promise<ComponentFixture<Clients>> {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: SolicitantesService, useValue: api }],
+      providers: [
+        provideRouter([]),
+        { provide: SolicitantesService, useValue: api },
+        { provide: SensitiveDataService, useValue: { document: (v: string) => v, amount: (v: string) => v } },
+      ],
     });
     const fixture = TestBed.createComponent(Clients);
     fixture.detectChanges();
