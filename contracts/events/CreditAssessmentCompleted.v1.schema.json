@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.doggycredit.example/schemas/events/CreditAssessmentCompleted.v1.json",
+  "title": "CreditAssessmentCompleted",
+  "version": 1,
+  "description": "Terminó una evaluación de crédito, con el resultado devuelto al cliente. Los nombres siguen al recurso Evaluacion del OpenAPI. Publicado por el módulo assessment (D-03).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "ocurridoEn",
+    "tenantId",
+    "assessmentId",
+    "applicantId",
+    "estado",
+    "score",
+    "banda",
+    "razones",
+    "modelVersion",
+    "simulado",
+    "correlationId"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Único por publicación; sirve para deduplicar entregas repetidas"
+    },
+    "ocurridoEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant dueño del evento; es también la clave de particionado al externalizar"
+    },
+    "assessmentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "applicantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "PENDIENTE",
+        "PARCIAL",
+        "PREAPROBADO",
+        "REVISION_MANUAL",
+        "FALLIDA"
+      ]
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "banda": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ]
+    },
+    "razones": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "modelVersion": {
+      "type": "string"
+    },
+    "simulado": {
+      "type": "boolean"
+    },
+    "correlationId": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.doggycredit.example/schemas/events/ConsentGranted.v1.json",
+  "title": "ConsentGranted",
+  "version": 1,
+  "description": "Se otorgó un consentimiento (RF-CON-01). Sin el documento del titular (minimización): se resuelve por consentId. Publicado por el módulo consent (D-03).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "ocurridoEn",
+    "tenantId",
+    "consentId",
+    "fuentes",
+    "finalidad",
+    "vigenciaDias",
+    "expiraEn"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Único por publicación; sirve para deduplicar entregas repetidas"
+    },
+    "ocurridoEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant dueño del evento; es también la clave de particionado al externalizar"
+    },
+    "consentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "fuentes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "BURO",
+          "BANCO",
+          "WALLET"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "finalidad": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "vigenciaDias": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 365
+    },
+    "expiraEn": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

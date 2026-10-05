@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.doggycredit.example/schemas/events/ConsentRevoked.v1.json",
+  "title": "ConsentRevoked",
+  "version": 1,
+  "description": "Se revocó un consentimiento, total o por fuente (RF-CON-02, B-07). Si fuentesVigentes queda vacía, el consentimiento entero pasó a REVOCADO. Publicado por el módulo consent (D-03).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "ocurridoEn",
+    "tenantId",
+    "consentId",
+    "fuentesRevocadas",
+    "fuentesVigentes"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Único por publicación; sirve para deduplicar entregas repetidas"
+    },
+    "ocurridoEn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant dueño del evento; es también la clave de particionado al externalizar"
+    },
+    "consentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "fuentesRevocadas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "BURO",
+          "BANCO",
+          "WALLET"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "fuentesVigentes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "BURO",
+          "BANCO",
+          "WALLET"
+        ]
+      },
+      "uniqueItems": true
+    }
+  }
+}

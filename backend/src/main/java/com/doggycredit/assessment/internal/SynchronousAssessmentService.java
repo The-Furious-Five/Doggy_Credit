@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,10 +45,11 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final AuditTrail audit;
 	private final QuotaGuard quotaGuard;
 	private final TenantRegistry tenantRegistry;
+	private final ApplicationEventPublisher events;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			SourceCollector sources, CreditScoring scoring, AuditTrail audit,
-			QuotaGuard quotaGuard, TenantRegistry tenantRegistry) {
+			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.sources = sources;
@@ -55,6 +57,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.audit = audit;
 		this.quotaGuard = quotaGuard;
 		this.tenantRegistry = tenantRegistry;
+		this.events = events;
 	}
 
 	@Override
@@ -85,6 +88,8 @@ class SynchronousAssessmentService implements AssessmentOperations {
 				command.termMonths(), status, score, command.correlationId());
 		assessments.save(assessment);
 		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());
+		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
+		events.publishEvent(assessment.completedEvent());
 		return assessment.toResult();
 	}
 
