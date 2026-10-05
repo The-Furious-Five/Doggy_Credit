@@ -1,0 +1,12 @@
+# D-08: dashboards propios de DoggyCredit. Compose monta este archivo en la
+# carpeta de provisioning de otel-lgtm y los JSON en /otel-lgtm/doggycredit-dashboards.
+apiVersion: 1
+
+providers:
+  - name: "DoggyCredit"
+    folder: "DoggyCredit"
+    type: file
+    disableDeletion: true
+    options:
+      path: /otel-lgtm/doggycredit-dashboards
+      foldersFromFilesStructure: false

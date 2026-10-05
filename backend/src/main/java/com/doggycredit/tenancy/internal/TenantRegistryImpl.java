@@ -58,6 +58,11 @@ class TenantRegistryImpl implements TenantRegistry {
         return toInfo(tenants.save(tenant));
     }
 
+    @Override
+    public List<TenantInfo> findAllActive() {
+        return tenants.findAll().stream().filter(Tenant::isActivo).map(this::toInfo).toList();
+    }
+
     private TenantInfo toInfo(Tenant t) {
         return new TenantInfo(t.getId(), t.getNombre(), t.getNit(),
                 t.getTipo(), t.getPlan(), t.getPais(), t.getMoneda(), t.isActivo());

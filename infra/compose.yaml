@@ -121,6 +121,10 @@ services:
     ports:
       # Grafana: trazas, métricas y logs por X-Correlation-Id (guía §10.5).
       - "${DC_GRAFANA_HOST_PORT:-3300}:3000"
+    volumes:
+      # D-08: panel «Modelos de scoring» (PSI), provisionado al arrancar.
+      - ./grafana/doggycredit-dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/doggycredit-dashboards.yaml:ro
+      - ./grafana/dashboards:/otel-lgtm/doggycredit-dashboards:ro
     logging: *dc-logging
 
   doggycredit-api:
@@ -145,6 +149,9 @@ services:
       # D-09: la API administra los clientes de las claves de API por la red interna.
       DC_KEYCLOAK_ADMIN_URL: http://keycloak:8080/auth
       DC_KEYCLOAK_API_ADMIN_SECRET: ${DC_KEYCLOAK_API_ADMIN_SECRET:?falta DC_KEYCLOAK_API_ADMIN_SECRET en .env}
+      # D-08: métricas (incluido el PSI del score) por OTLP a otel-lgtm → Grafana.
+      DC_OTLP_METRICS_ENABLED: "true"
+      DC_OTLP_METRICS_URL: http://otel-lgtm:4318/v1/metrics
     depends_on:
       postgres:
         condition: service_healthy

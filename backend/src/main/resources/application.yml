@@ -99,6 +99,13 @@ doggycredit:
       EFICIENCIA_ENERGETICA: 36
       CONSUMO_CONSOLIDACION: 24
 
+  # D-08: deriva semanal del score (PSI). Sin al menos min-sample evaluaciones
+  # en la semana y en la línea base, el resultado es INSUFICIENTE.
+  analytics:
+    drift:
+      cron: ${DC_ANALYTICS_DRIFT_CRON:0 0 3 * * MON}
+      min-sample: 30
+
   encryption:
     master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
 
@@ -114,6 +121,14 @@ doggycredit:
       timeout: 3s
 
 management:
+  # D-08: métricas por OTLP al colector de otel-lgtm. Apagado por defecto (pruebas,
+  # mvn spring-boot:run); Compose lo enciende con DC_OTLP_METRICS_ENABLED.
+  otlp:
+    metrics:
+      export:
+        enabled: ${DC_OTLP_METRICS_ENABLED:false}
+        url: ${DC_OTLP_METRICS_URL:http://localhost:4318/v1/metrics}
+        step: 1m
   endpoints:
     web:
       exposure:
