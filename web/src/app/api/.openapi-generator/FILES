@@ -5,6 +5,7 @@ api.module.ts
 api/admin.service.ts
 api/api.ts
 api/auditoria.service.ts
+api/clavesApi.service.ts
 api/consentimientos.service.ts
 api/evaluaciones.service.ts
 api/integraciones.service.ts
@@ -14,6 +15,9 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/claveApi.ts
+model/claveApiCreada.ts
+model/claveApiNueva.ts
 model/consentimiento.ts
 model/consentimientoNuevo.ts
 model/dinero.ts
