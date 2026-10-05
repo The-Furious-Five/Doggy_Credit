@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -37,11 +38,8 @@ class DataDrivenBasicScorecard implements BasicScorecard {
 		List<ScoreReason> reasons = new ArrayList<>();
 		int points = definition.baseScore();
 		for (Rule rule : definition.rules()) {
-			int value = valueOf(rule.variable(), input);
-			Bucket bucket = rule.buckets().stream()
-				.filter(candidate -> value <= candidate.max())
-				.findFirst()
-				.orElseThrow(() -> new IllegalStateException("Scorecard sin bucket para " + rule.variable()));
+			OptionalInt value = valueOf(rule.variable(), input);
+			Bucket bucket = value.isPresent() ? bucketFor(rule, value.getAsInt()) : unknownBucketFor(rule);
 			points += bucket.points();
 			reasons.add(new ScoreReason(bucket.reason(), bucket.points()));
 		}
@@ -51,18 +49,35 @@ class DataDrivenBasicScorecard implements BasicScorecard {
 			.findFirst()
 			.map(Band::letter)
 			.orElse(ScoreBand.E);
+		// List.sort es estable: a igual impacto se conserva el orden de las reglas del YAML,
+		// así la misma entrada siempre devuelve las mismas razones en el mismo orden.
 		reasons.sort(Comparator.comparingInt((ScoreReason reason) -> Math.abs(reason.pointImpact())).reversed());
 		return new BasicScoreResult(score, band, List.copyOf(reasons), definition.version());
 	}
 
-	private int valueOf(String variable, ScorecardInput input) {
+	private Bucket bucketFor(Rule rule, int value) {
+		return rule.buckets().stream()
+			.filter(candidate -> value <= candidate.max())
+			.findFirst()
+			.orElseThrow(() -> new IllegalStateException("Scorecard sin bucket para " + rule.variable()));
+	}
+
+	/** Dato ausente: usa el tramo "unknown" de la regla. Sin él se falla; nunca se asume un valor. */
+	private Bucket unknownBucketFor(Rule rule) {
+		if (rule.unknown() == null) {
+			throw new IllegalStateException("Scorecard sin tramo 'unknown' para " + rule.variable());
+		}
+		return rule.unknown();
+	}
+
+	private OptionalInt valueOf(String variable, ScorecardInput input) {
 		return switch (variable) {
 			case "maxDaysPastDue12m" -> input.maxDaysPastDue12m();
-			case "activitySeniorityMonths" -> input.activitySeniorityMonths();
-			case "financialSystemSeniorityMonths" -> input.financialSystemSeniorityMonths();
-			case "requestedAmountIncomeMonths" -> requestedAmountIncomeMonths(input);
-			case "termMonths" -> input.termMonths();
-			case "bureauRecordFound" -> input.bureauRecordFound() ? 1 : 0;
+			case "activitySeniorityMonths" -> OptionalInt.of(input.activitySeniorityMonths());
+			case "financialSystemSeniorityMonths" -> OptionalInt.of(input.financialSystemSeniorityMonths());
+			case "requestedAmountIncomeMonths" -> OptionalInt.of(requestedAmountIncomeMonths(input));
+			case "termMonths" -> OptionalInt.of(input.termMonths());
+			case "bureauRecordFound" -> OptionalInt.of(input.bureauRecordFound() ? 1 : 0);
 			default -> throw new IllegalStateException("Variable desconocida en scorecard: " + variable);
 		};
 	}
@@ -96,7 +111,10 @@ class DataDrivenBasicScorecard implements BasicScorecard {
 							String.valueOf(bucket.get("reason"))))
 					.sorted(Comparator.comparingInt(Bucket::max))
 					.toList();
-				return new Rule(String.valueOf(item.get("variable")), buckets);
+				Map<String, Object> unknown = (Map<String, Object>) item.get("unknown");
+				Bucket unknownBucket = unknown == null ? null
+						: new Bucket(Integer.MAX_VALUE, number(unknown.get("points")), String.valueOf(unknown.get("reason")));
+				return new Rule(String.valueOf(item.get("variable")), buckets, unknownBucket);
 			}).toList();
 			if (bands.size() != 5 || rules.size() < 3) {
 				throw new IllegalStateException("Definición de scorecard incompleta");
@@ -118,7 +136,8 @@ class DataDrivenBasicScorecard implements BasicScorecard {
 	private record Band(ScoreBand letter, int min) {
 	}
 
-	private record Rule(String variable, List<Bucket> buckets) {
+	/** {@code unknown} es opcional: tramo para cuando el dato no está disponible. */
+	private record Rule(String variable, List<Bucket> buckets, Bucket unknown) {
 	}
 
 	private record Bucket(int max, int points, String reason) {

@@ -55,6 +55,20 @@ public class ConnectorGateway {
 		return fetchExternalWithin(connector, tenantId, documento, budget, executor);
 	}
 
+	/**
+	 * C-01: para recolectar varias fuentes en paralelo. La fuente activa (B-06) y el
+	 * consentimiento se validan aquí, en el hilo que llama —donde vive el tenant de
+	 * la petición, que la RLS necesita—, y solo la E/S externa se lanza en el
+	 * executor. Quien llama espera el {@link Future} con su propio presupuesto (y lo
+	 * cancela si se agota).
+	 */
+	public <T> Future<T> submit(SourceConnector<T> connector, UUID tenantId, UUID consentId, String documento,
+			ExecutorService executor) {
+		requireEnabled(connector, tenantId);
+		consentPolicy.requireActive(tenantId, consentId, documento, connector.source());
+		return executor.submit(() -> connector.fetch(tenantId, documento));
+	}
+
 	private void requireEnabled(SourceConnector<?> connector, UUID tenantId) {
 		if (!integrations.isActive(tenantId, connector.source())) {
 			throw new SourceDisabledException(connector.source());

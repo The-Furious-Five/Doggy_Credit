@@ -138,7 +138,24 @@ class AssessmentControllerTests {
 			.thenThrow(new SourceUnavailableException(Source.BURO, "simulada", null));
 		createAssessment("assessment-failure-0001", DOCUMENT)
 			.andExpect(status().isCreated())
-			.andExpect(jsonPath("$.estado").value("PARCIAL"));
+			.andExpect(jsonPath("$.estado").value("PARCIAL"))
+			// Demo, punto 6: PARCIAL y además nada inventado dentro del score (RN-15).
+			.andExpect(jsonPath("$.razones[0]").value("MORA_DESCONOCIDA_BURO_NO_DISPONIBLE"))
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_MORA_12M')]").isEmpty())
+			.andExpect(jsonPath("$.banda").value(org.hamcrest.Matchers.not("A")));
+	}
+
+	@Test
+	void sinRegistroEnElBuroEsRespuestaValidaNoMoraDesconocida() throws Exception {
+		// El buró respondió "documento no encontrado": no es una caída ni un motivo de
+		// exclusión (informe de arquitectura). Mora 0 de verdad, no −350 por desconocida.
+		when(bureau.fetch(any(), anyString())).thenReturn(Optional.empty());
+		createAssessment("assessment-no-record-0001", DOCUMENT)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.estado").value("REVISION_MANUAL"))
+			.andExpect(jsonPath("$.razones[?(@ == 'MORA_DESCONOCIDA_BURO_NO_DISPONIBLE')]").isEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_MORA_12M')]").isNotEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isNotEmpty());
 	}
 
 	@Test
