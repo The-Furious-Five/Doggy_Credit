@@ -22,7 +22,9 @@ public enum ErrorCode {
     VALIDATION_ERROR("validation-error", 400, "Error de validación"),
     APPLICANT_ALREADY_EXISTS("applicant-already-exists", 409, "Solicitante ya registrado"),
     APPLICANT_NOT_FOUND("applicant-not-found", 422, "Solicitante no registrado"),
-    ASSESSMENT_NOT_FOUND("assessment-not-found", 404, "Evaluación no encontrada");
+    ASSESSMENT_NOT_FOUND("assessment-not-found", 404, "Evaluación no encontrada"),
+    CONSENT_NOT_FOUND("consent-not-found", 404, "Consentimiento no encontrado"),
+    UNKNOWN_APPLICANT("unknown-applicant", 404, "Solicitante no encontrado");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
 

@@ -46,6 +46,28 @@ paths:
           $ref: "#/components/responses/ErrorNegocio"
 
   /consentimientos:
+    get:
+      tags: [consentimientos]
+      operationId: listarConsentimientos
+      summary: Consentimientos de un solicitante (vigentes, revocados y expirados), del más reciente al más antiguo
+      parameters:
+        - name: solicitanteId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Consentimientos del titular
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Consentimiento"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
     post:
       tags: [consentimientos]
       operationId: crearConsentimiento
@@ -66,6 +88,31 @@ paths:
         "401":
           $ref: "#/components/responses/NoAutenticado"
         "422":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /consentimientos/{id}/revocar:
+    post:
+      tags: [consentimientos]
+      operationId: revocarConsentimiento
+      summary: >
+        Revoca un consentimiento. Desde ese momento ninguna fuente que cubría se
+        consulta con él y una evaluación que lo referencie responde CONSENT_REQUIRED.
+        Idempotente: revocar uno ya revocado o expirado lo devuelve sin cambios.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Consentimiento revocado (o su estado actual si ya no estaba vigente)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consentimiento"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
           $ref: "#/components/responses/ErrorNegocio"
 
   /credit-assessments:
@@ -179,6 +226,8 @@ components:
             id: { type: string, format: uuid }
             estado: { type: string, enum: [ACTIVO, REVOCADO, EXPIRADO] }
             creadoEn: { type: string, format: date-time }
+            expiraEn: { type: string, format: date-time }
+            revocadoEn: { type: string, format: date-time, description: Solo si estado es REVOCADO }
 
     SolicitanteNuevo:
       type: object

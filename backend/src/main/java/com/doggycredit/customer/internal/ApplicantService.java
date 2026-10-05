@@ -1,11 +1,13 @@
 package com.doggycredit.customer.internal;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.consent.ApplicantDocuments;
 import com.doggycredit.customer.ApplicantAlreadyExistsException;
 import com.doggycredit.customer.ApplicantNotFoundException;
 import com.doggycredit.customer.ApplicantProfile;
@@ -17,7 +19,7 @@ import com.doggycredit.shared.FieldEncryption;
 import com.doggycredit.shared.Money;
 
 @Service
-class ApplicantService implements ApplicantRegistry {
+class ApplicantService implements ApplicantRegistry, ApplicantDocuments {
 
 	private final ApplicantRepository applicants;
 	private final FieldEncryption encryption;
@@ -59,6 +61,14 @@ class ApplicantService implements ApplicantRegistry {
 		return applicants.findByTenantIdAndDocumentRef(tenantId, reference)
 			.map(applicant -> toProfile(tenantId, applicant))
 			.orElseThrow(ApplicantNotFoundException::new);
+	}
+
+	/** B-07: consent lista por solicitante a través de este puerto. */
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<String> documentOf(UUID tenantId, UUID applicantId) {
+		return applicants.findByIdAndTenantId(applicantId, tenantId)
+			.map(applicant -> encryption.decrypt(tenantId, applicant.documentCiphertext()));
 	}
 
 	private ApplicantProfile toProfile(UUID tenantId, Applicant applicant) {
