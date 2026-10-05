@@ -79,13 +79,18 @@ sobre datos reales, hay que reentrenar y volver a validar todos los gates
 El adaptador Java (`com.doggycredit.scoring.internal.OnnxScoringAdapter`)
 carga el artefacto desde `backend/src/main/resources/models/scoring-<versión>.onnx`
 (`new OnnxScoringAdapter("v2")`).
-**Ese archivo hoy se copia a mano** desde `ml/model/scoring-v2.onnx` después
-de cada `train.py` — no hay todavía un paso de CI que lo regenere y lo
-copie solo (ver DEBT-016).
+Ese archivo se copia a mano desde `ml/model/scoring-v2.onnx` después de cada
+`train.py`, pero el CI lo vigila (job `ml` de `ci-cd.yml`, D-07): reentrena
+desde cero y falla si `ml/model/` no queda igual o si el `.onnx` y el golden
+set de `backend/` no tienen exactamente los mismos bytes
+(`ci/check_ml_artifacts.py`). Para eso el entrenamiento es determinista en
+cualquier plataforma: ajusta en float64 con Newton y redondea los parámetros
+a `PARAM_DECIMALS` antes de exportar.
 
 ```bash
 cp ml/model/scoring-v2.onnx backend/src/main/resources/models/scoring-v2.onnx
 cp ml/model/golden_set.json backend/src/test/resources/golden_set.json
+python3 ci/check_ml_artifacts.py   # lo mismo que verifica el CI
 ```
 
 La prueba de paridad vive en

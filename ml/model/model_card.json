@@ -18,7 +18,7 @@
     "saldo_promedio_wallet_bob",
     "antiguedad_wallet_meses"
   ],
-  "trainedAt": "2026-10-05T19:08:17.498819+00:00",
+  "trainedAt": "2026-10-05T19:47:41.954999+00:00",
   "datasetSeed": 20260101,
   "datasetHashSha256": "be8940398b86d06acec354a9134d45517856dbf5cfb76d132a00e95f1edf79d9",
   "algorithm": "StandardScaler + LogisticRegression (scikit-learn)",
@@ -29,9 +29,9 @@
     "onnx": "1.23.0"
   },
   "metrics": {
-    "auc": 0.8342930676936751,
+    "auc": 0.8343393571322767,
     "ks": 0.5419567471485706,
-    "brier": 0.12403613328933716,
+    "brier": 0.12403922422463748,
     "dir_genero_declarado": 0.9969520085113724,
     "dir_zona": 0.9432273185976107,
     "n_train": 3200,
@@ -39,21 +39,21 @@
     "tasa_default_train": 0.215625
   },
   "coeficientesEstandarizados": {
-    "dti": 0.8652242422103882,
-    "mora_max_12m_dias": 0.4958673119544983,
-    "num_acreedores": 0.2681054472923279,
-    "peor_calificacion_24m": 0.48225054144859314,
-    "antiguedad_sistema_financiero_meses": -0.330465167760849,
-    "ingreso_promedio_6m_bob": -0.4233754873275757,
-    "ingreso_volatilidad_6m": 0.3951505720615387,
-    "actividad_wallet_90d": -0.1421152502298355,
-    "es_pyme": 0.045316021889448166,
-    "ventas_pyme_promedio_bob": -0.09865742921829224,
-    "saldo_promedio_cuentas_3m_bob": -0.2811771035194397,
-    "ratio_egreso_ingreso_6m": 0.4329860210418701,
-    "meses_flujo_negativo_6m": 0.16034521162509918,
-    "saldo_promedio_wallet_bob": -0.2720886766910553,
-    "antiguedad_wallet_meses": -0.2630000412464142
+    "dti": 0.865145,
+    "mora_max_12m_dias": 0.495836,
+    "num_acreedores": 0.268208,
+    "peor_calificacion_24m": 0.482606,
+    "antiguedad_sistema_financiero_meses": -0.33046,
+    "ingreso_promedio_6m_bob": -0.422413,
+    "ingreso_volatilidad_6m": 0.395369,
+    "actividad_wallet_90d": -0.14228,
+    "es_pyme": 0.044762,
+    "ventas_pyme_promedio_bob": -0.098721,
+    "saldo_promedio_cuentas_3m_bob": -0.281589,
+    "ratio_egreso_ingreso_6m": 0.433373,
+    "meses_flujo_negativo_6m": 0.159729,
+    "saldo_promedio_wallet_bob": -0.272242,
+    "antiguedad_wallet_meses": -0.263002
   },
   "gates": {
     "auc_>=_0.70": true,

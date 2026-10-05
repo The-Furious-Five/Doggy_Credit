@@ -45,6 +45,13 @@ from generate_synthetic import (  # noqa: E402
 MODEL_DIR = Path(__file__).resolve().parents[1] / "model"
 MODEL_VERSION = "v2"
 
+# Decimales con los que se guardan los parámetros del modelo. Cada plataforma
+# acumula en su propio BLAS y los coeficientes difieren en los últimos bits
+# entre macOS y Linux; ajustando en float64 con Newton (converge al óptimo
+# hasta ~1e-12) y redondeando, el .onnx sale idéntico byte a byte en ambas,
+# que es lo que el CI compara por hash (DEBT-016).
+PARAM_DECIMALS = 6
+
 # Signo esperado del coeficiente en el espacio estandarizado (monotonía,
 # §11.5 del informe): + significa "sube el riesgo", - "lo baja". Se
 # verifica contra el modelo entrenado, no se le impone (para eso hace
@@ -88,9 +95,25 @@ def ks_statistic(y_true: np.ndarray, p_default: np.ndarray) -> float:
     return float(np.max(np.abs(cum_bad - cum_good)))
 
 
+def _as_model_input(df):
+    """Valores representables en float32 (lo que recibe el .onnx en la JVM),
+    pero en float64 para que scikit-learn ajuste en doble precisión: en
+    float32 la convergencia se queda en ~1e-7 y depende del BLAS."""
+    return df[FEATURE_COLUMNS].astype(np.float32).astype(np.float64)
+
+
+def _round_params(pipeline: Pipeline) -> None:
+    scaler = pipeline.named_steps["scaler"]
+    logreg = pipeline.named_steps["logreg"]
+    scaler.mean_ = np.round(scaler.mean_, PARAM_DECIMALS)
+    scaler.scale_ = np.round(scaler.scale_, PARAM_DECIMALS)
+    logreg.coef_ = np.round(logreg.coef_, PARAM_DECIMALS)
+    logreg.intercept_ = np.round(logreg.intercept_, PARAM_DECIMALS)
+
+
 def train_once(seed: int = SEED) -> tuple[Pipeline, dict]:
     df = generate(seed=seed)
-    X = df[FEATURE_COLUMNS].astype(np.float32)
+    X = _as_model_input(df)
     y = df["default"].to_numpy()
     protected = df[["genero_declarado", "zona"]]
 
@@ -101,10 +124,13 @@ def train_once(seed: int = SEED) -> tuple[Pipeline, dict]:
     pipeline = Pipeline(
         steps=[
             ("scaler", StandardScaler()),
-            ("logreg", LogisticRegression(C=1.0, max_iter=2000, random_state=seed)),
+            ("logreg", LogisticRegression(
+                C=1.0, solver="newton-cholesky", tol=1e-8, max_iter=1000, random_state=seed
+            )),
         ]
     )
     pipeline.fit(X_train, y_train)
+    _round_params(pipeline)
 
     p_test = pipeline.predict_proba(X_test)[:, 1]
     auc = roc_auc_score(y_test, p_test)
@@ -165,7 +191,7 @@ def build_golden_set(pipeline: Pipeline, seed: int, n: int = 20) -> list[dict]:
     probabilidad que predice el pipeline de scikit-learn. El test de
     paridad en Java compara esto contra el .onnx corrido con ONNX Runtime."""
     df = generate(seed=seed + 999, n=n)
-    X = df[FEATURE_COLUMNS].astype(np.float32)
+    X = _as_model_input(df)
     proba = pipeline.predict_proba(X)[:, 1]
 
     golden = []
@@ -175,7 +201,10 @@ def build_golden_set(pipeline: Pipeline, seed: int, n: int = 20) -> list[dict]:
                 "id": i,
                 "features": {col: float(X.iloc[i][col]) for col in FEATURE_COLUMNS},
                 "featuresOrdered": [float(v) for v in X.iloc[i].tolist()],
-                "expectedPd": float(proba[i]),
+                # predict_proba pasa por el BLAS: se redondea para que el
+                # golden set también salga idéntico en cualquier plataforma
+                # (la tolerancia de paridad es 1e-6).
+                "expectedPd": round(float(proba[i]), 12),
             }
         )
     return golden

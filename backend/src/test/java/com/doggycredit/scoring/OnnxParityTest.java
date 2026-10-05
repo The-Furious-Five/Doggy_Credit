@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * Si este test falla después de reentrenar el modelo, es señal de que el
  * artefacto ONNX en {@code backend/src/main/resources/models/} está
  * desactualizado respecto al de {@code ml/model/}: hay que volver a
- * copiarlo (no se genera automáticamente todavía — eso es una mejora de
- * CI para un sprint posterior).
+ * copiarlo. El job {@code ml} del CI ({@code ci/check_ml_artifacts.py})
+ * lo detecta antes por hash (D-07, DEBT-016).
  */
 class OnnxParityTest {
 
