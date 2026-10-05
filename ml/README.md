@@ -16,6 +16,7 @@ ml/
 │   └── train.py                    # entrena, calcula gates, exporta ONNX y el golden set
 ├── model/
 │   ├── scoring-v2.onnx              # artefacto (copiado a mano a backend/, ver abajo)
+│   ├── scoring-v2.params.json       # media, escala y coeficiente por variable (imputación y razones)
 │   ├── golden_set.json              # 20 perfiles fijos para la prueba de paridad
 │   └── model_card.json              # versión, hash del dataset, métricas, gates
 └── requirements.txt
@@ -89,12 +90,30 @@ a `PARAM_DECIMALS` antes de exportar.
 
 ```bash
 cp ml/model/scoring-v2.onnx backend/src/main/resources/models/scoring-v2.onnx
+cp ml/model/scoring-v2.params.json backend/src/main/resources/models/scoring-v2.params.json
 cp ml/model/golden_set.json backend/src/test/resources/golden_set.json
 python3 ci/check_ml_artifacts.py   # lo mismo que verifica el CI
 ```
 
 La prueba de paridad vive en
 `backend/src/test/java/com/doggycredit/scoring/OnnxParityTest.java`.
+
+## Cómo lo usa la evaluación (D-02)
+
+Los tenants PRO/ENTERPRISE se evalúan con este modelo; los FREE, con el
+scorecard básico (`scoring.CreditScoring`). Si el modelo falla, la evaluación
+degrada al básico. En `modelVersion` de la evaluación queda `scoring-v2` o
+`basic-v1`.
+
+- **Variables sin dato** (banco y billetera hasta B-03/B-05; volatilidad):
+  se imputan con su media de entrenamiento, así que su z es 0 y no mueven el
+  score.
+- **Score 0–1000:** `600 + 50/ln 2 · ln(odds/4)`, donde odds = (1−PD)/PD. Da
+  600 puntos con PD 20 % (la tasa del portafolio sintético) y cada 50 puntos
+  duplican las odds. Bandas: A ≥ 750 · B 600–749 · C 450–599 · D 300–449 ·
+  E < 300.
+- **Razones:** contribución exacta de cada variable, c_i = β_i·z_i, en puntos
+  del score. Se devuelven las 4 de mayor impacto (RF-SCO-03).
 
 ## Plan B (si ONNX Runtime da problemas en algún entorno)
 

@@ -2,7 +2,7 @@
 """Gate de artefactos del modelo de scoring (D-07, paga DEBT-016).
 
 Se corre después de `ml/training/train.py`. Falla si:
-  - el .onnx o el golden set que sirve/prueba el backend no coinciden, por
+  - el .onnx, sus parámetros o el golden set que sirve/prueba el backend no coinciden, por
     SHA-256, con los que acaba de producir el entrenamiento en ml/model/;
   - backend/ trae un .onnx de otra versión que la de model_card.json
     (artefactos viejos olvidados).
@@ -42,6 +42,8 @@ def check(root):
     pairs = [
         (f"ml/model/{onnx}", f"backend/src/main/resources/models/{onnx}"),
         ("ml/model/golden_set.json", "backend/src/test/resources/golden_set.json"),
+        (f"ml/model/scoring-{version}.params.json",
+         f"backend/src/main/resources/models/scoring-{version}.params.json"),
     ]
     errors = []
     for trained, copied in pairs:
@@ -57,8 +59,9 @@ def check(root):
             errors.append(f"{copied} no coincide con {trained}")
 
     models_dir = os.path.join(root, "backend", "src", "main", "resources", "models")
-    for path in sorted(glob.glob(os.path.join(models_dir, "scoring-*.onnx"))):
-        if os.path.basename(path) != onnx:
+    current = {onnx, f"scoring-{version}.params.json"}
+    for path in sorted(glob.glob(os.path.join(models_dir, "scoring-*"))):
+        if os.path.basename(path) not in current:
             errors.append(
                 f"backend/ trae {os.path.basename(path)}, pero model_card.json dice {version}"
             )
@@ -78,6 +81,8 @@ def self_test():
         write("ml/model/golden_set.json", b"[]")
         write("backend/src/main/resources/models/scoring-v9.onnx", b"modelo")
         write("backend/src/test/resources/golden_set.json", b"[]")
+        write("ml/model/scoring-v9.params.json", b"{}")
+        write("backend/src/main/resources/models/scoring-v9.params.json", b"{}")
         assert check(tmp) == [], "artefactos idénticos deben pasar"
 
         write("backend/src/main/resources/models/scoring-v9.onnx", b"otro")
@@ -103,8 +108,8 @@ def main(argv):
         for e in errors:
             print(f"  - {e}")
         print(
-            "\nPara arreglarlo: corre ml/training/train.py, copia el .onnx y el golden set"
-            " a backend/ (ver ml/README.md) y commitea los cuatro archivos."
+            "\nPara arreglarlo: corre ml/training/train.py, copia el .onnx, sus parámetros y el"
+            " golden set a backend/ (ver ml/README.md) y commitea los seis archivos."
         )
         return 1
     print("\nGATE DE ARTEFACTOS ML: OK")

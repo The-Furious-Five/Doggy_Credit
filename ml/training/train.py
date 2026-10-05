@@ -10,6 +10,7 @@ Uso:
 
 Escribe en ml/model/:
     scoring-v2.onnx     — el artefacto servido por la JVM
+    scoring-v2.params.json — media, escala y coeficientes por variable (imputación y explicabilidad)
     model_card.json     — versión, hash del dataset, métricas, gates
     golden_set.json     — 20 perfiles fijos con la probabilidad esperada
 """
@@ -186,6 +187,27 @@ def export_onnx(pipeline: Pipeline, path: Path) -> None:
     path.write_bytes(onx.SerializeToString())
 
 
+def export_params(pipeline: Pipeline) -> dict:
+    """Parámetros del modelo para la JVM (D-02/D-05): media y escala para
+    imputar de forma neutra una variable que falta (z = 0) y coeficientes
+    estandarizados para explicar el score (c_i = beta_i * z_i). Son los mismos
+    valores redondeados que van dentro del .onnx, así que salen idénticos en
+    cualquier plataforma y el CI los compara por hash con los de backend/."""
+    scaler = pipeline.named_steps["scaler"]
+    logreg = pipeline.named_steps["logreg"]
+    return {
+        "modelVersion": MODEL_VERSION,
+        "featureSetVersion": FEATURE_SET_VERSION,
+        "features": [
+            {"name": name, "mean": float(mean), "scale": float(scale), "coefficient": float(coef)}
+            for name, mean, scale, coef in zip(
+                FEATURE_COLUMNS, scaler.mean_, scaler.scale_, logreg.coef_[0]
+            )
+        ],
+        "intercept": float(logreg.intercept_[0]),
+    }
+
+
 def build_golden_set(pipeline: Pipeline, seed: int, n: int = 20) -> list[dict]:
     """20 perfiles fijos (independientes del split de train/test) con la
     probabilidad que predice el pipeline de scikit-learn. El test de
@@ -233,6 +255,10 @@ def main() -> None:
     golden_path = MODEL_DIR / "golden_set.json"
     golden_path.write_text(json.dumps(golden, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    params_path = MODEL_DIR / f"scoring-{MODEL_VERSION}.params.json"
+    params_path.write_text(json.dumps(export_params(pipeline), indent=2, ensure_ascii=False) + "\n",
+                           encoding="utf-8")
+
     model_card = {
         "modelVersion": MODEL_VERSION,
         "featureSetVersion": FEATURE_SET_VERSION,
@@ -265,6 +291,7 @@ def main() -> None:
     print(json.dumps({"metrics": model_card["metrics"], "gates": gates}, indent=2))
     print(f"\nONNX: {onnx_path}")
     print(f"Golden set: {golden_path}")
+    print(f"Parámetros: {params_path}")
     print(f"Model card: {MODEL_DIR / 'model_card.json'}")
 
     if not model_card["gatesPass"]:

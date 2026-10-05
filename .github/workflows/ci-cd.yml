@@ -202,7 +202,7 @@ jobs:
 
       - name: El artefacto commiteado en ml/model/ es el que sale del entrenamiento
         # model_card.json no entra: guarda la fecha de entrenamiento.
-        run: git diff --exit-code -- 'ml/model/*.onnx' ml/model/golden_set.json
+        run: git diff --exit-code -- 'ml/model/*.onnx' 'ml/model/*.params.json' ml/model/golden_set.json
 
       - name: El backend sirve y prueba exactamente ese artefacto (por hash)
         run: python ci/check_ml_artifacts.py
