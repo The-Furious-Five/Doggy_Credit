@@ -55,6 +55,14 @@ doggycredit:
   assessment:
     collection-budget: ${DC_ASSESSMENT_COLLECTION_BUDGET:2s}
 
+  # A-07: solicitudes por minuto por tenant según su plan (informe, PL-05).
+  # En memoria (DEBT-003): con una segunda réplica pasa a Redis.
+  rate-limit:
+    requests-per-minute:
+      FREE: 30
+      PRO: 300
+      ENTERPRISE: 1000
+
   encryption:
     master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
 
