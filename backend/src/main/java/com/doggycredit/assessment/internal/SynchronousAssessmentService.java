@@ -78,7 +78,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		String normalizedDocument = DocumentNumber.normalize(command.document());
 		ApplicantProfile applicant = applicants.findRequired(command.tenantId(), normalizedDocument);
 		BureauCollection collection = collectBureau(command.tenantId(), command.consentId(), normalizedDocument);
-		BasicScoreResult score = scorecard.score(toScorecardInput(command, applicant, collection.report()));
+		BasicScoreResult score = scorecard.score(toScorecardInput(command, applicant, collection));
 		AssessmentStatus status = collection.partial() ? AssessmentStatus.PARCIAL : AssessmentStatus.REVISION_MANUAL;
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
@@ -107,11 +107,13 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	}
 
 	private ScorecardInput toScorecardInput(AssessmentCommand command, ApplicantProfile applicant,
-			Optional<BureauReport> bureau) {
-		// Con informe y sin deudas registradas, la mora es 0 de verdad. Sin informe (buró
-		// caído) la mora es desconocida: vacío, nunca 0 (RN-15).
-		OptionalInt maxDaysPastDue = bureau.isEmpty() ? OptionalInt.empty()
-				: OptionalInt.of(bureau.get().endeudamiento().stream()
+			BureauCollection collection) {
+		Optional<BureauReport> bureau = collection.report();
+		// La mora es desconocida solo si el buró FALLÓ (RN-15: nunca 0 inventado). Si el buró
+		// respondió "sin registro" (informe vacío), es una respuesta válida: sin deudas, mora 0.
+		OptionalInt maxDaysPastDue = collection.partial() ? OptionalInt.empty()
+				: OptionalInt.of(bureau.stream()
+					.flatMap(report -> report.endeudamiento().stream())
 					.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
 					.max().orElse(0));
 		int financialSeniority = bureau.map(BureauReport::antiguedadSistemaFinancieroMeses).orElse(0);

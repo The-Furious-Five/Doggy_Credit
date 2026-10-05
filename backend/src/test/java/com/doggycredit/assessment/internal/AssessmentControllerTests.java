@@ -146,6 +146,19 @@ class AssessmentControllerTests {
 	}
 
 	@Test
+	void sinRegistroEnElBuroEsRespuestaValidaNoMoraDesconocida() throws Exception {
+		// El buró respondió "documento no encontrado": no es una caída ni un motivo de
+		// exclusión (informe de arquitectura). Mora 0 de verdad, no −350 por desconocida.
+		when(bureau.fetch(any(), anyString())).thenReturn(Optional.empty());
+		createAssessment("assessment-no-record-0001", DOCUMENT)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.estado").value("REVISION_MANUAL"))
+			.andExpect(jsonPath("$.razones[?(@ == 'MORA_DESCONOCIDA_BURO_NO_DISPONIBLE')]").isEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_MORA_12M')]").isNotEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isNotEmpty());
+	}
+
+	@Test
 	void consentimientoDistintoNoPermiteConsultarLaFuente() throws Exception {
 		mvc.perform(post("/credit-assessments")
 			.with(jwt().jwt(token -> token.subject("analista-3").claim("tenant_id", TENANT)))
