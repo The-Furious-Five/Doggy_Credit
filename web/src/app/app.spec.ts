@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { Subject, of, throwError } from 'rxjs';
 import { App } from './app';
@@ -17,7 +18,7 @@ describe('Acceso institucional', () => {
     auth.logoff.mockReturnValue(of({}));
     TestBed.configureTestingModule({
       imports: [App],
-      providers: [{ provide: OidcSecurityService, useValue: auth }],
+      providers: [provideRouter([]), { provide: OidcSecurityService, useValue: auth }],
     });
   });
   it('inicia el flujo OIDC sin pedir credenciales en la SPA', () => {
@@ -54,5 +55,12 @@ describe('Acceso institucional', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('button').textContent).toContain('Iniciar sesión');
+  });
+  it('al volver de Keycloak con sesión entra directo a la consola', () => {
+    auth.checkAuth.mockReturnValue(of({ isAuthenticated: true, userData: { name: 'Demo' } }));
+    TestBed.overrideProvider(ActivatedRoute, { useValue: { snapshot: { url: [{ path: 'callback' }] } } });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    TestBed.createComponent(App).detectChanges();
+    expect(navigate).toHaveBeenCalledWith('/app/resumen');
   });
 });

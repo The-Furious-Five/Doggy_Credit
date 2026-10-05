@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.0 — 2026-10-01
+
+- `a[dsLink]` acepta `appearance` (primary/secondary/quiet) para presentar como
+  botón un enlace que cambia de página (CTA de landing, "Nueva evaluación").
+- Iconos nuevos: grid, user, users, chart, plug, code, sliders, bolt, spark,
+  leaf, store, coin, wallet, database, lock, key, sun, logout.
+
 ## 3.0.0 — 2026-09-29
 
 Controles propios: ningún control de la interfaz depende de la apariencia del

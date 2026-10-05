@@ -27,8 +27,21 @@ export class DsButton {
   readonly icon = input(false, { transform: booleanAttribute });
 }
 
-@Directive({ selector: 'a[dsLink]', host: { class: 'ds-link' } })
-export class DsLink {}
+/**
+ * Navegación real (href/routerLink). `appearance` la presenta como botón para
+ * llamadas a la acción que llevan a otra página; sigue siendo un enlace.
+ */
+@Directive({
+  selector: 'a[dsLink]',
+  host: {
+    '[class.ds-link]': 'appearance() === "link"',
+    '[class.ds-button]': 'appearance() !== "link"',
+    '[attr.data-variant]': 'appearance() === "link" ? null : appearance()',
+  },
+})
+export class DsLink {
+  readonly appearance = input<'link' | 'primary' | 'secondary' | 'quiet'>('link');
+}
 
 @Component({
   selector: 'ds-card',

@@ -1,0 +1,279 @@
+name: CI/CD
+
+# Qué hace este flujo
+# -------------------
+# En cada PR y cada push a main corren 4 revisiones en paralelo (CI):
+#
+#   1. Backend        → compila la API Java, valida la arquitectura (ArchUnit,
+#                       Spring Modulith) y corre todos los tests. Exige Docker
+#                       para que los tests con Testcontainers no se salten.
+#                       Un test omitido solo se acepta si está en
+#                       ci/skipped-tests-allowlist.json y no venció
+#                       (ver docs/runbooks/tests-omitidos.md).
+#   2. Web            → instala, revisa el Design System, compila y testea la SPA.
+#   3. Contrato API   → verifica que el código generado (realm de Keycloak y
+#                       cliente TypeScript de web/src/app/api) coincide con lo
+#                       que hay en el repo, y en PRs rechaza cambios en el
+#                       OpenAPI que rompan a los consumidores actuales.
+#   4. Login (e2e)    → levanta todo con Docker Compose y prueba el login real
+#                       (PKCE de usuario + client_credentials) contra la API.
+#
+# Despliegue (CD): solo en push a main o ejecución manual, y solo si las 4
+# revisiones pasaron. Las imágenes se compilan aquí y se publican en GHCR con
+# el SHA del commit; el VPS no compila nada: descarga, arranca, valida salud y,
+# si falla, vuelve a la release anterior. Ver docs/runbooks/despliegue-vps.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: "1 · Backend: compilar y testear la API"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Comprobar que Docker está disponible (lo necesitan los tests)
+        run: docker info
+
+      - name: Compilar, validar arquitectura y correr tests
+        working-directory: backend
+        run: ./mvnw -B verify
+
+      - name: Rechazar tests omitidos que no estén autorizados
+        run: python3 ci/check_skipped_tests.py
+
+      - name: Subir reportes de tests fallidos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
+          if-no-files-found: ignore
+
+  web:
+    name: "2 · Web: compilar y testear la SPA"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Revisar reglas del Design System
+        run: npm run ds:check
+
+      - name: Tests del Design System
+        run: npm run ds:test
+
+      - name: Compilar la SPA
+        run: npm run build
+
+      - name: Tests de la SPA
+        run: npm test -- --watch=false
+
+  contracts:
+    name: "3 · Contrato API: código generado al día y sin cambios incompatibles"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Instalar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias de los scripts
+        run: pip install -r scripts/requirements.txt
+
+      - name: Tests de los scripts generadores
+        run: python -m unittest discover -s scripts -p 'test_*.py'
+
+      - name: Verificar que realm y cliente API generados están al día
+        run: |
+          python scripts/generate_realm.py
+          bash scripts/generate_clients.sh
+          # Si esto falla: corre ambos scripts localmente y commitea el resultado.
+          git diff --exit-code -- infra/keycloak/doggycredit-realm.json web/src/app/api
+          test -z "$(git ls-files --others --exclude-standard web/src/app/api)"
+
+      - name: Rechazar cambios del OpenAPI que rompan a los consumidores (solo PR)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git show "$BASE_SHA:contracts/openapi/doggycredit-api.v1.yaml" > contracts/openapi/base.yaml
+          docker run --rm -v "$PWD/contracts/openapi:/spec:ro" tufin/oasdiff:v1.32.1 breaking /spec/base.yaml /spec/doggycredit-api.v1.yaml --fail-on ERR
+
+  identity:
+    name: "4 · Login (e2e): Keycloak + API levantados con Docker Compose"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias de los scripts
+        run: pip install -r scripts/requirements.txt
+
+      - name: Levantar el sistema completo con credenciales de ejemplo
+        run: |
+          python scripts/generate_realm.py
+          docker compose --env-file .env.example -f infra/compose.yaml up -d --build --wait --wait-timeout 300
+          docker compose --env-file .env.example -f infra/compose.yaml cp caddy:/data/caddy/pki/authorities/local/root.crt "$RUNNER_TEMP/doggycredit-root.crt"
+          curl --retry 30 --retry-all-errors --retry-delay 2 --fail --silent --cacert "$RUNNER_TEMP/doggycredit-root.crt" https://localhost/actuator/health
+
+      - name: Probar login de usuario (PKCE) y de servicio (client_credentials)
+        run: |
+          set -a
+          source .env.example
+          set +a
+          python e2e/identity_smoke.py --ca "$RUNNER_TEMP/doggycredit-root.crt"
+
+      - name: Mostrar logs de API, Keycloak y PostgreSQL (si falló)
+        if: failure()
+        run: docker compose --env-file .env.example -f infra/compose.yaml logs --no-color --timestamps --tail=250 doggycredit-api keycloak postgres
+
+      - name: Apagar contenedores
+        if: always()
+        run: docker compose --env-file .env.example -f infra/compose.yaml down
+
+  deploy:
+    name: "5 · Desplegar a producción (VPS)"
+    needs: [backend, web, contracts, identity]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ steps.release.outputs.origin }}
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias de los scripts
+        run: pip install -r scripts/requirements.txt
+
+      - name: Configurar dominio público (realm + Caddyfile)
+        id: release
+        env:
+          DC_KEYCLOAK_ISSUER_URI: ${{ vars.DC_KEYCLOAK_ISSUER_URI }}
+        run: |
+          python scripts/configure_demo.py
+          echo "origin=${DC_KEYCLOAK_ISSUER_URI%/auth/realms/doggycredit}" >> "$GITHUB_OUTPUT"
+          echo "repo=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Preparar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Iniciar sesión en GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar imagen de la API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.release.outputs.repo }}/doggycredit-api:${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Construir y publicar imagen de la web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          push: true
+          tags: ${{ steps.release.outputs.repo }}/doggycredit-web:${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+      - name: Empaquetar release (solo configuración, sin código fuente)
+        env:
+          REPO: ${{ steps.release.outputs.repo }}
+          DC_KEYCLOAK_ISSUER_URI: ${{ vars.DC_KEYCLOAK_ISSUER_URI }}
+        run: |
+          cat > infra/release.env <<EOF
+          DC_API_IMAGE=$REPO/doggycredit-api:$GITHUB_SHA
+          DC_WEB_IMAGE=$REPO/doggycredit-web:$GITHUB_SHA
+          DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
+          EOF
+          tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
+            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/themes \
+            simulators/wiremock/bureau scripts/deploy.sh
+
+      - name: Copiar release al VPS y arrancarla (con rollback si falla)
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          install -m 700 -d ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          dir=/srv/doggycredit/releases/$GITHUB_SHA
+          ssh -o BatchMode=yes "$TARGET" "mkdir -p $dir && tar -xzf - -C $dir" < release.tar.gz
+          # Token efímero del job: vale solo mientras dura el job; se cierra la sesión al terminar.
+          printf '%s' "$GH_TOKEN" | ssh -o BatchMode=yes "$TARGET" \
+            "trap 'docker logout ghcr.io >/dev/null' EXIT; docker login ghcr.io -u $GITHUB_ACTOR --password-stdin && cd $dir && bash scripts/deploy.sh"
+
+      - name: Comprobar que el sitio responde desde Internet
+        run: curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 3 "${{ steps.release.outputs.origin }}/actuator/health"
+
+      - name: Borrar la clave SSH del runner
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519

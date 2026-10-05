@@ -2,7 +2,7 @@
 
 .access {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 100dvh;
 }
 
@@ -24,9 +24,6 @@
 }
 .access-title {
   font-size: var(--ds-display-fit);
-}
-.access-lead {
-  max-width: var(--ds-form-width);
 }
 .access-points {
   display: grid;
@@ -59,6 +56,13 @@
   padding: var(--ds-space-8) var(--ds-space-12);
   background: var(--ds-surface);
 }
+.access-nav a {
+  color: var(--ds-muted);
+}
+.access-back {
+  width: var(--ds-icon-size-sm);
+  height: var(--ds-icon-size-sm);
+}
 .access-main {
   flex: 1;
   display: grid;
@@ -73,6 +77,16 @@
   font-size: var(--ds-title);
   letter-spacing: var(--ds-tracking-display);
 }
+.access-logo {
+  margin-bottom: var(--ds-space-3);
+}
+.access-hint {
+  display: flex;
+  gap: var(--ds-space-2);
+}
+.access-cta {
+  width: 100%;
+}
 .access-tenant {
   padding: var(--ds-space-4) var(--ds-space-5);
   border-radius: var(--ds-radius-md);
@@ -80,7 +94,10 @@
 }
 .access-footer {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
 }
 
 @include screen.compact {
@@ -88,14 +105,16 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .access-brand {
-    gap: var(--ds-space-8);
+    gap: var(--ds-space-6);
     padding: var(--ds-space-6) var(--ds-space-5) var(--ds-space-8);
   }
   .access-brand__content {
     gap: var(--ds-space-4);
   }
   .access-points,
-  .access-logo {
+  .access-brand > .ds-caption,
+  .access-logo,
+  .access-nav {
     display: none;
   }
   .access-panel {
@@ -103,9 +122,6 @@
   }
   .access-main {
     place-items: start stretch;
-    padding-block: var(--ds-space-6) var(--ds-space-8);
-  }
-  .access-footer {
-    justify-content: flex-start;
+    padding-block: var(--ds-space-2) var(--ds-space-8);
   }
 }

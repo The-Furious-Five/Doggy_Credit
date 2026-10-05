@@ -51,6 +51,8 @@ services:
       DC_SEED_M2M_SECRET_2: ${DC_SEED_M2M_SECRET_2:?falta DC_SEED_M2M_SECRET_2 en .env}
     volumes:
       - ./keycloak/doggycredit-realm.json:/opt/keycloak/data/import/doggycredit-realm.json:ro
+      # Tema de la pantalla de acceso con los colores del Design System.
+      - ./keycloak/themes/doggycredit:/opt/keycloak/themes/doggycredit:ro
       - keycloak_data:/opt/keycloak/data
     healthcheck:
       test: ["CMD-SHELL", "bash -c '(exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null'"]
