@@ -15,8 +15,9 @@ public interface ScoringModel {
 
 	/**
 	 * @param featuresOrdered vector en el mismo orden que {@code featureOrder}
-	 *                        de {@code ml/model/model_card.json} (10
-	 *                        variables del feature_set v1, sin las variables
+	 *                        de {@code ml/model/model_card.json} (15
+	 *                        variables del feature_set v2: las 10 del v1 más
+	 *                        5 de banco y billetera, sin las variables
 	 *                        protegidas de RN-04).
 	 */
 	ScoringResult score(float[] featuresOrdered);

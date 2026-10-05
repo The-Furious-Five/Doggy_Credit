@@ -38,7 +38,7 @@ class OnnxParityTest {
 
 	@BeforeAll
 	static void cargarModelo() {
-		adapter = new OnnxScoringAdapter("v1");
+		adapter = new OnnxScoringAdapter("v2");
 	}
 
 	@AfterAll
@@ -61,7 +61,7 @@ class OnnxParityTest {
 
 				assertEquals(esperado, resultado.probabilityOfDefault(), TOLERANCIA,
 						() -> "perfil #" + id + ": probabilidad de default (Java/ONNX vs. Python/sklearn)");
-				assertEquals("v1", resultado.modelVersion());
+				assertEquals("v2", resultado.modelVersion());
 			});
 		});
 	}

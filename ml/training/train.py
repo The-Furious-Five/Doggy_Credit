@@ -1,7 +1,7 @@
 """
-SPIKE-3 — entrenamiento del modelo de scoring v1.
+Entrenamiento del modelo de scoring (SPIKE-3; v2 en D-01, Sprint 2).
 
-Pipeline: dataset sintético (feature_set v1) -> StandardScaler + regresión
+Pipeline: dataset sintético (feature_set v2) -> StandardScaler + regresión
 logística (scikit-learn) -> exportado a ONNX -> golden set para la prueba
 de paridad Python <-> Java (backend/.../scoring, ONNX Runtime).
 
@@ -9,7 +9,7 @@ Uso:
     ml/.venv/bin/python ml/training/train.py
 
 Escribe en ml/model/:
-    scoring-v1.onnx     — el artefacto servido por la JVM
+    scoring-v2.onnx     — el artefacto servido por la JVM
     model_card.json     — versión, hash del dataset, métricas, gates
     golden_set.json     — 20 perfiles fijos con la probabilidad esperada
 """
@@ -34,10 +34,16 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "data" / "generator"))
-from generate_synthetic import FEATURE_COLUMNS, SEED, generate, dataset_hash  # noqa: E402
+from generate_synthetic import (  # noqa: E402
+    FEATURE_COLUMNS,
+    FEATURE_SET_VERSION,
+    SEED,
+    dataset_hash,
+    generate,
+)
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "model"
-MODEL_VERSION = "v1"
+MODEL_VERSION = "v2"
 
 # Signo esperado del coeficiente en el espacio estandarizado (monotonía,
 # §11.5 del informe): + significa "sube el riesgo", - "lo baja". Se
@@ -52,6 +58,11 @@ EXPECTED_SIGN = {
     "ingreso_promedio_6m_bob": -1,
     "ingreso_volatilidad_6m": 1,
     "actividad_wallet_90d": -1,
+    "saldo_promedio_cuentas_3m_bob": -1,
+    "ratio_egreso_ingreso_6m": 1,
+    "meses_flujo_negativo_6m": 1,
+    "saldo_promedio_wallet_bob": -1,
+    "antiguedad_wallet_meses": -1,
 }
 
 
@@ -142,6 +153,10 @@ def export_onnx(pipeline: Pipeline, path: Path) -> None:
         options={id(pipeline): {"zipmap": False}},
         target_opset=18,
     )
+    # skl2onnx nombra el grafo con un UUID aleatorio: se fija para que el
+    # artefacto sea idéntico byte a byte en cada corrida y el CI pueda
+    # compararlo por hash con el de backend/ (DEBT-016).
+    onx.graph.name = f"scoring-{MODEL_VERSION}"
     path.write_bytes(onx.SerializeToString())
 
 
@@ -191,7 +206,7 @@ def main() -> None:
 
     model_card = {
         "modelVersion": MODEL_VERSION,
-        "featureSetVersion": "v1",
+        "featureSetVersion": FEATURE_SET_VERSION,
         "featureOrder": FEATURE_COLUMNS,
         "trainedAt": datetime.now(timezone.utc).isoformat(),
         "datasetSeed": SEED,

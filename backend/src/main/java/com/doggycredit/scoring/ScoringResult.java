@@ -7,7 +7,7 @@ package com.doggycredit.scoring;
  *                             A-E se derivan de este valor en un paso
  *                             posterior (RF-SCO-02, Sprint 3), fuera del
  *                             alcance de SPIKE-3.
- * @param modelVersion         ej. "v1", tal como en model_card.json.
+ * @param modelVersion         ej. "v2", tal como en model_card.json.
  */
 public record ScoringResult(float probabilityOfDefault, String modelVersion) {
 }
