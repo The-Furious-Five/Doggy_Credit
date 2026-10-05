@@ -2,6 +2,8 @@ export * from './consentimiento';
 export * from './consentimientoNuevo';
 export * from './evaluacion';
 export * from './evaluacionNueva';
+export * from './paginaAuditoria';
 export * from './problemDetail';
+export * from './registroAuditoria';
 export * from './solicitante';
 export * from './solicitanteNuevo';

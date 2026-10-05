@@ -96,3 +96,9 @@ errors:
     status: 404
     title: "Evaluación no encontrada"
     detail_template: "La evaluación no existe o pertenece a otro tenant."
+
+  - code: INSUFFICIENT_ROLE
+    type: insufficient-role
+    status: 403
+    title: "Rol insuficiente"
+    detail_template: "La operación requiere el rol {rol}."

@@ -3,6 +3,7 @@ README.md
 api.base.service.ts
 api.module.ts
 api/api.ts
+api/auditoria.service.ts
 api/consentimientos.service.ts
 api/evaluaciones.service.ts
 api/solicitantes.service.ts
@@ -15,7 +16,9 @@ model/consentimientoNuevo.ts
 model/evaluacion.ts
 model/evaluacionNueva.ts
 model/models.ts
+model/paginaAuditoria.ts
 model/problemDetail.ts
+model/registroAuditoria.ts
 model/solicitante.ts
 model/solicitanteNuevo.ts
 param.ts
