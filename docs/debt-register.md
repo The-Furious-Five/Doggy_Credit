@@ -12,7 +12,7 @@ Fuente: `DoggyCredit — Visión, Requerimientos y Arquitectura v1`, §17.3.
 | DEBT-002 | Sin broker: eventos en proceso con outbox de Spring Modulith | Primer consumidor externo (webhooks, analítica, ML en línea) |
 | DEBT-003 | Rate limit en memoria (Bucket4j local) y jobs sin bloqueo distribuido | Segunda réplica de la API |
 | DEBT-004 | Fuentes simuladas (WireMock); consentimiento sin validez legal verificada | Convenio con la primera fuente real |
-| DEBT-005 | Modelo de scoring con datos sintéticos, sin monitoreo de deriva (PSI) | Antes de cualquier decisión con datos reales |
+| DEBT-005 | Modelo de scoring con datos sintéticos. ~~Sin monitoreo de deriva (PSI)~~ — **parte pagada** (D-08, LOS-97): job semanal de PSI por tenant y modelo (`analytics.model_drift`), métrica `doggycredit.scoring.psi` por OTLP y panel «DoggyCredit · Modelos de scoring» en Grafana. Queda: reentrenar y validar con datos reales | Antes de cualquier decisión con datos reales |
 | DEBT-006 | Clave maestra en secreto de Docker/`.env`, sin KMS ni rotación | Antes de cargar datos personales reales |
 | DEBT-008 | Analítica sobre vistas de la base transaccional | p95 de analítica > 1 s o más de 1 M de filas |
 | DEBT-009 | Cadena de auditoría sin ancla WORM externa | Primer piloto o auditor externo |

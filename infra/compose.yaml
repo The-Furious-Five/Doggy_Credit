@@ -87,6 +87,10 @@ services:
     ports:
       # Grafana: trazas, métricas y logs por X-Correlation-Id (guía §10.5).
       - "${DC_GRAFANA_HOST_PORT:-3300}:3000"
+    volumes:
+      # D-08: panel «Modelos de scoring» (PSI), provisionado al arrancar.
+      - ./grafana/doggycredit-dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/doggycredit-dashboards.yaml:ro
+      - ./grafana/dashboards:/otel-lgtm/doggycredit-dashboards:ro
     logging: *dc-logging
 
   doggycredit-api:
@@ -104,6 +108,9 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/doggycredit/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: doggycredit-api
       DC_INTEGRATION_BUREAU_URL: http://wiremock-bureau:8080
+      # D-08: métricas (incluido el PSI del score) por OTLP a otel-lgtm → Grafana.
+      DC_OTLP_METRICS_ENABLED: "true"
+      DC_OTLP_METRICS_URL: http://otel-lgtm:4318/v1/metrics
     depends_on:
       postgres:
         condition: service_healthy

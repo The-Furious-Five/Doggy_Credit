@@ -251,7 +251,7 @@ jobs:
           DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
           EOF
           tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
-            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/themes \
+            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/themes infra/grafana \
             simulators/wiremock/bureau scripts/deploy.sh
 
       - name: Copiar release al VPS y arrancarla (con rollback si falla)

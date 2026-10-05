@@ -1,5 +1,6 @@
 package com.doggycredit.tenancy.internal;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -29,6 +30,11 @@ class TenantRegistryImpl implements TenantRegistry {
     @Override
     public TenantInfo requireById(TenantId id) {
         return findById(id).orElseThrow(() -> new TenantNotFoundException(id));
+    }
+
+    @Override
+    public List<TenantInfo> findAllActive() {
+        return tenants.findAll().stream().filter(Tenant::isActivo).map(this::toInfo).toList();
     }
 
     private TenantInfo toInfo(Tenant t) {

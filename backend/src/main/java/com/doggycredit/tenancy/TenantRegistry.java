@@ -1,5 +1,6 @@
 package com.doggycredit.tenancy;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -17,4 +18,7 @@ public interface TenantRegistry {
      * @throws TenantNotFoundException si el tenant no está registrado
      */
     TenantInfo requireById(TenantId id);
+
+    /** Tenants activos, para procesos que recorren todos (p. ej. el job de deriva, D-08). */
+    List<TenantInfo> findAllActive();
 }
