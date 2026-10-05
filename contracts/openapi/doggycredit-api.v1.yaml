@@ -18,6 +18,7 @@ tags:
   - name: consentimientos
   - name: solicitantes
   - name: evaluaciones
+  - name: integraciones
 
 paths:
   /solicitantes:
@@ -169,6 +170,58 @@ paths:
         "401":
           $ref: "#/components/responses/NoAutenticado"
         "404":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /integraciones:
+    get:
+      tags: [integraciones]
+      operationId: listarIntegraciones
+      summary: Los 6 conectores del catálogo y su estado para el tenant
+      description: >
+        CONECTADO = activo, la evaluación lo consulta. DISPONIBLE = se puede
+        activar. REQUIERE_PRO = el plan del tenant llegó a su máximo de
+        integraciones activas. PROXIMAMENTE = sin implementación (DEBT-004).
+        El buró es obligatorio: siempre CONECTADO.
+      responses:
+        "200":
+          description: Catálogo con estado por tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Integracion"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /integraciones/{fuente}:
+    put:
+      tags: [integraciones]
+      operationId: actualizarIntegracion
+      summary: Activa o desactiva un conector para el tenant
+      parameters:
+        - name: fuente
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/FuenteIntegracion" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegracionCambio"
+      responses:
+        "200":
+          description: Estado resultante del conector
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integracion"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "409":
           $ref: "#/components/responses/ErrorNegocio"
 
   /credit-assessments:
@@ -374,6 +427,23 @@ components:
               sha256: { type: string }
             required: [fuente, estado]
       required: [id, hash, creadoEn, ingresoMensual, origenIngreso, fuentes]
+
+    FuenteIntegracion:
+      type: string
+      enum: [BURO, BANCO, WALLET, OPEN_BANKING, FACTURACION, GARANTIAS]
+
+    Integracion:
+      type: object
+      properties:
+        fuente: { $ref: "#/components/schemas/FuenteIntegracion" }
+        estado: { type: string, enum: [CONECTADO, DISPONIBLE, REQUIERE_PRO, PROXIMAMENTE] }
+      required: [fuente, estado]
+
+    IntegracionCambio:
+      type: object
+      properties:
+        activa: { type: boolean }
+      required: [activa]
 
     EvaluacionNueva:
       type: object

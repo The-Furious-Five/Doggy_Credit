@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -47,6 +48,7 @@ class ConsentLifecycleTests {
 
 	private static final String TENANT = "88888888-8888-4888-8888-888888888888";
 	private static final String OTRO_TENANT = "99999999-9999-4999-8999-999999999999";
+	private static final String PRO_TENANT = "9c7e7c1a-0000-4000-8000-000000000002";
 
 	@Autowired
 	MockMvc mvc;
@@ -117,17 +119,21 @@ class ConsentLifecycleTests {
 		when(bureau.fetch(any(), anyString())).thenReturn(Optional.empty());
 		when(bank.source()).thenReturn(Source.BANCO);
 		String document = "CI-PARCIAL-" + UUID.randomUUID().toString().substring(0, 8);
-		mvc.perform(post("/consentimientos").with(as(TENANT))
+		// Tenant PRO de la semilla con el banco activo (B-06): lo que se prueba es el consentimiento.
+		mvc.perform(put("/integraciones/BANCO").with(as(PRO_TENANT))
+				.contentType(MediaType.APPLICATION_JSON).content("{\"activa\":true}"))
+			.andExpect(status().isOk());
+		mvc.perform(post("/consentimientos").with(as(PRO_TENANT))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{"titularDocumento":"%s","fuentes":["BURO"],"finalidad":"Evaluación"}
 						""".formatted(document)))
 			.andExpect(status().isCreated());
 
-		TenantContext.set(UUID.fromString(TENANT));
+		TenantContext.set(UUID.fromString(PRO_TENANT));
 		try {
-			assertThat(gateway.fetch(bureau, UUID.fromString(TENANT), document)).isEmpty();
-			assertThatThrownBy(() -> gateway.fetch(bank, UUID.fromString(TENANT), document))
+			assertThat(gateway.fetch(bureau, UUID.fromString(PRO_TENANT), document)).isEmpty();
+			assertThatThrownBy(() -> gateway.fetch(bank, UUID.fromString(PRO_TENANT), document))
 				.isInstanceOf(ConsentRequiredException.class);
 			verify(bank, never()).fetch(any(), anyString());
 		}

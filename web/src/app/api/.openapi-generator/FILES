@@ -5,6 +5,7 @@ api.module.ts
 api/api.ts
 api/consentimientos.service.ts
 api/evaluaciones.service.ts
+api/integraciones.service.ts
 api/solicitantes.service.ts
 configuration.ts
 encoder.ts
@@ -15,6 +16,9 @@ model/consentimientoNuevo.ts
 model/dinero.ts
 model/evaluacion.ts
 model/evaluacionNueva.ts
+model/fuenteIntegracion.ts
+model/integracion.ts
+model/integracionCambio.ts
 model/models.ts
 model/paginaSolicitantes.ts
 model/perfilFinanciero360.ts
