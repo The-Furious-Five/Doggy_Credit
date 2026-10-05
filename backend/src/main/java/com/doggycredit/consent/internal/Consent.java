@@ -111,4 +111,8 @@ public class Consent {
 		return otorgadoEn;
 	}
 
+	Instant getExpiraEn() {
+		return expiraEn;
+	}
+
 }

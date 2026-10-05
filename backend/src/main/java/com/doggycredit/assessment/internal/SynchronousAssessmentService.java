@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,13 +45,15 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final AuditTrail audit;
 	private final ExecutorService executor;
 	private final Duration collectionBudget;
+	private final ApplicationEventPublisher events;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			ConnectorGateway connectorGateway,
 			@Qualifier("bureauConnector") SourceConnector<Optional<BureauReport>> bureauConnector,
 			BasicScorecard scorecard, AuditTrail audit,
 			@Qualifier("assessmentCollectionExecutor") ExecutorService executor,
-			@Value("${doggycredit.assessment.collection-budget:2s}") Duration collectionBudget) {
+			@Value("${doggycredit.assessment.collection-budget:2s}") Duration collectionBudget,
+			ApplicationEventPublisher events) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.connectorGateway = connectorGateway;
@@ -59,6 +62,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.audit = audit;
 		this.executor = executor;
 		this.collectionBudget = collectionBudget;
+		this.events = events;
 	}
 
 	@Override
@@ -84,6 +88,8 @@ class SynchronousAssessmentService implements AssessmentOperations {
 				command.termMonths(), status, score, command.correlationId());
 		assessments.save(assessment);
 		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());
+		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
+		events.publishEvent(assessment.completedEvent());
 		return assessment.toResult();
 	}
 
