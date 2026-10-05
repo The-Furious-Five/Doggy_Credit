@@ -1,8 +1,10 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Segmento, SolicitantesService } from '../api';
 import {
-  DsBadge,
+  DsAlert,
   DsButton,
   DsCard,
   DsEmptyState,
@@ -10,21 +12,22 @@ import {
   DsIcon,
   DsInput,
   DsLink,
+  DsOption,
   DsPagination,
   DsSelect,
+  DsSpinner,
   DsTable,
 } from '../design-system';
-import { clients, products, segmentOptions } from '../data';
+import { day, money, segmentLabel, segmentLabels } from './client-format';
 
-const normalize = (text: string) =>
-  text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const PAGE_SIZE = 10;
 
 @Component({
   selector: 'dc-clients',
   imports: [
     FormsModule,
     RouterLink,
-    DsBadge,
+    DsAlert,
     DsButton,
     DsCard,
     DsEmptyState,
@@ -34,6 +37,7 @@ const normalize = (text: string) =>
     DsLink,
     DsPagination,
     DsSelect,
+    DsSpinner,
     DsTable,
   ],
   styleUrl: './page.scss',
@@ -41,58 +45,66 @@ const normalize = (text: string) =>
     <header class="page-header">
       <div class="ds-stack-sm">
         <h1>Clientes</h1>
-        <p class="ds-muted">Perfiles financieros consolidados de las personas y empresas evaluadas.</p>
+        <p class="ds-muted">Solicitantes registrados y su perfil financiero consolidado.</p>
       </div>
       <a dsLink appearance="primary" routerLink="/app/evaluaciones/nueva"><ds-icon name="plus" />Nueva evaluación</a>
     </header>
 
     <ds-card>
       <div class="ds-stack">
-        <div class="filters">
-          <ds-field label="Buscar" hint="Nombre o necesidad">
-            <input dsInput type="search" name="query" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+        <form class="filters" (ngSubmit)="search()">
+          <ds-field label="Documento" hint="Búsqueda exacta, con o sin puntos.">
+            <input dsInput type="search" name="document" [(ngModel)]="documentDraft" />
           </ds-field>
           <ds-field label="Segmento">
-            <ds-select [options]="segments" [ngModel]="segment()" (ngModelChange)="segment.set($event)" />
+            <ds-select name="segment" [options]="segments" [ngModel]="segment()" (ngModelChange)="setSegment($event)" />
           </ds-field>
-        </div>
+          <div class="ds-row">
+            <button dsButton type="submit" variant="secondary">Buscar</button>
+          </div>
+        </form>
 
-        @if (filtered().length) {
+        @if (clients.isLoading()) {
+          <ds-spinner label="Cargando clientes…" />
+        } @else if (clients.error()) {
+          <ds-alert heading="No pudimos cargar los clientes" tone="danger">
+            <p>Los filtros se conservan. Revisa tu conexión e inténtalo de nuevo.</p>
+            <button dsButton variant="secondary" (click)="clients.reload()">Reintentar</button>
+          </ds-alert>
+        } @else if (clients.value()?.items?.length) {
           <div class="ds-table-scroll" tabindex="0" aria-label="Listado de clientes">
             <table dsTable>
-              <caption class="ds-sr-only">Clientes evaluados</caption>
+              <caption class="ds-sr-only">Clientes registrados</caption>
               <thead>
                 <tr>
-                  <th scope="col">Cliente</th>
                   <th scope="col">Documento</th>
                   <th scope="col">Segmento</th>
-                  <th scope="col" class="num">Score</th>
-                  <th scope="col">Necesidad</th>
-                  <th scope="col">Producto sugerido</th>
-                  <th scope="col">Estado</th>
-                  <th scope="col">Actualizado</th>
+                  <th scope="col">Actividad</th>
+                  <th scope="col">Destino del crédito</th>
+                  <th scope="col" class="num">Ingreso declarado</th>
+                  <th scope="col">Registrado</th>
                 </tr>
               </thead>
               <tbody>
-                @for (client of filtered(); track client.id) {
+                @for (client of clients.value()!.items; track client.id) {
                   <tr>
-                    <th scope="row"><a dsLink [routerLink]="client.id">{{ client.name }}</a></th>
-                    <td class="ds-mono">{{ client.document }}</td>
-                    <td>{{ client.segment }}</td>
-                    <td class="num">{{ client.score }}</td>
-                    <td>{{ client.need }}</td>
-                    <td>{{ products[client.product].name }}</td>
-                    <td><ds-badge [tone]="client.status.tone">{{ client.status.label }}</ds-badge></td>
-                    <td>{{ client.updated }}</td>
+                    <th scope="row"><a dsLink class="ds-mono" [routerLink]="client.id">{{ client.documento }}</a></th>
+                    <td>{{ segmentLabel(client.segmento) }}</td>
+                    <td>{{ client.actividad }}</td>
+                    <td>{{ client.destinoCredito }}</td>
+                    <td class="num">{{ money({ amount: client.ingresosMensuales, currency: client.moneda }) }}</td>
+                    <td>{{ day(client.creadoEn) }}</td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-          <ds-pagination label="Páginas de clientes" [total]="filtered().length" [(page)]="page" />
+          <ds-pagination label="Páginas de clientes" [total]="clients.value()!.total" [pageSize]="pageSize" [(page)]="page" />
         } @else {
-          <ds-empty-state heading="Sin resultados" description="Ningún cliente coincide con la búsqueda. Prueba con otro término o segmento." icon="search">
-            <button dsButton variant="secondary" (click)="clear()">Limpiar filtros</button>
+          <ds-empty-state heading="Sin clientes" [description]="emptyMessage()" icon="search">
+            @if (filtered()) {
+              <button dsButton variant="secondary" (click)="clear()">Limpiar filtros</button>
+            }
           </ds-empty-state>
         }
       </div>
@@ -100,22 +112,52 @@ const normalize = (text: string) =>
   `,
 })
 export class Clients {
-  readonly products = products;
-  readonly segments = segmentOptions;
-  readonly query = signal('');
-  readonly segment = signal('');
+  private readonly api = inject(SolicitantesService);
+  readonly segmentLabel = segmentLabel;
+  readonly money = money;
+  readonly day = day;
+  readonly pageSize = PAGE_SIZE;
+  readonly segments: DsOption<Segmento | ''>[] = [
+    { value: '', label: 'Todos los segmentos' },
+    ...(Object.keys(segmentLabels) as Segmento[]).map((value) => ({ value, label: segmentLabels[value] })),
+  ];
+
+  documentDraft = '';
+  readonly document = signal('');
+  readonly segment = signal<Segmento | ''>('');
   readonly page = signal(1);
-  readonly filtered = computed(() => {
-    const query = normalize(this.query());
-    return clients.filter(
-      (c) =>
-        (!this.segment() || c.segment === this.segment()) &&
-        normalize(c.name + ' ' + c.need).includes(query),
-    );
+
+  // El documento viaja en la cabecera X-Documento, nunca en la URL (B-08).
+  readonly clients = rxResource({
+    params: () => ({ page: this.page(), segment: this.segment(), document: this.document() }),
+    stream: ({ params }) =>
+      this.api.listarSolicitantes(params.page, PAGE_SIZE, params.segment || undefined, params.document || undefined),
   });
 
+  filtered(): boolean {
+    return !!(this.document() || this.segment());
+  }
+
+  emptyMessage(): string {
+    return this.filtered()
+      ? 'Ningún cliente coincide con el documento o el segmento. Prueba con otros filtros.'
+      : 'Todavía no hay clientes. Se registran al iniciar una nueva evaluación.';
+  }
+
+  search(): void {
+    this.page.set(1);
+    this.document.set(this.documentDraft.trim());
+  }
+
+  setSegment(segment: Segmento | ''): void {
+    this.page.set(1);
+    this.segment.set(segment);
+  }
+
   clear(): void {
-    this.query.set('');
+    this.documentDraft = '';
+    this.page.set(1);
+    this.document.set('');
     this.segment.set('');
   }
 }
