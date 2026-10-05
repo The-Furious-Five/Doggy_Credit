@@ -2,7 +2,8 @@
 """Generador sintético determinista de titulares (SPIKE-4, RF-INT-02).
 
 Escribe la única fuente de personas sintéticas (seed/personas-sinteticas.json)
-y los stubs del simulador del buró (simulators/wiremock/bureau/). Solo stdlib.
+y los stubs de los simuladores del buró, el banco y la billetera
+(simulators/wiremock/{bureau,bank,wallet}/). Solo stdlib.
 Todos los datos son ficticios (RN-20).
 
     python seed/generate_synthetic.py           # regenera los archivos
@@ -18,18 +19,24 @@ ROOT = Path(__file__).resolve().parent.parent
 TENANTS_YAML = ROOT / "seed" / "tenants.yaml"
 PERSONAS_JSON = ROOT / "seed" / "personas-sinteticas.json"
 BUREAU = ROOT / "simulators" / "wiremock" / "bureau"
+BANK = ROOT / "simulators" / "wiremock" / "bank"
+WALLET = ROOT / "simulators" / "wiremock" / "wallet"
+SIMULADORES = (BUREAU, BANK, WALLET)
 
 SEED = 20260928
 MONEDA = "BOB"
 FECHA_CORTE = "2026-09-01"
+# Últimos 6 meses cerrados antes de la fecha de corte (banco y billetera).
+PERIODOS = [f"2026-{m:02d}" for m in range(3, 9)]
 N_PERSONAS, N_PYMES = 40, 10
 ARQ_PERSONA = ["buen_pagador", "moroso", "sin_historial", "sobreendeudado"]
 ARQ_PYME = ["pyme_verde", "pyme_morosa"]
-# Documentos que NO son personas: simulan fallas del buró para probar el conector.
+# Documentos que NO son personas: simulan fallas de cada fuente para probar los conectores.
+DOC_CAIDA, DOC_LENTO = "CI-DEMO-0009503", "CI-DEMO-0009504"
 FALLAS = {
-    "CI-DEMO-0009503": {"status": 503, "body": "<ErrorBuro><Codigo>SERVICIO_NO_DISPONIBLE</Codigo></ErrorBuro>"},
-    "CI-DEMO-0009504": {"status": 200, "fixedDelayMilliseconds": 15000,
-                        "body": "<ErrorBuro><Codigo>RESPUESTA_TARDIA</Codigo></ErrorBuro>"},
+    DOC_CAIDA: {"status": 503, "body": "<ErrorBuro><Codigo>SERVICIO_NO_DISPONIBLE</Codigo></ErrorBuro>"},
+    DOC_LENTO: {"status": 200, "fixedDelayMilliseconds": 15000,
+                "body": "<ErrorBuro><Codigo>RESPUESTA_TARDIA</Codigo></ErrorBuro>"},
 }
 
 NOMBRES = ["Justina", "Wilma", "Rene", "Teodoro", "Sonia", "Ariel", "Lourdes", "Efrain",
@@ -101,6 +108,56 @@ def finanzas(rng, perfil):
     return f
 
 
+def meses_antes_del_corte(meses):
+    """Primer día del mes que queda `meses` antes del mes de la fecha de corte."""
+    total = 2026 * 12 + (9 - 1) - meses
+    return f"{total // 12}-{total % 12 + 1:02d}-01"
+
+
+def banco(p):
+    """Core bancario (Sprint 2), coherente con las finanzas del titular.
+
+    RNG propio por documento: sumar fuentes no cambia ni un valor del buró."""
+    rng = random.Random(f"{SEED}-banco-{p['documento']}")
+    f, u = p["finanzas"], rng.uniform
+    abono = float(f.get("ventas_mensuales", f["ingreso_mensual"]))
+    cargo = abono - float(f["ingreso_mensual"]) + float(f["egreso_mensual"])
+    saldo_x = {"sobreendeudado": u(0.05, 0.3), "moroso": u(0.1, 0.5), "pyme_morosa": u(0.1, 0.5)}.get(
+        p["perfil_sintetico"], u(0.4, 2.0))
+    antiguedad = rng.randint(6, 180)
+    return {
+        "tipo_cuenta": "CUENTA_CORRIENTE" if p["tipo"] == "PYME" else "CAJA_AHORRO",
+        "fecha_apertura": meses_antes_del_corte(antiguedad),
+        "antiguedad_cuenta_meses": antiguedad,
+        "saldo_promedio_3m": money(round(abono * saldo_x, -1)),
+        "abonos_mensuales": [money(round(abono * u(0.9, 1.1), -1)) for _ in PERIODOS],
+        "cargos_mensuales": [money(round(cargo * u(0.9, 1.1), -1)) for _ in PERIODOS],
+    }
+
+
+def billetera(p):
+    """Billetera móvil (Sprint 2): cantidad y montos de los últimos 6 meses."""
+    rng = random.Random(f"{SEED}-billetera-{p['documento']}")
+    u = rng.uniform
+    # Sin historial bancario, la billetera concentra más movimientos.
+    intensivo = p["perfil_sintetico"] == "sin_historial"
+    base = float(p["finanzas"]["ingreso_mensual"]) * (u(0.3, 0.6) if intensivo else u(0.05, 0.25))
+    antiguedad = rng.randint(3, 72)
+    meses = []
+    for periodo in PERIODOS:
+        recibido = round(base * u(0.8, 1.2), -1)
+        meses.append({"periodo": periodo,
+                      "movimientos": rng.randint(25, 90) if intensivo else rng.randint(4, 35),
+                      "recibido": money(recibido),
+                      "enviado": money(round(recibido * u(0.7, 1.0), -1))})
+    return {
+        "fecha_alta": meses_antes_del_corte(antiguedad),
+        "antiguedad_meses": antiguedad,
+        "saldo_promedio": money(round(base * u(0.1, 0.6), -1)),
+        "meses": meses,
+    }
+
+
 def build_personas():
     rng = random.Random(SEED)
     tenants, demo = read_tenants_yaml()
@@ -128,6 +185,7 @@ def build_personas():
             moneda=MONEDA,
             finanzas=f,
         )
+        p.update(banco=banco(p), billetera=billetera(p))
         personas.append(p)
     return personas
 
@@ -150,13 +208,60 @@ def informe_xml(p):
 """
 
 
+def resumen_banco(p):
+    """Formato del core bancario (contracts/connectors/bank.v1.yaml)."""
+    b = p["banco"]
+    return dump({
+        "numeroDocumento": p["documento"],
+        "fechaCorte": FECHA_CORTE,
+        "cuentas": [{"producto": b["tipo_cuenta"], "moneda": MONEDA, "fechaApertura": b["fecha_apertura"],
+                     "saldoPromedio90d": b["saldo_promedio_3m"]}],
+        "movimientosMensuales": [{"periodo": per, "totalAbonos": a, "totalCargos": c}
+                                 for per, a, c in zip(PERIODOS, b["abonos_mensuales"], b["cargos_mensuales"])],
+    })
+
+
+def movimientos_billetera(p):
+    """Formato de la billetera móvil (contracts/connectors/wallet.v1.yaml)."""
+    w = p["billetera"]
+    return dump({
+        "titular": {"documento": p["documento"], "fechaAlta": w["fecha_alta"]},
+        "moneda": MONEDA,
+        "fechaCorte": FECHA_CORTE,
+        "saldoPromedio": w["saldo_promedio"],
+        "resumenMensual": [{"mes": m["periodo"], "cantidadTransacciones": m["movimientos"],
+                            "montoRecibido": m["recibido"], "montoEnviado": m["enviado"]} for m in w["meses"]],
+    })
+
+
 def dump(obj):
     return json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
 
 
-def mapping(doc, response):
-    return dump({"request": {"method": "GET", "url": f"/bureau/v1/informe/{doc}"},
-                 "response": {"headers": {"Content-Type": "application/xml"}, **response}})
+def mapping(url, response, content_type="application/xml"):
+    return dump({"request": {"method": "GET", "url": url},
+                 "response": {"headers": {"Content-Type": content_type}, **response}})
+
+
+def simulador_json(files, raiz, prefijo, cuerpo, personas, no_encontrado):
+    """Stubs JSON de una fuente (banco, billetera), con las mismas fallas que el buró."""
+    for p in personas:
+        doc = p["documento"]
+        files[raiz / "__files" / f"{doc}.json"] = cuerpo(p)
+        files[raiz / "mappings" / f"{doc}.json"] = mapping(
+            prefijo + doc, {"status": 200, "bodyFileName": f"{doc}.json", "fixedDelayMilliseconds": 300},
+            "application/json")
+    files[raiz / "mappings" / f"{DOC_CAIDA}.json"] = mapping(
+        prefijo + DOC_CAIDA, {"status": 503, "jsonBody": {"codigo": "SERVICIO_NO_DISPONIBLE"}}, "application/json")
+    files[raiz / "mappings" / f"{DOC_LENTO}.json"] = mapping(
+        prefijo + DOC_LENTO, {"status": 200, "fixedDelayMilliseconds": 15000,
+                              "jsonBody": {"codigo": "RESPUESTA_TARDIA"}}, "application/json")
+    # Fallback: cualquier documento no sembrado -> 404 (nunca un titular inventado).
+    files[raiz / "mappings" / "no-encontrado.json"] = dump({
+        "priority": 10,
+        "request": {"method": "GET", "urlPathPattern": prefijo + ".*"},
+        "response": {"status": 404, "headers": {"Content-Type": "application/json"},
+                     "body": json.dumps(no_encontrado, ensure_ascii=False) + "\n"}})
 
 
 def build_files():
@@ -169,9 +274,10 @@ def build_files():
         doc = p["documento"]
         files[BUREAU / "__files" / f"informe-{doc}.xml"] = informe_xml(p)
         files[BUREAU / "mappings" / f"informe-{doc}.json"] = mapping(
-            doc, {"status": 200, "bodyFileName": f"informe-{doc}.xml", "fixedDelayMilliseconds": 300})
+            f"/bureau/v1/informe/{doc}",
+            {"status": 200, "bodyFileName": f"informe-{doc}.xml", "fixedDelayMilliseconds": 300})
     for doc, r in FALLAS.items():
-        files[BUREAU / "mappings" / f"informe-{doc}.json"] = mapping(doc, r)
+        files[BUREAU / "mappings" / f"informe-{doc}.json"] = mapping(f"/bureau/v1/informe/{doc}", r)
     # Fallback: cualquier documento no sembrado -> 404 (nunca un "buen pagador" silencioso).
     files[BUREAU / "mappings" / "informe-no-encontrado.json"] = dump({
         "priority": 10,
@@ -179,6 +285,10 @@ def build_files():
         "response": {"status": 404, "headers": {"Content-Type": "application/xml"},
                      "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ErrorBuro><Codigo>DOCUMENTO_NO_ENCONTRADO</Codigo>"
                              "<Documento>{{request.path.[3]}}</Documento></ErrorBuro>\n"}})
+    simulador_json(files, BANK, "/bank/v1/clientes/", resumen_banco, personas,
+                   {"codigo": "CLIENTE_NO_ENCONTRADO", "numeroDocumento": "{{request.path.[3]}}"})
+    simulador_json(files, WALLET, "/wallet/v1/titulares/", movimientos_billetera, personas,
+                   {"error": "TITULAR_NO_REGISTRADO", "documento": "{{request.path.[3]}}"})
     return personas, files
 
 
@@ -195,6 +305,13 @@ def check():
                (d["nombre"], d["tenant"], d["perfil_sintetico"], d["tipo"]), p
     for d in docs:
         assert BUREAU / "mappings" / f"informe-{d}.json" in files
+        assert BANK / "mappings" / f"{d}.json" in files and WALLET / "mappings" / f"{d}.json" in files
+    for p in personas:
+        b, w = p["banco"], p["billetera"]
+        assert len(b["abonos_mensuales"]) == len(b["cargos_mensuales"]) == len(w["meses"]) == 6, p["documento"]
+        assert all(float(x) > 0 for x in b["abonos_mensuales"] + b["cargos_mensuales"]), p["documento"]
+        assert b["antiguedad_cuenta_meses"] > 0 and w["antiguedad_meses"] > 0, p["documento"]
+    assert meses_antes_del_corte(1) == "2026-08-01" and meses_antes_del_corte(9) == "2025-12-01"
     assert normalize("  ci-demo-0 001.001 ") == "CI-DEMO-0001001"
     assert normalize("nit-demo-9.001.001") == "NIT-DEMO-9001001"
     assert normalize("CI-DEMO-0001001\t") == "CI-DEMO-0001001"
@@ -206,7 +323,7 @@ def check():
 
 
 def generated_on_disk():
-    return list((BUREAU / "mappings").glob("*.json")) + list((BUREAU / "__files").glob("*.xml"))
+    return [f for raiz in SIMULADORES for sub in ("mappings", "__files") for f in (raiz / sub).glob("*.*")]
 
 
 def main():

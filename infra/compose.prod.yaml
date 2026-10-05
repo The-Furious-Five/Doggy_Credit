@@ -16,6 +16,14 @@ services:
     # Diagnóstico local únicamente: en el VPS no se publica al host.
     ports: !reset []
 
+  wiremock-bank:
+    <<: *restart
+    ports: !reset []
+
+  wiremock-wallet:
+    <<: *restart
+    ports: !reset []
+
   otel-lgtm:
     <<: *restart
     # Grafana solo en loopback: acceder con `ssh -L 3300:127.0.0.1:3300 VPS`.

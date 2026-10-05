@@ -1,0 +1,14 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/wallet/v1/titulares/.*"
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"error\": \"TITULAR_NO_REGISTRADO\", \"documento\": \"{{request.path.[3]}}\"}\n"
+  }
+}

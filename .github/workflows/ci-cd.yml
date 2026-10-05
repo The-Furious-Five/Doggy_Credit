@@ -252,7 +252,7 @@ jobs:
           EOF
           tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
             infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/themes \
-            simulators/wiremock/bureau scripts/deploy.sh
+            simulators/wiremock scripts/deploy.sh
 
       - name: Copiar release al VPS y arrancarla (con rollback si falla)
         env:

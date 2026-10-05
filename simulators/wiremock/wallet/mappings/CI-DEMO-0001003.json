@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/wallet/v1/titulares/CI-DEMO-0001003"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "status": 200,
+    "bodyFileName": "CI-DEMO-0001003.json",
+    "fixedDelayMilliseconds": 300
+  }
+}

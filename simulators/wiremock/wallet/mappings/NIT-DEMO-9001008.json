@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/wallet/v1/titulares/NIT-DEMO-9001008"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "status": 200,
+    "bodyFileName": "NIT-DEMO-9001008.json",
+    "fixedDelayMilliseconds": 300
+  }
+}

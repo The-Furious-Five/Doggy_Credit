@@ -1,0 +1,44 @@
+{
+  "numeroDocumento": "CI-DEMO-0001014",
+  "fechaCorte": "2026-09-01",
+  "cuentas": [
+    {
+      "producto": "CAJA_AHORRO",
+      "moneda": "BOB",
+      "fechaApertura": "2012-10-01",
+      "saldoPromedio90d": "4370.00"
+    }
+  ],
+  "movimientosMensuales": [
+    {
+      "periodo": "2026-03",
+      "totalAbonos": "9520.00",
+      "totalCargos": "7270.00"
+    },
+    {
+      "periodo": "2026-04",
+      "totalAbonos": "9560.00",
+      "totalCargos": "7530.00"
+    },
+    {
+      "periodo": "2026-05",
+      "totalAbonos": "8770.00",
+      "totalCargos": "7260.00"
+    },
+    {
+      "periodo": "2026-06",
+      "totalAbonos": "9340.00",
+      "totalCargos": "6960.00"
+    },
+    {
+      "periodo": "2026-07",
+      "totalAbonos": "8150.00",
+      "totalCargos": "7250.00"
+    },
+    {
+      "periodo": "2026-08",
+      "totalAbonos": "8900.00",
+      "totalCargos": "7140.00"
+    }
+  ]
+}

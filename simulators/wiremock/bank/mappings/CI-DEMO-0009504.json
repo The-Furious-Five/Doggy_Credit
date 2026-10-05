@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/bank/v1/clientes/CI-DEMO-0009504"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "status": 200,
+    "fixedDelayMilliseconds": 15000,
+    "jsonBody": {
+      "codigo": "RESPUESTA_TARDIA"
+    }
+  }
+}

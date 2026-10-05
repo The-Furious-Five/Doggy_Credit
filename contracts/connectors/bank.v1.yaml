@@ -1,0 +1,117 @@
+openapi: 3.1.0
+info:
+  title: Core bancario (simulado) — resumen del cliente
+  version: "1.0.0"
+  description: >
+    Contrato del proveedor EXTERNO de core bancario tal como lo expone su
+    simulador (simulators/wiremock/bank, generado por seed/generate_synthetic.py
+    a partir de las mismas 50 personas que el buró). No es API de DoggyCredit:
+    documenta lo que consume el conector del módulo `integration` (B-03). El
+    vocabulario del proveedor no pasa de la capa anticorrupción
+    `integration.internal.BankJson`; lo que sale del conector es el fragmento
+    canónico `BankReport` (Perfil Financiero 360 v1).
+
+    Verificado por `BankConnectorContractTests` contra el simulador real
+    (imagen wiremock/wiremock:3.9.1, la misma de infra/compose.yaml).
+
+    Tiempos: toda respuesta 200 llega tras ~300 ms. El conector corta a los
+    1500 ms (`DC_INTEGRATION_BANK_READ_TIMEOUT`).
+servers:
+  - url: http://localhost:8090
+    description: Simulador en Compose, publicado al host (DC_WIREMOCK_BANK_HOST_PORT)
+  - url: http://wiremock-bank:8080
+    description: Simulador dentro de la red de Compose
+
+paths:
+  /bank/v1/clientes/{documento}:
+    get:
+      operationId: obtenerResumenCliente
+      summary: Cuentas, saldo promedio y movimientos de los últimos 6 meses de un cliente
+      description: >
+        Match exacto de URL: el simulador responde solo al documento
+        normalizado (`shared.DocumentNumber`). Documentos especiales para
+        pruebas: `CI-DEMO-0009503` responde 503; `CI-DEMO-0009504` responde
+        200 recién a los 15 s (prueba de timeout).
+      parameters:
+        - name: documento
+          in: path
+          required: true
+          schema:
+            type: string
+            examples: [CI-DEMO-0001001, NIT-DEMO-9001001]
+      responses:
+        "200":
+          description: Resumen del cliente (tras ~300 ms).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResumenCliente" }
+              example:
+                numeroDocumento: CI-DEMO-0001001
+                fechaCorte: "2026-09-01"
+                cuentas:
+                  - { producto: CAJA_AHORRO, moneda: BOB, fechaApertura: "2022-09-01", saldoPromedio90d: "8700.00" }
+                movimientosMensuales:
+                  - { periodo: "2026-03", totalAbonos: "9940.00", totalCargos: "6470.00" }
+        "404":
+          description: >
+            El banco no tiene al documento como cliente (`CLIENTE_NO_ENCONTRADO`).
+            Resultado válido ("sin cuenta en el banco"), distinto de una caída.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBanco" }
+              example: { codigo: CLIENTE_NO_ENCONTRADO, numeroDocumento: CI-DEMO-0009999 }
+        "503":
+          description: Servicio no disponible.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBanco" }
+              example: { codigo: SERVICIO_NO_DISPONIBLE }
+
+components:
+  schemas:
+    Monto:
+      type: string
+      description: Decimal con 2 cifras, como string.
+      pattern: '^\d+\.\d{2}$'
+
+    ResumenCliente:
+      type: object
+      required: [numeroDocumento, fechaCorte, cuentas, movimientosMensuales]
+      properties:
+        numeroDocumento:
+          type: string
+          description: Documento normalizado; siempre igual al pedido.
+        fechaCorte: { type: string, format: date }
+        cuentas:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [producto, moneda, fechaApertura, saldoPromedio90d]
+            properties:
+              producto: { type: string, enum: [CAJA_AHORRO, CUENTA_CORRIENTE] }
+              moneda: { type: string, enum: [BOB, USD] }
+              fechaApertura: { type: string, format: date }
+              saldoPromedio90d: { $ref: "#/components/schemas/Monto" }
+        movimientosMensuales:
+          type: array
+          description: Últimos meses cerrados antes de la fecha de corte, del más antiguo al más reciente (máx. 12).
+          maxItems: 12
+          items:
+            type: object
+            required: [periodo, totalAbonos, totalCargos]
+            properties:
+              periodo: { type: string, pattern: '^\d{4}-\d{2}$' }
+              totalAbonos: { $ref: "#/components/schemas/Monto" }
+              totalCargos: { $ref: "#/components/schemas/Monto" }
+
+    ErrorBanco:
+      type: object
+      required: [codigo]
+      properties:
+        codigo:
+          type: string
+          enum: [CLIENTE_NO_ENCONTRADO, SERVICIO_NO_DISPONIBLE]
+        numeroDocumento:
+          type: string
+          description: Solo en CLIENTE_NO_ENCONTRADO; el documento pedido.

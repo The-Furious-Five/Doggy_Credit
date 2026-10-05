@@ -17,8 +17,9 @@ idénticos byte a byte.
 - `seed/tenants.yaml` → tenants y los 2 `titulares_demo` fijos
   (`CI-DEMO-0001001`, `NIT-DEMO-9001001`), que el generador **lee**, no copia.
 - `seed/personas-sinteticas.json` → las 50 personas sintéticas (datos
-  financieros incluidos). El buró hoy, y banco/billetera en el Sprint 2, se
-  derivan de este archivo para que los datos sean coherentes entre fuentes.
+  financieros incluidos). El buró, el banco (`../bank`) y la billetera
+  (`../wallet`) se derivan de este archivo para que los datos sean coherentes
+  entre fuentes.
 
 ## Regla de normalización del documento (acordada por el equipo)
 

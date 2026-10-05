@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/bank/v1/clientes/CI-DEMO-0001036"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "status": 200,
+    "bodyFileName": "CI-DEMO-0001036.json",
+    "fixedDelayMilliseconds": 300
+  }
+}

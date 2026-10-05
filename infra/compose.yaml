@@ -5,7 +5,8 @@ name: doggycredit
 #
 # Entrada única: Caddy en HTTPS (443), sirve la SPA y enruta /auth (Keycloak)
 # y /api/v1 (doggycredit-api). La API y Postgres nunca publican puerto al host.
-# Grafana y el simulador del buró quedan expuestos solo para diagnóstico local.
+# Grafana y los simuladores (buró, banco, billetera) quedan expuestos solo para
+# diagnóstico local.
 
 x-logging: &dc-logging
   driver: local
@@ -82,6 +83,38 @@ services:
       start_period: 5s
     logging: *dc-logging
 
+  # B-01 / B-02: core bancario y billetera móvil (contracts/connectors/bank.v1.yaml,
+  # wallet.v1.yaml). Mismo patrón que el buró, incluido el calentamiento del 404.
+  wiremock-bank:
+    image: wiremock/wiremock:3.9.1
+    command: ["--global-response-templating", "--verbose"]
+    volumes:
+      - ../simulators/wiremock/bank:/home/wiremock
+    ports:
+      - "${DC_WIREMOCK_BANK_HOST_PORT:-8090}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/__admin/health || exit 1; wget -q -O /dev/null http://127.0.0.1:8080/bank/v1/clientes/CALENTAMIENTO; exit 0"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    logging: *dc-logging
+
+  wiremock-wallet:
+    image: wiremock/wiremock:3.9.1
+    command: ["--global-response-templating", "--verbose"]
+    volumes:
+      - ../simulators/wiremock/wallet:/home/wiremock
+    ports:
+      - "${DC_WIREMOCK_WALLET_HOST_PORT:-8091}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/__admin/health || exit 1; wget -q -O /dev/null http://127.0.0.1:8080/wallet/v1/titulares/CALENTAMIENTO; exit 0"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    logging: *dc-logging
+
   otel-lgtm:
     image: grafana/otel-lgtm:0.11.5
     ports:
@@ -104,6 +137,8 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/doggycredit/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: doggycredit-api
       DC_INTEGRATION_BUREAU_URL: http://wiremock-bureau:8080
+      DC_INTEGRATION_BANK_URL: http://wiremock-bank:8080
+      DC_INTEGRATION_WALLET_URL: http://wiremock-wallet:8080
     depends_on:
       postgres:
         condition: service_healthy
