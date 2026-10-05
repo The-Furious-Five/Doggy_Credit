@@ -68,6 +68,10 @@ class Applicant {
 		return id;
 	}
 
+	String documentRef() {
+		return documentRef;
+	}
+
 	String documentCiphertext() {
 		return documentCiphertext;
 	}

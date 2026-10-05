@@ -11,4 +11,6 @@ interface ApplicantRepository extends JpaRepository<Applicant, UUID> {
 
 	Optional<Applicant> findByTenantIdAndDocumentRef(UUID tenantId, String documentRef);
 
+	Optional<Applicant> findByIdAndTenantId(UUID id, UUID tenantId);
+
 }
