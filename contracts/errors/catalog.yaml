@@ -102,3 +102,9 @@ errors:
     status: 403
     title: "Rol insuficiente"
     detail_template: "La operación requiere el rol {rol}."
+
+  - code: PRODUCT_NOT_FOUND
+    type: product-not-found
+    status: 404
+    title: "Producto no encontrado"
+    detail_template: "El producto no existe o pertenece a otro tenant."

@@ -3,15 +3,10 @@ package com.doggycredit.audit.internal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.doggycredit.shared.ErrorCode;
+import com.doggycredit.shared.RoleGuard;
 import com.doggycredit.shared.contract.api.AuditoriaApi;
 import com.doggycredit.shared.contract.model.PaginaAuditoria;
 import com.doggycredit.shared.contract.model.RegistroAuditoria;
@@ -36,7 +31,7 @@ class AuditQueryController implements AuditoriaApi {
 	@Override
 	public ResponseEntity<PaginaAuditoria> listarAuditoria(OffsetDateTime desde, OffsetDateTime hasta, Long cursor,
 			Integer tamano) {
-		requireRole(REQUIRED_ROLE);
+		RoleGuard.require(REQUIRED_ROLE);
 		AuditQueryService.Page page = audit.page(desde == null ? null : desde.toInstant(),
 				hasta == null ? null : hasta.toInstant(), cursor, tamano == null ? 20 : tamano);
 
@@ -58,22 +53,6 @@ class AuditQueryController implements AuditoriaApi {
 			.correlationId(event.correlationId())
 			.creadoEn(event.createdAt().atOffset(ZoneOffset.UTC))
 			.hash(event.rowHash());
-	}
-
-	/**
-	 * Autorización por rol dentro del endpoint, con su propio código de error. No se usa
-	 * la cadena de Spring Security porque su AccessDeniedHandler responde siempre
-	 * INVALID_TENANT_CLAIM (ver ProblemDetailAccessDeniedHandler), que aquí engañaría.
-	 */
-	private static void requireRole(String role) {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		boolean granted = authentication != null && authentication.getAuthorities().stream()
-			.map(GrantedAuthority::getAuthority)
-			.anyMatch(("ROLE_" + role)::equals);
-		if (!granted) {
-			throw new ErrorResponseException(HttpStatus.FORBIDDEN,
-					ErrorCode.INSUFFICIENT_ROLE.toProblemDetail("La operación requiere el rol " + role + "."), null);
-		}
 	}
 
 }
