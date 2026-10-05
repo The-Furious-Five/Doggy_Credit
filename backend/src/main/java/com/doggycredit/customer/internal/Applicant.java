@@ -46,12 +46,15 @@ class Applicant {
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
+	@Column(nullable = false, length = 16)
+	private String segment;
+
 	protected Applicant() {
 	}
 
 	Applicant(UUID tenantId, String documentRef, String documentCiphertext, String activity,
 			int activitySeniorityMonths, BigDecimal monthlyIncome, Currency incomeCurrency,
-			String creditDestination) {
+			String creditDestination, String segment) {
 		this.id = UUID.randomUUID();
 		this.tenantId = tenantId;
 		this.documentRef = documentRef;
@@ -62,6 +65,7 @@ class Applicant {
 		this.incomeCurrency = incomeCurrency.getCurrencyCode();
 		this.creditDestination = creditDestination;
 		this.createdAt = Instant.now();
+		this.segment = segment;
 	}
 
 	UUID id() {
@@ -98,6 +102,10 @@ class Applicant {
 
 	Instant createdAt() {
 		return createdAt;
+	}
+
+	String segment() {
+		return segment;
 	}
 
 }

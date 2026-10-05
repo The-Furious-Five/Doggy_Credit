@@ -12,11 +12,17 @@ git_push.sh
 index.ts
 model/consentimiento.ts
 model/consentimientoNuevo.ts
+model/dinero.ts
 model/evaluacion.ts
 model/evaluacionNueva.ts
 model/models.ts
+model/paginaSolicitantes.ts
+model/perfilFinanciero360.ts
+model/perfilFinanciero360FuentesInner.ts
 model/problemDetail.ts
+model/segmento.ts
 model/solicitante.ts
+model/solicitanteDetalle.ts
 model/solicitanteNuevo.ts
 param.ts
 provide-api.ts

@@ -6,7 +6,12 @@ import java.util.Objects;
 
 /** Datos declarados necesarios para dar de alta a un solicitante. */
 public record ApplicantRegistration(String document, String activity, int activitySeniorityMonths,
-		BigDecimal monthlyIncome, Currency currency, String creditDestination) {
+		BigDecimal monthlyIncome, Currency currency, String creditDestination, ApplicantSegment segment) {
+
+	public ApplicantRegistration(String document, String activity, int activitySeniorityMonths,
+			BigDecimal monthlyIncome, Currency currency, String creditDestination) {
+		this(document, activity, activitySeniorityMonths, monthlyIncome, currency, creditDestination, null);
+	}
 
 	public ApplicantRegistration {
 		Objects.requireNonNull(document, "document");
@@ -14,6 +19,7 @@ public record ApplicantRegistration(String document, String activity, int activi
 		Objects.requireNonNull(monthlyIncome, "monthlyIncome");
 		Objects.requireNonNull(currency, "currency");
 		Objects.requireNonNull(creditDestination, "creditDestination");
+		segment = Objects.requireNonNullElse(segment, ApplicantSegment.PERSONA);
 		if (monthlyIncome.signum() <= 0) {
 			throw new IllegalArgumentException("monthlyIncome must be positive");
 		}

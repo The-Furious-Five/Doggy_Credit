@@ -21,6 +21,40 @@ tags:
 
 paths:
   /solicitantes:
+    get:
+      tags: [solicitantes]
+      operationId: listarSolicitantes
+      summary: Solicitantes del tenant, del más reciente al más antiguo, paginados
+      parameters:
+        - name: pagina
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        - name: segmento
+          in: query
+          required: false
+          schema: { $ref: "#/components/schemas/Segmento" }
+        - name: X-Documento
+          in: header
+          required: false
+          description: >
+            Búsqueda exacta por documento. Va en una cabecera y no en la URL para
+            que el documento no quede en logs de acceso ni trazas; el servidor lo
+            normaliza y busca por su HMAC, nunca por el valor en claro.
+          schema: { type: string, minLength: 3, maxLength: 64 }
+      responses:
+        "200":
+          description: Página de solicitantes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaSolicitantes"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
     post:
       tags: [solicitantes]
       operationId: crearSolicitante
@@ -43,6 +77,28 @@ paths:
         "409":
           $ref: "#/components/responses/ErrorNegocio"
         "422":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /solicitantes/{id}:
+    get:
+      tags: [solicitantes]
+      operationId: obtenerSolicitante
+      summary: Un solicitante con su Perfil Financiero 360 más reciente (404 si es de otro tenant)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Solicitante encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolicitanteDetalle"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
           $ref: "#/components/responses/ErrorNegocio"
 
   /consentimientos:
@@ -241,7 +297,14 @@ components:
           description: "Decimal positivo como string"
         moneda: { type: string, enum: [BOB, USD], default: BOB }
         destinoCredito: { type: string, minLength: 2, maxLength: 250 }
+        segmento:
+          $ref: "#/components/schemas/Segmento"
       required: [documento, actividad, antiguedadActividadMeses, ingresosMensuales, moneda, destinoCredito]
+
+    Segmento:
+      type: string
+      enum: [PERSONA, EMPRENDEDOR, PYME]
+      description: En el alta, PERSONA si no se indica. Sin valor por defecto aquí para que el filtro del listado sea opcional.
 
     Solicitante:
       allOf:
@@ -251,6 +314,66 @@ components:
             id: { type: string, format: uuid }
             creadoEn: { type: string, format: date-time }
           required: [id, creadoEn]
+
+    PaginaSolicitantes:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Solicitante"
+        total:
+          type: integer
+          format: int64
+          description: Total de solicitantes que cumplen el filtro (para la paginación)
+      required: [items, total]
+
+    SolicitanteDetalle:
+      allOf:
+        - $ref: "#/components/schemas/Solicitante"
+        - type: object
+          properties:
+            perfil:
+              $ref: "#/components/schemas/PerfilFinanciero360"
+
+    Dinero:
+      type: object
+      properties:
+        amount: { type: string, description: "Decimal como string, nunca float" }
+        currency: { type: string, enum: [BOB, USD] }
+      required: [amount, currency]
+
+    PerfilFinanciero360:
+      type: object
+      description: >
+        Resumen del Perfil Financiero 360 (B-04) para las pestañas Resumen y
+        Fuentes. Un campo ausente significa desconocido (la fuente que lo aporta
+        no respondió o no se consultó), nunca cero.
+      properties:
+        id: { type: string, format: uuid }
+        hash: { type: string, description: SHA-256 del snapshot canónico v1 }
+        creadoEn: { type: string, format: date-time }
+        ingresoMensual: { $ref: "#/components/schemas/Dinero" }
+        origenIngreso: { type: string, enum: [BANCO, WALLET, DECLARADO] }
+        deudaVigente: { $ref: "#/components/schemas/Dinero" }
+        obligaciones: { type: integer, minimum: 0 }
+        cuotaMensual: { $ref: "#/components/schemas/Dinero" }
+        endeudamientoPorcentaje:
+          type: string
+          description: Cuota sobre ingreso, en %, decimal como string (p. ej. "20.3")
+        capacidadPago: { $ref: "#/components/schemas/Dinero" }
+        antiguedadSistemaFinancieroMeses: { type: integer, minimum: 0 }
+        fuentes:
+          type: array
+          items:
+            type: object
+            properties:
+              fuente: { type: string, enum: [BURO, BANCO, WALLET] }
+              estado: { type: string, enum: [COMPLETA, SIN_REGISTRO, NO_DISPONIBLE, NO_CONSULTADA] }
+              consultadaEn: { type: string, format: date-time }
+              sha256: { type: string }
+            required: [fuente, estado]
+      required: [id, hash, creadoEn, ingresoMensual, origenIngreso, fuentes]
 
     EvaluacionNueva:
       type: object
