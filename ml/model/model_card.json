@@ -1,6 +1,6 @@
 {
-  "modelVersion": "v1",
-  "featureSetVersion": "v1",
+  "modelVersion": "v2",
+  "featureSetVersion": "v2",
   "featureOrder": [
     "dti",
     "mora_max_12m_dias",
@@ -11,11 +11,16 @@
     "ingreso_volatilidad_6m",
     "actividad_wallet_90d",
     "es_pyme",
-    "ventas_pyme_promedio_bob"
+    "ventas_pyme_promedio_bob",
+    "saldo_promedio_cuentas_3m_bob",
+    "ratio_egreso_ingreso_6m",
+    "meses_flujo_negativo_6m",
+    "saldo_promedio_wallet_bob",
+    "antiguedad_wallet_meses"
   ],
-  "trainedAt": "2026-09-29T02:01:47.503877+00:00",
+  "trainedAt": "2026-10-05T19:47:41.954999+00:00",
   "datasetSeed": 20260101,
-  "datasetHashSha256": "243e6bd69e7f9037a14d0f793f0279bf13f49a2b083125e5f235737e4eb60e27",
+  "datasetHashSha256": "be8940398b86d06acec354a9134d45517856dbf5cfb76d132a00e95f1edf79d9",
   "algorithm": "StandardScaler + LogisticRegression (scikit-learn)",
   "libraryVersions": {
     "python": "3.14.5",
@@ -24,26 +29,31 @@
     "onnx": "1.23.0"
   },
   "metrics": {
-    "auc": 0.7964332189755117,
-    "ks": 0.44329429393903547,
-    "brier": 0.12980632483959198,
-    "dir_genero_declarado": 0.9995505067015363,
-    "dir_zona": 0.9703703703703703,
+    "auc": 0.8343393571322767,
+    "ks": 0.5419567471485706,
+    "brier": 0.12403922422463748,
+    "dir_genero_declarado": 0.9969520085113724,
+    "dir_zona": 0.9432273185976107,
     "n_train": 3200,
     "n_test": 800,
-    "tasa_default_train": 0.1978125
+    "tasa_default_train": 0.215625
   },
   "coeficientesEstandarizados": {
-    "dti": 0.8590211868286133,
-    "mora_max_12m_dias": 0.5489022731781006,
-    "num_acreedores": 0.23488765954971313,
-    "peor_calificacion_24m": 0.38105377554893494,
-    "antiguedad_sistema_financiero_meses": -0.3046278655529022,
-    "ingreso_promedio_6m_bob": -0.4511348307132721,
-    "ingreso_volatilidad_6m": 0.4396771192550659,
-    "actividad_wallet_90d": -0.23514197766780853,
-    "es_pyme": -0.07677000761032104,
-    "ventas_pyme_promedio_bob": 0.07695311307907104
+    "dti": 0.865145,
+    "mora_max_12m_dias": 0.495836,
+    "num_acreedores": 0.268208,
+    "peor_calificacion_24m": 0.482606,
+    "antiguedad_sistema_financiero_meses": -0.33046,
+    "ingreso_promedio_6m_bob": -0.422413,
+    "ingreso_volatilidad_6m": 0.395369,
+    "actividad_wallet_90d": -0.14228,
+    "es_pyme": 0.044762,
+    "ventas_pyme_promedio_bob": -0.098721,
+    "saldo_promedio_cuentas_3m_bob": -0.281589,
+    "ratio_egreso_ingreso_6m": 0.433373,
+    "meses_flujo_negativo_6m": 0.159729,
+    "saldo_promedio_wallet_bob": -0.272242,
+    "antiguedad_wallet_meses": -0.263002
   },
   "gates": {
     "auc_>=_0.70": true,
@@ -58,6 +68,11 @@
     "monotonia_ingreso_promedio_6m_bob": true,
     "monotonia_ingreso_volatilidad_6m": true,
     "monotonia_actividad_wallet_90d": true,
+    "monotonia_saldo_promedio_cuentas_3m_bob": true,
+    "monotonia_ratio_egreso_ingreso_6m": true,
+    "monotonia_meses_flujo_negativo_6m": true,
+    "monotonia_saldo_promedio_wallet_bob": true,
+    "monotonia_antiguedad_wallet_meses": true,
     "reproducibilidad_coeficientes_identicos": true
   },
   "gatesPass": true,

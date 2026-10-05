@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * Si este test falla después de reentrenar el modelo, es señal de que el
  * artefacto ONNX en {@code backend/src/main/resources/models/} está
  * desactualizado respecto al de {@code ml/model/}: hay que volver a
- * copiarlo (no se genera automáticamente todavía — eso es una mejora de
- * CI para un sprint posterior).
+ * copiarlo. El job {@code ml} del CI ({@code ci/check_ml_artifacts.py})
+ * lo detecta antes por hash (D-07, DEBT-016).
  */
 class OnnxParityTest {
 
@@ -38,7 +38,7 @@ class OnnxParityTest {
 
 	@BeforeAll
 	static void cargarModelo() {
-		adapter = new OnnxScoringAdapter("v1");
+		adapter = new OnnxScoringAdapter("v2");
 	}
 
 	@AfterAll
@@ -61,7 +61,7 @@ class OnnxParityTest {
 
 				assertEquals(esperado, resultado.probabilityOfDefault(), TOLERANCIA,
 						() -> "perfil #" + id + ": probabilidad de default (Java/ONNX vs. Python/sklearn)");
-				assertEquals("v1", resultado.modelVersion());
+				assertEquals("v2", resultado.modelVersion());
 			});
 		});
 	}

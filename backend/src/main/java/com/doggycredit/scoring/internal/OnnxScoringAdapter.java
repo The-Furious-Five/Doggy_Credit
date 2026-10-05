@@ -15,21 +15,21 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * SPIKE-3: adaptador que ejecuta el modelo de scoring v1 (regresión
- * logística exportada a ONNX desde {@code ml/training/train.py}) dentro de
- * la propia JVM, sin un segundo proceso (ADR-011).
+ * SPIKE-3: adaptador que ejecuta el modelo de scoring (regresión logística
+ * exportada a ONNX desde {@code ml/training/train.py}) dentro de la propia
+ * JVM, sin un segundo proceso (ADR-011).
  * <p>
  * El artefacto se carga una sola vez, al construir el adaptador, desde
- * {@code classpath:models/scoring-v1.onnx}. El nombre del tensor de salida
- * de probabilidades ({@code probabilities}) y el orden de las 10 columnas
- * de entrada están fijados por {@code skl2onnx} con {@code zipmap=False} —
+ * {@code classpath:models/scoring-<versión>.onnx} (hoy {@code v2}). El
+ * nombre del tensor de salida de probabilidades ({@code probabilities}) y
+ * el orden de las columnas de entrada están fijados por {@code skl2onnx}
+ * con {@code zipmap=False} —
  * ver {@code ml/training/train.py}. Si el modelo cambia de forma
  * incompatible, este adaptador debe actualizarse junto con el contrato de
  * {@code ml/model/model_card.json}.
  */
 public final class OnnxScoringAdapter implements ScoringModel, AutoCloseable {
 
-	private static final String CLASSPATH_MODEL = "models/scoring-v1.onnx";
 	private static final String OUTPUT_PROBABILITIES = "probabilities";
 
 	private final String modelVersion;
@@ -39,11 +39,12 @@ public final class OnnxScoringAdapter implements ScoringModel, AutoCloseable {
 	public OnnxScoringAdapter(String modelVersion) {
 		this.modelVersion = modelVersion;
 		this.environment = OrtEnvironment.getEnvironment();
+		String classpathModel = "models/scoring-" + modelVersion + ".onnx";
 		try {
-			byte[] modelBytes = readClasspathResource(CLASSPATH_MODEL);
+			byte[] modelBytes = readClasspathResource(classpathModel);
 			this.session = environment.createSession(modelBytes, new OrtSession.SessionOptions());
 		} catch (OrtException e) {
-			throw new IllegalStateException("No se pudo cargar el modelo ONNX " + CLASSPATH_MODEL, e);
+			throw new IllegalStateException("No se pudo cargar el modelo ONNX " + classpathModel, e);
 		}
 	}
 

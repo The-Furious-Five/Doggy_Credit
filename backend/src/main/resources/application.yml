@@ -70,6 +70,11 @@ doggycredit:
   assessment:
     collection-budget: ${DC_ASSESSMENT_COLLECTION_BUDGET:2s}
 
+  # D-02: versión del modelo avanzado (plan PRO). Carga models/scoring-<versión>.onnx
+  # y su .params.json, que el CI verifica contra ml/model/ (D-07).
+  scoring:
+    model-version: ${DC_SCORING_MODEL_VERSION:v2}
+
   encryption:
     master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
 
