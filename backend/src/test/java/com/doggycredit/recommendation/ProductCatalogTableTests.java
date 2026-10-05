@@ -8,6 +8,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -124,7 +126,50 @@ class ProductCatalogTableTests {
 			.isInstanceOfSatisfying(SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo(CHECK_VIOLATION));
 	}
 
+	@Test
+	void laSemillaCargaLosTresProductosParaCadaTenantDelRegistro() throws SQLException {
+		try (Connection admin = adminConnection(); var st = admin.createStatement();
+				var rs = st.executeQuery("""
+						SELECT (SELECT count(*) FROM tenancy.tenants) AS tenants,
+						       (SELECT count(*) FROM tenancy.tenants t
+						         WHERE (SELECT count(*) FROM recommendation.products p
+						                 WHERE p.tenant_id = t.id) <> 3) AS incompletos
+						""")) {
+			rs.next();
+			assertThat(rs.getLong("tenants")).isPositive();
+			assertThat(rs.getLong("incompletos")).isZero();
+		}
+	}
+
+	@Test
+	void laAppVeLaSemillaConLosRangosDeLaVista() throws SQLException {
+		UUID tenant;
+		try (Connection admin = adminConnection(); var st = admin.createStatement();
+				var rs = st.executeQuery("SELECT id FROM tenancy.tenants ORDER BY id LIMIT 1")) {
+			rs.next();
+			tenant = rs.getObject(1, UUID.class);
+		}
+
+		List<Map<String, Object>> catalogo = asTenant(tenant, () -> jdbc.queryForList("""
+				SELECT product_type, min_amount, max_amount, min_term_months, max_term_months,
+				       min_band, active
+				FROM recommendation.products ORDER BY product_type
+				"""));
+
+		assertThat(catalogo).extracting(row -> row.get("product_type"))
+			.containsExactly("MICROCREDITO", "PYME", "VERDE");
+		assertThat(catalogo.get(0)).containsEntry("min_amount", new BigDecimal("1000.00"))
+			.containsEntry("max_amount", new BigDecimal("20000.00"))
+			.containsEntry("min_term_months", 3).containsEntry("max_term_months", 24)
+			.containsEntry("min_band", "C").containsEntry("active", true);
+		assertThat(catalogo.get(1)).containsEntry("min_band", "B").containsEntry("active", false);
+	}
+
 	// --- utilidades ------------------------------------------------------------
+
+	private Connection adminConnection() throws SQLException {
+		return DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+	}
 
 	private static <T> T asTenant(UUID tenant, Supplier<T> work) {
 		TenantContext.set(tenant);
@@ -151,8 +196,7 @@ class ProductCatalogTableTests {
 				     max_term_months, annual_rate, min_band)
 				VALUES (?, ?, ?, ?, ?, 3, 24, 10, 'C')
 				""";
-		try (Connection admin = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(),
-				postgres.getPassword()); PreparedStatement ps = admin.prepareStatement(sql)) {
+		try (Connection admin = adminConnection(); PreparedStatement ps = admin.prepareStatement(sql)) {
 			ps.setObject(1, id);
 			ps.setObject(2, tenant);
 			ps.setString(3, type);
