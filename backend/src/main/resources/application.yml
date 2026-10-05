@@ -51,6 +51,15 @@ doggycredit:
       url: ${DC_INTEGRATION_BUREAU_URL:http://localhost:8089}
       connect-timeout: ${DC_INTEGRATION_BUREAU_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_BUREAU_READ_TIMEOUT:1500ms}
+    # Core bancario (B-03, bank.v1.yaml) y billetera móvil (B-05, wallet.v1.yaml): mismos plazos.
+    bank:
+      url: ${DC_INTEGRATION_BANK_URL:http://localhost:8090}
+      connect-timeout: ${DC_INTEGRATION_BANK_CONNECT_TIMEOUT:500ms}
+      read-timeout: ${DC_INTEGRATION_BANK_READ_TIMEOUT:1500ms}
+    wallet:
+      url: ${DC_INTEGRATION_WALLET_URL:http://localhost:8091}
+      connect-timeout: ${DC_INTEGRATION_WALLET_CONNECT_TIMEOUT:500ms}
+      read-timeout: ${DC_INTEGRATION_WALLET_READ_TIMEOUT:1500ms}
 
   assessment:
     collection-budget: ${DC_ASSESSMENT_COLLECTION_BUDGET:2s}

@@ -48,7 +48,8 @@
           "fuente": { "type": "string", "enum": ["BANCO"] },
           "tipo": { "type": "string" },
           "moneda": { "type": "string" },
-          "saldoPromedio3m": { "$ref": "#/$defs/Dinero" }
+          "saldoPromedio3m": { "$ref": "#/$defs/Dinero" },
+          "antiguedadMeses": { "type": "integer", "minimum": 0, "description": "Meses completos desde la apertura hasta la fecha de corte (B-03; aditivo, compatible con v1)" }
         }
       }
     },
