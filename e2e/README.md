@@ -100,10 +100,13 @@ por su rol accesible `status` y su título exacto, conforme a `ds-alert`.
 E-07 conserva su job de carga independiente; estos cambios no alteran sus
 fixtures ni resultados.
 
-Queda pendiente integrar la publicación de `recomendaciones[]` de C-06 y su
-presentación en el perfil. La versión disponible incluye la función
-`RECOMENDACIONES` del PlanGate y el cálculo para analytics, pero la respuesta de
-la evaluación todavía carece de ese campo y la pestaña muestra un estado estático.
+La evaluación publica `recomendaciones[]` de C-06 a partir del snapshot que ya
+guarda el motor de elegibilidad. POST y GET aplican `RECOMENDACIONES` del PlanGate
+al plan actual: FREE recibe una lista vacía y `recomendacionesDisponibles: false`.
+El perfil carga la evaluación más reciente del solicitante y muestra su producto
+y monto, el aviso de restricción devuelto por la API o un estado vacío real.
+La prueba comprueba que el producto y monto visibles coinciden con el resultado
+de la evaluación, además del permiso de cada plan.
 Las comprobaciones siguen activas: un `404` de Webhooks, recomendaciones
 ausentes o el mensaje estático no cuentan como éxito. Las comprobaciones suaves
 de recomendaciones permiten terminar revocación y auditoría, pero hacen fallar

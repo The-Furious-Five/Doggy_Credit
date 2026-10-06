@@ -1137,6 +1137,26 @@ components:
         modelVersion: { type: string }
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
+        recomendacionesDisponibles:
+          type: boolean
+          description: El plan actual permite recomendaciones, según A-06. False en FREE.
+        recomendaciones:
+          type: array
+          description: >
+            Primer producto elegible calculado y guardado con esta evaluación.
+            Vacío cuando el plan no incluye recomendaciones, no hay un producto
+            elegible o las fuentes son parciales. No recalcula el catálogo al leer.
+          items: { $ref: "#/components/schemas/RecomendacionProducto" }
+
+    RecomendacionProducto:
+      type: object
+      required: [tipo, montoRecomendado]
+      properties:
+        tipo: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        montoRecomendado:
+          type: string
+          pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+          description: Decimal exacto del snapshot, en la moneda de la evaluación.
 
 
     RegistroAuditoria:

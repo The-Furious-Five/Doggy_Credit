@@ -2,12 +2,14 @@ import { Component, computed, inject, input, signal, viewChild } from '@angular/
 import { HttpErrorResponse } from '@angular/common/http';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
 import {
   ConsentimientosService,
+  EvaluacionesService,
   PerfilFinanciero360,
   PerfilFinanciero360FuentesInner,
   SolicitantesService,
+  RecomendacionProductoTipoEnum,
 } from '../api';
 import {
   DsAlert,
@@ -33,6 +35,12 @@ import { day, money, segmentLabel } from './client-format';
 import { SensitiveDataService } from './sensitive-data.service';
 
 type SourceState = PerfilFinanciero360FuentesInner['estado'];
+const recommendationAmount = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 2 });
+const productLabels: Record<RecomendacionProductoTipoEnum, string> = {
+  MICROCREDITO: 'Microcrédito',
+  PYME: 'Crédito PYME',
+  VERDE: 'Crédito verde',
+};
 
 const sourceInfo: Record<PerfilFinanciero360FuentesInner['fuente'], { name: string; data: string }> = {
   BURO: { name: 'Buró de crédito', data: 'Historial y deudas' },
@@ -135,7 +143,34 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
         </ds-tab>
 
         <ds-tab value="recomendaciones" label="Recomendaciones">
-          <ds-empty-state heading="Sin recomendaciones" description="Las recomendaciones de productos aparecerán aquí después de evaluar al cliente." />
+          @if (latestAssessment.isLoading()) {
+            <ds-spinner label="Cargando recomendaciones…" />
+          } @else if (latestAssessment.error()) {
+            <ds-alert heading="No pudimos cargar las recomendaciones" tone="danger">
+              <p>Revisa tu conexión e inténtalo de nuevo.</p>
+              <button dsButton variant="secondary" (click)="latestAssessment.reload()">Reintentar recomendaciones</button>
+            </ds-alert>
+          } @else if (latestAssessment.value()?.recomendacionesDisponibles === false) {
+            <ds-alert heading="Recomendaciones disponibles con Pro">
+              Tu plan no incluye recomendaciones de productos. Puedes mejorar el plan desde Configuración.
+            </ds-alert>
+          } @else if (latestAssessment.value()?.recomendaciones?.length) {
+            <div class="ds-stack">
+              @for (product of latestAssessment.value()!.recomendaciones; track product.tipo) {
+                <ds-card>
+                  <div class="ds-stack-sm">
+                    <h2>{{ productLabels[product.tipo] }}</h2>
+                    <ds-stat label="Monto recomendado" [value]="sensitive.amount(formatRecommendationAmount(product.montoRecomendado))" />
+                    <p class="ds-caption">Recomendación de la última evaluación, sujeta a revisión de la institución.</p>
+                  </div>
+                </ds-card>
+              }
+            </div>
+          } @else {
+            <ds-empty-state heading="Sin recomendaciones" description="La última evaluación no tiene un producto elegible. Puedes realizar una nueva evaluación con datos actualizados.">
+              <a dsLink appearance="secondary" routerLink="/app/evaluaciones/nueva">Evaluar ahora</a>
+            </ds-empty-state>
+          }
         </ds-tab>
 
         <ds-tab value="fuentes" label="Fuentes">
@@ -185,6 +220,7 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
 export class ClientProfile {
   private readonly applicants = inject(SolicitantesService);
   private readonly consentApi = inject(ConsentimientosService);
+  private readonly evaluations = inject(EvaluacionesService);
   private readonly toast = inject(DsToastService);
   readonly sensitive = inject(SensitiveDataService);
   readonly id = input('');
@@ -194,6 +230,8 @@ export class ClientProfile {
   readonly stateBadge = stateBadge;
   readonly money = money;
   readonly day = day;
+  readonly productLabels = productLabels;
+  readonly formatRecommendationAmount = (amount: string) => recommendationAmount.format(Number(amount));
   readonly revoking = signal(false);
 
   readonly client = rxResource({
@@ -203,6 +241,12 @@ export class ClientProfile {
   readonly consents = rxResource({
     params: () => this.id(),
     stream: ({ params }) => this.consentApi.listarConsentimientos(params),
+  });
+  readonly latestAssessment = rxResource({
+    params: () => this.client.hasValue() ? this.client.value().id : undefined,
+    stream: ({ params }) => this.evaluations.listarEvaluaciones(params, undefined, 1, 1).pipe(
+      switchMap(page => page.items[0] ? this.evaluations.obtenerEvaluacion(page.items[0].id) : of(null)),
+    ),
   });
 
   readonly activeConsents = computed(() => (this.consents.value() ?? []).filter((c) => c.estado === 'ACTIVO'));

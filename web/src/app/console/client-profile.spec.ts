@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import {
   EvaluacionesService,
   Consentimiento,
@@ -14,6 +14,10 @@ import {
   SolicitanteDetalleMonedaEnum,
   SolicitantesService,
   DineroCurrencyEnum,
+  Evaluacion,
+  EvaluacionResumenBandaEnum,
+  EvaluacionResumenEstadoEnum,
+  RecomendacionProductoTipoEnum,
 } from '../api';
 import { ClientProfile } from './client-profile';
 import { SensitiveDataService } from './sensitive-data.service';
@@ -57,22 +61,22 @@ const consent = (estado: ConsentimientoEstadoEnum): Consentimiento =>
 describe('Perfil del cliente (B-09)', () => {
   const applicants = { obtenerSolicitante: vi.fn() };
   const consents = { listarConsentimientos: vi.fn(), revocarConsentimiento: vi.fn() };
+  const evaluations = { listarEvaluaciones: vi.fn(), obtenerEvaluacion: vi.fn() };
 
-  async function render(): Promise<ComponentFixture<ClientProfile>> {
+  async function render(waitForResponse = true): Promise<ComponentFixture<ClientProfile>> {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         { provide: SolicitantesService, useValue: applicants },
         { provide: ConsentimientosService, useValue: consents },
-        // C-09: la pestaña Score lista el historial de evaluaciones.
-        { provide: EvaluacionesService, useValue: { listarEvaluaciones: () => of({ items: [], total: 0 }) } },
+        { provide: EvaluacionesService, useValue: evaluations },
         { provide: SensitiveDataService, useValue: { document: (v: string) => v, amount: (v: string) => v } },
       ],
     });
     const fixture = TestBed.createComponent(ClientProfile);
     fixture.componentRef.setInput('id', 'a-1');
     fixture.detectChanges();
-    await fixture.whenStable();
+    if (waitForResponse) await fixture.whenStable();
     fixture.detectChanges();
     return fixture;
   }
@@ -95,6 +99,7 @@ describe('Perfil del cliente (B-09)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     consents.listarConsentimientos.mockReturnValue(of([consent(ConsentimientoEstadoEnum.Activo)]));
+    evaluations.listarEvaluaciones.mockReturnValue(of({ items: [], total: 0 }));
   });
 
   it('muestra el resumen y el linaje por fuente del Perfil 360', async () => {
@@ -124,6 +129,115 @@ describe('Perfil del cliente (B-09)', () => {
     applicants.obtenerSolicitante.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
     const f = await render();
     expect(text(f)).toContain('Cliente no encontrado');
+    expect(evaluations.listarEvaluaciones).not.toHaveBeenCalled();
+    expect(evaluations.obtenerEvaluacion).not.toHaveBeenCalled();
+  });
+
+  function latest(result: Evaluacion): void {
+    evaluations.listarEvaluaciones.mockReturnValue(of({
+      items: [{ id: 'ev-latest', solicitanteId: 'a-1', estado: EvaluacionResumenEstadoEnum.RevisionManual,
+        score: 800, banda: EvaluacionResumenBandaEnum.A, creadoEn: '2026-10-06T12:00:00Z' }], total: 1,
+    }));
+    evaluations.obtenerEvaluacion.mockReturnValue(of(result));
+  }
+
+  it('muestra el producto y monto reales de la última evaluación de este cliente', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    latest({ recomendacionesDisponibles: true, recomendaciones: [
+      { tipo: RecomendacionProductoTipoEnum.Verde, montoRecomendado: '4123.25' },
+    ] });
+    const f = await render();
+    expect(evaluations.listarEvaluaciones).toHaveBeenCalledWith('a-1', undefined, 1, 1);
+    expect(evaluations.obtenerEvaluacion).toHaveBeenCalledWith('ev-latest');
+    expect(text(f)).toContain('Crédito verde');
+    expect(text(f)).toContain('4.123,25');
+    expect(text(f)).not.toContain('Sin recomendaciones');
+  });
+
+  it('FREE muestra el permiso devuelto por la API, sin deducirlo localmente', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    latest({ recomendacionesDisponibles: false, recomendaciones: [] });
+    const f = await render();
+    expect(f.nativeElement.querySelector('ds-alert[role="status"]')?.textContent)
+      .toContain('Recomendaciones disponibles con Pro');
+    expect(text(f)).not.toContain('Sin recomendaciones');
+    expect(text(f)).not.toContain('Monto recomendado');
+  });
+
+  it('PRO sin producto elegible muestra vacío y conserva la opción de reevaluar', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    latest({ recomendacionesDisponibles: true, recomendaciones: [] });
+    const f = await render();
+    expect(text(f)).toContain('Sin recomendaciones');
+    expect(text(f)).not.toContain('Recomendaciones disponibles con Pro');
+    expect(text(f)).toContain('Evaluar ahora');
+  });
+
+  it('sin evaluaciones muestra vacío sin pedir un detalle inexistente', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail(false)));
+    const f = await render();
+    expect(text(f)).toContain('Sin recomendaciones');
+    expect(evaluations.obtenerEvaluacion).not.toHaveBeenCalled();
+  });
+
+  it('anuncia la carga mientras espera el detalle de la evaluación', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    latest({});
+    const response = new Subject<Evaluacion>();
+    evaluations.obtenerEvaluacion.mockReturnValue(response);
+    const f = await render(false);
+    expect(f.nativeElement.querySelector('ds-spinner[label="Cargando recomendaciones…"]')).not.toBeNull();
+    expect(text(f)).not.toContain('Sin recomendaciones');
+    response.next({ recomendacionesDisponibles: true, recomendaciones: [] });
+    response.complete();
+    await f.whenStable();
+    f.detectChanges();
+    expect(text(f)).toContain('Sin recomendaciones');
+  });
+
+  it('permite reintentar un fallo de carga sin mostrar una restricción falsa', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    latest({});
+    evaluations.obtenerEvaluacion.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 503 })));
+    const f = await render();
+    expect(text(f)).toContain('No pudimos cargar las recomendaciones');
+    expect(text(f)).not.toContain('Recomendaciones disponibles con Pro');
+    evaluations.obtenerEvaluacion.mockReturnValue(of({ recomendacionesDisponibles: true, recomendaciones: [
+      { tipo: RecomendacionProductoTipoEnum.Microcredito, montoRecomendado: '3000.00' },
+    ] }));
+    const button = [...f.nativeElement.querySelectorAll('button')].find((b: HTMLButtonElement) =>
+      b.textContent?.includes('Reintentar recomendaciones')) as HTMLButtonElement;
+    button.click();
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    expect(text(f)).toContain('Microcrédito');
+    expect(text(f)).not.toContain('No pudimos cargar las recomendaciones');
+  });
+
+  it('al cambiar de cliente consulta su evaluación y retira los productos anteriores', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    latest({ recomendacionesDisponibles: true, recomendaciones: [
+      { tipo: RecomendacionProductoTipoEnum.Verde, montoRecomendado: '4123.25' },
+    ] });
+    const f = await render();
+    expect(text(f)).toContain('Crédito verde');
+    applicants.obtenerSolicitante.mockReturnValue(of({ ...detail(), id: 'a-2' }));
+    evaluations.listarEvaluaciones.mockReturnValue(of({ items: [{ id: 'ev-second', solicitanteId: 'a-2',
+      estado: EvaluacionResumenEstadoEnum.RevisionManual, score: 700, banda: EvaluacionResumenBandaEnum.B,
+      creadoEn: '2026-10-06T12:00:00Z' }], total: 1 }));
+    evaluations.obtenerEvaluacion.mockReturnValue(of({ recomendacionesDisponibles: true, recomendaciones: [
+      { tipo: RecomendacionProductoTipoEnum.Microcredito, montoRecomendado: '2000.00' },
+    ] }));
+    f.componentRef.setInput('id', 'a-2');
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    expect(evaluations.listarEvaluaciones).toHaveBeenCalledWith('a-2', undefined, 1, 1);
+    expect(evaluations.obtenerEvaluacion).toHaveBeenCalledWith('ev-second');
+    expect(text(f)).toContain('Microcrédito');
+    expect(text(f)).not.toContain('Crédito verde');
+    expect(text(f)).not.toContain('4.123,25');
   });
 
   it('revoca los consentimientos vigentes solo tras confirmar', async () => {

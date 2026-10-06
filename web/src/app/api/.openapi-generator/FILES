@@ -51,6 +51,7 @@ model/preferenciasTenant.ts
 model/problemDetail.ts
 model/producto.ts
 model/productoCambios.ts
+model/recomendacionProducto.ts
 model/registroAuditoria.ts
 model/segmento.ts
 model/solicitante.ts

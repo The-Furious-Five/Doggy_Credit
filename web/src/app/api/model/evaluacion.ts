@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { RecomendacionProducto } from './recomendacionProducto';
 
 
 export interface Evaluacion { 
@@ -22,6 +23,14 @@ export interface Evaluacion {
     modelVersion?: string;
     simulado?: boolean;
     correlationId?: string;
+    /**
+     * El plan actual permite recomendaciones, según A-06. False en FREE.
+     */
+    recomendacionesDisponibles?: boolean;
+    /**
+     * Primer producto elegible calculado y guardado con esta evaluación. Vacío cuando el plan no incluye recomendaciones, no hay un producto elegible o las fuentes son parciales. No recalcula el catálogo al leer. 
+     */
+    recomendaciones?: Array<RecomendacionProducto>;
 }
 export enum EvaluacionEstadoEnum {
     Pendiente = 'PENDIENTE',

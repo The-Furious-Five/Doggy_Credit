@@ -118,6 +118,8 @@ class AssessmentControllerTests {
 			.andExpect(jsonPath("$.banda").value("A"))
 			.andExpect(jsonPath("$.razones.length()").value(6))
 			.andExpect(jsonPath("$.modelVersion").value("basic-v1"))
+			.andExpect(jsonPath("$.recomendacionesDisponibles").value(false))
+			.andExpect(jsonPath("$.recomendaciones").isEmpty())
 			.andReturn().getResponse().getContentAsString();
 
 		UUID id = UUID.fromString(response.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1"));
@@ -144,7 +146,9 @@ class AssessmentControllerTests {
 		mvc.perform(get("/credit-assessments/{id}", id)
 				.with(jwt().jwt(token -> token.subject("analista-3").claim("tenant_id", TENANT))))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.id").value(id.toString()));
+			.andExpect(jsonPath("$.id").value(id.toString()))
+			.andExpect(jsonPath("$.recomendacionesDisponibles").value(false))
+			.andExpect(jsonPath("$.recomendaciones").isEmpty());
 		mvc.perform(get("/credit-assessments/{id}", id)
 				.with(jwt().jwt(token -> token.subject("otro").claim("tenant_id",
 						"55555555-5555-4555-8555-555555555555"))))

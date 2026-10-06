@@ -58,6 +58,7 @@ for (const tenant of seed.tenants) {
     expect(['A', 'B', 'C', 'D', 'E']).toContain(evaluation.banda);
     expect(['PREAPROBADO', 'REVISION_MANUAL', 'SOLICITAR_DATOS']).toContain(evaluation.decision);
     expect(evaluation.simulado).toBe(true);
+    expect(evaluation.recomendacionesDisponibles).toBe(tenant.plan === 'PRO');
     expect(evaluation.modelVersion).toMatch(tenant.plan === 'PRO' ? /^scoring-/ : /^basic-/);
     await expect(page.locator('ds-stat').filter({ has: page.getByText('Score', { exact: true }) }))
       .toContainText(String(evaluation.score));
@@ -82,15 +83,28 @@ for (const tenant of seed.tenants) {
     await page.getByRole('tab', { name: 'Recomendaciones', exact: true }).click();
     const recommendations = page.getByRole('tabpanel', { name: 'Recomendaciones', exact: true });
     if (tenant.plan === 'PRO') {
-      // C-06 debe publicar el resultado real. Fallar también ante la tarjeta estática actual.
-      expect.soft(Array.isArray(evaluation.recomendaciones), 'Falta integrar recomendaciones[] de C-06').toBe(true);
+      // C-06 publica el snapshot real; el perfil debe mostrar el mismo producto y monto.
+      expect.soft(Array.isArray(evaluation.recomendaciones), 'La evaluación debe publicar recomendaciones[]').toBe(true);
       expect.soft(evaluation.recomendaciones?.length ?? 0, 'El buen pagador debe recibir un producto Pro').toBeGreaterThan(0);
       await expect.soft(recommendations.getByRole('heading', { name: 'Sin recomendaciones', exact: true })).not.toBeVisible();
-      await expect.soft(recommendations.getByText(/microcr[eé]dito|cr[eé]dito pyme|ecol[oó]gico|cr[eé]dito verde/i).first())
-        .toBeVisible();
+      const labels: Record<string, string> = { MICROCREDITO: 'Microcrédito', PYME: 'Crédito PYME', VERDE: 'Crédito verde' };
+      for (const product of evaluation.recomendaciones ?? []) {
+        expect.soft(labels[product.tipo]).toBeTruthy();
+        expect.soft(Number(product.montoRecomendado)).toBeGreaterThan(0);
+        if (labels[product.tipo]) {
+          const card = recommendations.locator('ds-card').filter({
+            has: page.getByRole('heading', { name: labels[product.tipo], exact: true }),
+          });
+          await expect.soft(card).toBeVisible();
+          await expect.soft(card).toContainText(new Intl.NumberFormat('es-BO', { maximumFractionDigits: 2 })
+            .format(Number(product.montoRecomendado)));
+        }
+      }
     } else {
-      expect.soft(evaluation.recomendaciones ?? []).toEqual([]);
-      await expect.soft(recommendations.getByText(/requiere.*pro|disponible.*pro|mejora.*pro/i).first()).toBeVisible();
+      expect.soft(evaluation.recomendaciones).toEqual([]);
+      await expect.soft(recommendations.getByRole('status').filter({
+        has: page.getByText('Recomendaciones disponibles con Pro', { exact: true }),
+      })).toBeVisible();
     }
 
     await page.getByRole('button', { name: 'Más acciones' }).click();

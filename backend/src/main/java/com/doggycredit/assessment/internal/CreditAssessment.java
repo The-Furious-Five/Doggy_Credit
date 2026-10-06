@@ -12,6 +12,7 @@ import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.AssessmentSummary;
 import com.doggycredit.assessment.CreditAssessmentCompleted;
+import com.doggycredit.recommendation.ProductRecommendations.Recommendation;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.ScoreBand;
 
@@ -143,8 +144,10 @@ class CreditAssessment {
 	}
 
 	AssessmentResult toResult() {
+		List<Recommendation> recommendations = recommendedProductType == null || recommendedAmount == null
+				? List.of() : List.of(new Recommendation(recommendedProductType, recommendedAmount));
 		return new AssessmentResult(id, AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band),
-				List.of(reasons), modelVersion, simulated, correlationId);
+				List.of(reasons), modelVersion, simulated, correlationId, recommendations);
 	}
 
 }

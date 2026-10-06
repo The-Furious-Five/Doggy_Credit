@@ -155,6 +155,51 @@ class AssessmentListTests {
 			.with(jwt().jwt(token -> token.subject("analista-9").claim("tenant_id", tenantId.toString()))));
 	}
 
+	@Test
+	void detalleProPublicaElSnapshotYLoAislaDeOtrosTenants() throws Exception {
+		UUID pro = UUID.randomUUID();
+		TestTenants.register(postgres, pro.toString(), "PRO");
+		UUID id = recommended(pro);
+		detail(pro, id)
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.recomendacionesDisponibles").value(true))
+			.andExpect(jsonPath("$.recomendaciones.length()").value(1))
+			.andExpect(jsonPath("$.recomendaciones[0].tipo").value("MICROCREDITO"))
+			.andExpect(jsonPath("$.recomendaciones[0].montoRecomendado").value("4123.25"));
+		detail(otherTenant, id).andExpect(status().isNotFound());
+		mvc.perform(get("/credit-assessments/{id}", id)).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void detalleFreeNoRevelaUnProductoPersistido() throws Exception {
+		UUID id = recommended(tenant);
+		detail(tenant, id)
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.recomendacionesDisponibles").value(false))
+			.andExpect(jsonPath("$.recomendaciones").isEmpty());
+	}
+
+	private ResultActions detail(UUID tenantId, UUID id) throws Exception {
+		return mvc.perform(get("/credit-assessments/{id}", id)
+			.with(jwt().jwt(token -> token.subject("analista-9").claim("tenant_id", tenantId.toString()))));
+	}
+
+	private UUID recommended(UUID tenantId) {
+		UUID id = insert(tenantId, applicant, NOW, "REVISION_MANUAL", 800, "A");
+		TenantContext.set(tenantId);
+		try {
+			jdbc.update("""
+					update assessment.credit_assessments
+					set recommended_product_type = 'MICROCREDITO', recommended_amount = 4123.25
+					where id = ?
+					""", id);
+		}
+		finally {
+			TenantContext.clear();
+		}
+		return id;
+	}
+
 	/** Inserta como el tenant (la RLS exige app.tenant_id), igual que haría la app. */
 	private UUID insert(UUID tenantId, UUID applicantId, Instant createdAt, String status, int score, String band) {
 		UUID id = UUID.randomUUID();

@@ -3,6 +3,7 @@ package com.doggycredit.assessment.internal;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -18,19 +19,28 @@ import com.doggycredit.assessment.AssessmentOperations;
 import com.doggycredit.assessment.AssessmentPage;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentSummary;
+import com.doggycredit.billing.Feature;
+import com.doggycredit.billing.PlanGate;
 import com.doggycredit.shared.contract.api.EvaluacionesApi;
 import com.doggycredit.shared.contract.model.Evaluacion;
 import com.doggycredit.shared.contract.model.EvaluacionNueva;
 import com.doggycredit.shared.contract.model.EvaluacionResumen;
 import com.doggycredit.shared.contract.model.PaginaEvaluaciones;
+import com.doggycredit.shared.contract.model.RecomendacionProducto;
+import com.doggycredit.tenancy.TenantId;
+import com.doggycredit.tenancy.TenantRegistry;
 
 @RestController
 class AssessmentController implements EvaluacionesApi {
 
 	private final AssessmentOperations assessments;
+	private final TenantRegistry tenants;
+	private final PlanGate plans;
 
-	AssessmentController(AssessmentOperations assessments) {
+	AssessmentController(AssessmentOperations assessments, TenantRegistry tenants, PlanGate plans) {
 		this.assessments = assessments;
+		this.tenants = tenants;
+		this.plans = plans;
 	}
 
 	@Override
@@ -81,6 +91,8 @@ class AssessmentController implements EvaluacionesApi {
 	}
 
 	private Evaluacion toContract(AssessmentResult result) {
+		var tenant = tenants.requireById(TenantId.of(currentTenantId()));
+		boolean available = plans.isAvailable(tenant.plan(), Feature.RECOMENDACIONES);
 		return new Evaluacion()
 			.id(result.id())
 			.estado(Evaluacion.EstadoEnum.fromValue(result.status().published().name()))
@@ -92,7 +104,12 @@ class AssessmentController implements EvaluacionesApi {
 			.razones(result.reasons())
 			.modelVersion(result.modelVersion())
 			.simulado(result.simulated())
-			.correlationId(result.correlationId());
+			.correlationId(result.correlationId())
+			.recomendacionesDisponibles(available)
+			.recomendaciones(available ? result.recommendations().stream()
+				.map(recommendation -> new RecomendacionProducto(
+					RecomendacionProducto.TipoEnum.fromValue(recommendation.productType()),
+					recommendation.amount().toPlainString())).toList() : List.of());
 	}
 
 }

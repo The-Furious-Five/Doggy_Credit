@@ -29,6 +29,7 @@ export * from './preferenciasTenant';
 export * from './problemDetail';
 export * from './producto';
 export * from './productoCambios';
+export * from './recomendacionProducto';
 export * from './registroAuditoria';
 export * from './segmento';
 export * from './solicitante';
