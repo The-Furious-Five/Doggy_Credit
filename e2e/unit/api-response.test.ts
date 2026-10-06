@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { APIResponse, Page, Route } from '@playwright/test';
 import { apiResponse } from '../tests/api-response.js';
+import { installApiPacing, RequestPacer } from '../tests/api-pacing.js';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -184,4 +185,16 @@ test('una redirección se conserva como fallo HTTP; nunca se transforma en un 20
   const response = await apiResponse(events.page, '/tenant/actual', () => events.emit(real.route));
   assert.equal(response.status(), 302);
   await assert.rejects(response.json());
+});
+
+test('una captura reserva un solo turno aunque route.fetch omita el resto de las rutas', async t => {
+  let turns = 0;
+  t.mock.method(RequestPacer.prototype, 'wait', async () => { turns++; });
+  const events = routing();
+  await installApiPacing(events.page, { id: 'captured-free', plan: 'FREE' });
+  const real = resource('/consentimientos', 'POST', 201);
+  const response = await apiResponse(events.page, '/consentimientos', () => events.emit(real.route), 'POST');
+  assert.equal(response.status(), 201);
+  assert.equal(real.state.fetches, 1);
+  assert.equal(turns, 1);
 });

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { login, seed } from './support.js';
+import { apiRequest, login, seed } from './support.js';
 
 test('FREE y PRO aíslan el mismo documento por tenant en API y perfil', async ({ browser, baseURL }) => {
   // Documento independiente del alta del flujo: ningún spec depende del orden de los demás.
@@ -12,7 +12,8 @@ test('FREE y PRO aíslan el mismo documento por tenant en API y perfil', async (
       sessions.push({ context, tenant, page: await context.newPage(), headers: {} as { Authorization: string }, id: '' });
       const session = sessions[sessions.length - 1];
       session.headers = await login(session.page, tenant);
-      const created = await context.request.post('/api/v1/solicitantes', {
+      const created = await apiRequest(session.page, '/api/v1/solicitantes', {
+        method: 'POST',
         headers: session.headers,
         data: { documento: document, actividad: 'Comercio (demo E2E)', antiguedadActividadMeses: 60,
           ingresosMensuales: '9000', moneda: 'BOB', destinoCredito: 'Capital de trabajo', segmento: 'PERSONA' },
@@ -25,15 +26,15 @@ test('FREE y PRO aíslan el mismo documento por tenant en API y perfil', async (
     for (let index = 0; index < sessions.length; index++) {
       const own = sessions[index];
       const other = sessions[1 - index];
-      const actual = await own.context.request.get('/api/v1/tenant/actual', {
+      const actual = await apiRequest(own.page, '/api/v1/tenant/actual', {
         headers: { ...own.headers, 'X-Tenant-Id': other.tenant.id },
       });
       expect(actual.status()).toBe(200);
       expect((await actual.json()).id).toBe(own.tenant.id);
-      const allowed = await own.context.request.get(`/api/v1/solicitantes/${own.id}`, { headers: own.headers });
+      const allowed = await apiRequest(own.page, `/api/v1/solicitantes/${own.id}`, { headers: own.headers });
       expect(allowed.status()).toBe(200);
       expect(await allowed.json()).toMatchObject({ id: own.id, documento: document });
-      const foreign = await own.context.request.get(`/api/v1/solicitantes/${other.id}`, { headers: own.headers });
+      const foreign = await apiRequest(own.page, `/api/v1/solicitantes/${other.id}`, { headers: own.headers });
       expect(foreign.status()).toBe(404);
       await own.page.goto(`/app/clientes/${other.id}`);
       await expect(own.page.getByRole('heading', { name: 'Cliente no encontrado', exact: true })).toBeVisible();

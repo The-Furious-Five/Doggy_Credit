@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 import { apiResponse } from './api-response.js';
+import { installApiPacing } from './api-pacing.js';
 
-export { apiResponse } from './api-response.js';
+export { apiRequest, apiResponse } from './api-response.js';
 
 export interface Tenant {
   id: string;
@@ -21,6 +22,7 @@ export async function login(page: Page, tenant: Tenant): Promise<{ Authorization
   const password = process.env[tenant.passwordEnv];
   if (!password) throw new Error(`Falta la variable de credenciales de demo ${tenant.passwordEnv}`);
   await page.goto('/acceso');
+  await installApiPacing(page, tenant);
   await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
   await expect(page).toHaveURL(/\/auth\/realms\/doggycredit\/protocol\/openid-connect\/auth\?/);
   const authorizationUrl = new URL(page.url());

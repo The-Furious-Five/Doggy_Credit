@@ -110,6 +110,7 @@ class AssessmentControllerTests {
 	@Test
 	void orquestaScorePersisteYReutilizaLaIdempotencia() throws Exception {
 		when(bureau.fetch(any(), anyString())).thenReturn(Optional.of(report()));
+		int profilesBefore = profileCount();
 		String key = "assessment-happy-0001";
 		String response = createAssessment(key, DOCUMENT)
 			.andExpect(status().isCreated())
@@ -126,6 +127,10 @@ class AssessmentControllerTests {
 		createAssessment(key, DOCUMENT)
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.id").value(id.toString()));
+		assertThat(profileCount()).isEqualTo(profilesBefore + 1);
+		assertProfileState("COMPLETA")
+			.andExpect(jsonPath("$.perfil.fuentes[?(@.fuente == 'BURO')].sha256").value(List.of("a".repeat(64))))
+			.andExpect(jsonPath("$.perfil.capacidadPago.amount").value("4900.00"));
 		verify(bureau).fetch(UUID.fromString(TENANT), DOCUMENT);
 		assertThat(comoTenant(() -> jdbc.queryForObject(
 				"select need_category from assessment.credit_assessments where id = ?", String.class, id)))
@@ -248,6 +253,9 @@ class AssessmentControllerTests {
 			.andExpect(jsonPath("$.razones[?(@ == 'HISTORIAL_MENOR_6_MESES')]").isEmpty())
 			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isEmpty())
 			.andExpect(jsonPath("$.banda").value(org.hamcrest.Matchers.not("A")));
+		assertProfileState("NO_DISPONIBLE")
+			.andExpect(jsonPath("$.perfil.deudaVigente").isEmpty())
+			.andExpect(jsonPath("$.perfil.capacidadPago").isEmpty());
 	}
 
 	@Test
@@ -263,10 +271,13 @@ class AssessmentControllerTests {
 			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isNotEmpty())
 			.andExpect(jsonPath("$.razones[?(@ == 'REGISTRO_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isEmpty())
 			.andExpect(jsonPath("$.razones[?(@ == 'HISTORIAL_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isEmpty());
+		assertProfileState("SIN_REGISTRO")
+			.andExpect(jsonPath("$.perfil.deudaVigente.amount").value("0.00"));
 	}
 
 	@Test
 	void consentimientoDistintoNoPermiteConsultarLaFuente() throws Exception {
+		int profilesBefore = profileCount();
 		mvc.perform(post("/credit-assessments")
 			.with(jwt().jwt(token -> token.subject("analista-3").claim("tenant_id", TENANT)))
 			.header("Idempotency-Key", "assessment-wrong-consent")
@@ -277,6 +288,24 @@ class AssessmentControllerTests {
 			.andExpect(status().isUnprocessableEntity())
 			.andExpect(jsonPath("$.code").value("CONSENT_REQUIRED"));
 		verify(bureau, never()).fetch(any(), anyString());
+		assertThat(profileCount()).isEqualTo(profilesBefore);
+	}
+
+	private int profileCount() {
+		return comoTenant(() -> jdbc.queryForObject("select count(*) from customer.financial_profiles",
+				Integer.class));
+	}
+
+	private org.springframework.test.web.servlet.ResultActions assertProfileState(String bureauState) throws Exception {
+		UUID applicantId = comoTenant(() -> jdbc.queryForObject(
+				"select id from customer.applicants where tenant_id = ?::uuid", UUID.class, TENANT));
+		return mvc.perform(get("/solicitantes/{id}", applicantId)
+				.with(jwt().jwt(token -> token.subject("analista-3").claim("tenant_id", TENANT))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.perfil.hash").value(org.hamcrest.Matchers.matchesPattern("[a-f0-9]{64}")))
+			.andExpect(jsonPath("$.perfil.fuentes[?(@.fuente == 'BURO')].estado").value(List.of(bureauState)))
+			.andExpect(jsonPath("$.perfil.fuentes[?(@.fuente == 'BANCO')].estado").value(List.of("NO_CONSULTADA")))
+			.andExpect(jsonPath("$.perfil.fuentes[?(@.fuente == 'WALLET')].estado").value(List.of("NO_CONSULTADA")));
 	}
 
 	private org.springframework.test.web.servlet.ResultActions createAssessment(String key, String document)

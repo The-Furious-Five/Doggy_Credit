@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiResponse, connectProSources, login, seed } from './support.js';
+import { apiRequest, apiResponse, connectProSources, login, seed } from './support.js';
 
 for (const tenant of seed.tenants) {
   test(`${tenant.plan}: permisos reales de analytics, integraciones y Webhooks`, async ({ page }) => {
@@ -26,13 +26,19 @@ for (const tenant of seed.tenants) {
     } else {
       await page.goto('/app/integraciones');
       for (const [source, label] of [['BANCO', 'Core bancario'], ['WALLET', 'Billetera móvil']]) {
-        await expect(page.getByRole('button', { name: `Conectar: ${label}`, exact: true })).toBeDisabled();
-        const denied = await page.request.put(`/api/v1/integraciones/${source}`, { headers, data: { activa: true } });
+        const connect = page.getByRole('button', { name: `Conectar: ${label}`, exact: true });
+        // A-06: la UI muestra el bloqueo a partir del error real de la API.
+        await expect(connect).toBeEnabled();
+        const denied = await apiResponse(page, `/integraciones/${source}`, () => connect.click(), 'PUT');
         expect(denied.status()).toBe(409);
         expect(await denied.json()).toMatchObject({ code: 'PLAN_LIMIT_REACHED' });
+        await expect(page.getByRole('alert').filter({
+          has: page.getByText('Tu plan Gratis incluye 1 integración', { exact: true }),
+        })).toBeVisible();
+        await expect(connect).toBeEnabled();
       }
     }
-    const integrations = await page.request.get('/api/v1/integraciones', { headers });
+    const integrations = await apiRequest(page, '/api/v1/integraciones', { headers });
     expect(integrations.status()).toBe(200);
     const catalog = await integrations.json();
     expect(catalog).toEqual(expect.arrayContaining([expect.objectContaining({ fuente: 'BURO', estado: 'CONECTADO' })]));

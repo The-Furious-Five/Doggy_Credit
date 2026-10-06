@@ -27,6 +27,7 @@ import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.billing.QuotaGuard;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistry;
+import com.doggycredit.customer.FinancialProfiles;
 import com.doggycredit.consent.Source;
 import com.doggycredit.tenancy.TenantRegistry;
 import com.doggycredit.tenancy.TenantInfo;
@@ -51,11 +52,12 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final ApplicationEventPublisher events;
 	private final PolicyRepository policies;
 	private final AssessmentAnalyticsSnapshot analytics;
+	private final FinancialProfiles profiles;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			SourceCollector sources, CreditScoring scoring, AuditTrail audit,
 			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events,
-			PolicyRepository policies, AssessmentAnalyticsSnapshot analytics) {
+			PolicyRepository policies, AssessmentAnalyticsSnapshot analytics, FinancialProfiles profiles) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.sources = sources;
@@ -66,6 +68,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.events = events;
 		this.policies = policies;
 		this.analytics = analytics;
+		this.profiles = profiles;
 	}
 
 	@Override
@@ -92,6 +95,9 @@ class SynchronousAssessmentService implements AssessmentOperations {
 				toScorecardInput(command, applicant, collection),
 				toScoringFeatures(applicant, bureauReport(collection)));
 		AssessmentStatus status = decide(command, collection, score);
+		// El perfil usa la misma recolección y transacción: no vuelve a consultar fuentes.
+		// El replay idempotente retorna antes y no crea un segundo snapshot.
+		profiles.consolidate(command.tenantId(), applicant.id(), collection.profileResults());
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
 				command.termMonths(), status, score, command.correlationId());

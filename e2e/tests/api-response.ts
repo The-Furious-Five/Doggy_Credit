@@ -1,4 +1,5 @@
-import type { APIResponse, Page, Request, Route } from '@playwright/test';
+import type { APIRequestContext, APIResponse, Page, Request, Route } from '@playwright/test';
+import { waitForApiBudget } from './api-pacing.js';
 
 export type CapturedResponse = Pick<APIResponse, 'url' | 'status' | 'headers' | 'body' | 'json'> & {
   request(): Pick<Request, 'method' | 'headerValue'>;
@@ -29,6 +30,8 @@ export async function apiResponse(
     claimed = true;
     try {
       const requestHeaders = await request.allHeaders();
+      // route.fetch no pasa por otras rutas: también debe reservar su turno.
+      await waitForApiBudget(page);
       // Una sola petición real, sin reintentar POST ni ocultar redirecciones.
       const upstream = await route.fetch({ maxRedirects: 0, maxRetries: 0, timeout });
       try {
@@ -69,5 +72,19 @@ export async function apiResponse(
   } finally {
     clearTimeout(timer);
     if (!page.isClosed()) await page.unroute(matches, handler);
+  }
+}
+
+/** Las consultas directas comparten la cola de la SPA y nunca reintentan una mutación. */
+export async function apiRequest(
+  page: Page,
+  path: string,
+  options?: Parameters<APIRequestContext['fetch']>[1],
+): Promise<APIResponse> {
+  await waitForApiBudget(page);
+  try {
+    return await page.request.fetch(path, { ...options, maxRedirects: 0, maxRetries: 0 });
+  } catch {
+    throw new Error(`No se pudo obtener la respuesta real de ${options?.method ?? 'GET'} ${path}.`);
   }
 }

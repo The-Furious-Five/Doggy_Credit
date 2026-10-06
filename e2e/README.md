@@ -67,6 +67,16 @@ terminar o fallar. No se repiten POST ni se siguen redirecciones en la captura;
 las respuestas HTTP de error se conservan y las aserciones siguen exigiendo el
 status y los datos reales.
 
+Las peticiones de FREE se espacian al menos 2,1 segundos para respetar sus
+30 peticiones por minuto. La cola vive en el worker y se comparte por tenant
+entre páginas, escenarios, capturas y llamadas directas. También cubre las
+peticiones de fondo de la SPA. PRO conserva su ritmo normal. El rate limiter de
+la API sigue activo: un `429` todavía hace fallar las aserciones y no se
+reintentan mutaciones. Por eso la suite FREE tarda más que una ráfaga sin límites.
+En Integraciones se pulsa Conectar y se exige el `409 PLAN_LIMIT_REACHED`, el
+aviso accesible y que el catálogo continúe en `REQUIERE_PRO`; el botón habilitado
+permite mostrar el error real, conforme al comportamiento de A-06.
+
 `test:helpers` verifica espera del registro antes de la acción, cuerpo parcial,
 filtrado por origen/ruta/método, cabeceras, errores, timeout y limpieza sin
 Docker ni navegador. `test:regression` agrega cinco casos en Chromium contra un
@@ -111,6 +121,12 @@ Las comprobaciones siguen activas: un `404` de Webhooks, recomendaciones
 ausentes o el mensaje estático no cuentan como éxito. Las comprobaciones suaves
 de recomendaciones permiten terminar revocación y auditoría, pero hacen fallar
 el test igualmente.
+
+La evaluación consolida y guarda el Perfil 360 con la misma recolección de
+fuentes y en la misma transacción, antes de responder. Una repetición idempotente
+no crea otro perfil ni consulta los conectores de nuevo. El perfil conserva el
+linaje y distingue `COMPLETA`, `SIN_REGISTRO`, `NO_DISPONIBLE` y `NO_CONSULTADA`;
+FREE usa los ingresos declarados y PRO los observados del banco cuando existen.
 
 E-06 se considera terminada cuando el job pasa **en `main`**. Typecheck, discovery
 y los tests del generador no sustituyen una ejecución contra Compose. Si no hay

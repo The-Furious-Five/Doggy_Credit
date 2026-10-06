@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { apiResponse, connectProSources, login, seed } from './support.js';
+import { apiRequest, apiResponse, connectProSources, login, seed } from './support.js';
 
 for (const tenant of seed.tenants) {
   test(`${tenant.plan}: login → alta → consentimiento → evaluación → perfil → revocación → auditoría`, async ({ page }) => {
@@ -68,9 +68,15 @@ for (const tenant of seed.tenants) {
     await expect(page).toHaveURL(new RegExp(`/app/clientes/${applicant.id}$`));
     expect(profileResponse.status()).toBe(200);
     const detail = await profileResponse.json();
+    expect(detail.perfil, 'La evaluación debe persistir el Perfil 360 antes de responder').toBeTruthy();
     expect(detail.perfil.hash).toMatch(/^[a-f0-9]{64}$/i);
     expect(detail.perfil.fuentes.find((source: { fuente: string; estado: string }) => source.fuente === 'BURO'))
       .toMatchObject({ estado: 'COMPLETA' });
+    for (const source of ['BANCO', 'WALLET']) {
+      expect(detail.perfil.fuentes.find((entry: { fuente: string }) => entry.fuente === source))
+        .toMatchObject({ estado: tenant.plan === 'PRO' ? 'COMPLETA' : 'NO_CONSULTADA' });
+    }
+    expect(detail.perfil.origenIngreso).toBe(tenant.plan === 'PRO' ? 'BANCO' : 'DECLARADO');
     await expect(page.getByRole('heading', { name: seed.document, exact: true })).toBeVisible();
     await expect(page.getByText('Consentimiento vigente', { exact: true })).toBeVisible();
     await expect(page.locator('ds-stat').filter({ has: page.getByText('Capacidad de pago', { exact: true }) }))
@@ -119,7 +125,8 @@ for (const tenant of seed.tenants) {
     await expect(page.getByText('Sin consentimiento vigente', { exact: true })).toBeVisible();
 
     // La revocación debe impedir consultar fuentes, incluso llamando directamente a la API.
-    const denied = await page.request.post('/api/v1/credit-assessments', {
+    const denied = await apiRequest(page, '/api/v1/credit-assessments', {
+      method: 'POST',
       headers: { ...headers, 'Idempotency-Key': randomUUID() },
       data: { titularDocumento: seed.document, consentId: consent.id, proposito: 'Capital de trabajo', montoSolicitado: '5000', plazoMeses: 12 },
     });

@@ -1,9 +1,11 @@
 package com.doggycredit.assessment.internal;
 
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 
 import com.doggycredit.consent.Source;
+import com.doggycredit.customer.SourceResult;
 
 /** Resultado de la recolección en paralelo (C-01): qué pasó con cada fuente. */
 record SourceCollection(Map<Source, SourceOutcome> outcomes) {
@@ -33,6 +35,17 @@ record SourceCollection(Map<Source, SourceOutcome> outcomes) {
 		SourceOutcome outcome = outcomes.get(source);
 		return outcome == null || outcome.status() != SourceOutcome.Status.RECEIVED
 				? Optional.empty() : Optional.ofNullable(outcome.payload());
+	}
+
+	/** Los tres conectores devuelven Optional: vacío significa sin registro, no caída. */
+	Map<Source, SourceResult> profileResults() {
+		Map<Source, SourceResult> results = new EnumMap<>(Source.class);
+		outcomes.forEach((source, outcome) -> results.put(source, switch (outcome.status()) {
+			case RECEIVED -> SourceResult.of((Optional<?>) outcome.payload());
+			case UNAVAILABLE, TIMED_OUT -> SourceResult.unavailable();
+			case NOT_CONSENTED -> SourceResult.notConsulted();
+		}));
+		return Map.copyOf(results);
 	}
 
 	/** Qué pasó con una fuente que respondió, falló, no se consultó por consentimiento o no existe aún. */
