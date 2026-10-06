@@ -31,9 +31,36 @@ curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 2 
 ln -sfn "$release" "$base/current"
 trap - ERR
 
-# Limpieza: se conservan las 3 releases más recientes y solo las imágenes de
-# la release actual y la anterior (las necesarias para volver atrás).
-ls -1dt "$base"/releases/*/ | tail -n +4 | xargs -r rm -rf
+# Limpieza: conservar siempre esta release y la anterior para rollback, además
+# de completar hasta 3 con las releases más recientes. No confiar solo en mtime:
+# al reintentar un SHA existente, los timestamps extraídos pueden ser antiguos.
+protected=("$release")
+if [ -n "$previous" ] && [ "$previous" != "$release" ]; then
+  protected+=("$previous")
+fi
+keep_extra=$((3 - ${#protected[@]}))
+while IFS= read -r old; do
+  [ -n "$old" ] || continue
+  skip=false
+  for active in "${protected[@]}"; do
+    if [ "$old" = "$active" ]; then
+      skip=true
+      break
+    fi
+  done
+  if [ "$skip" = true ]; then
+    continue
+  fi
+  if [ "$keep_extra" -gt 0 ]; then
+    keep_extra=$((keep_extra - 1))
+    continue
+  fi
+  # Las carpetas empaquetadas pueden ser de solo lectura (p. ej., temas).
+  # Habilitar escritura en directorios permite borrarlas sin elevar privilegios.
+  find "$old" -type d -exec chmod u+rwx {} +
+  rm -rf -- "$old"
+done < <(find "$base/releases" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
+  | sort -rn | cut -d' ' -f2-)
 keep=$(cat infra/release.env "$previous/infra/release.env" 2>/dev/null || true)
 docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '/doggycredit-(api|web):' | while read -r image; do
   grep -qF "$image" <<< "$keep" || docker rmi "$image" > /dev/null || true
