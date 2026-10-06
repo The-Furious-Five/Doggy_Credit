@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -185,34 +186,29 @@ class AssessmentListTests {
 	}
 
 	private UUID recommended(UUID tenantId) {
-		UUID id = insert(tenantId, applicant, NOW, "REVISION_MANUAL", 800, "A");
-		TenantContext.set(tenantId);
-		try {
-			jdbc.update("""
-					update assessment.credit_assessments
-					set recommended_product_type = 'MICROCREDITO', recommended_amount = 4123.25
-					where id = ?
-					""", id);
-		}
-		finally {
-			TenantContext.clear();
-		}
-		return id;
+		// La evaluación y su snapshot se insertan juntos: el rol de la app no tiene UPDATE.
+		return insert(tenantId, applicant, NOW, "REVISION_MANUAL", 800, "A",
+				"MICROCREDITO", new BigDecimal("4123.25"));
 	}
 
 	/** Inserta como el tenant (la RLS exige app.tenant_id), igual que haría la app. */
 	private UUID insert(UUID tenantId, UUID applicantId, Instant createdAt, String status, int score, String band) {
+		return insert(tenantId, applicantId, createdAt, status, score, band, null, null);
+	}
+
+	private UUID insert(UUID tenantId, UUID applicantId, Instant createdAt, String status, int score, String band,
+			String recommendedProductType, BigDecimal recommendedAmount) {
 		UUID id = UUID.randomUUID();
 		TenantContext.set(tenantId);
 		try {
 			jdbc.update("""
 					insert into assessment.credit_assessments (id, tenant_id, applicant_id, consent_id, idempotency_key,
 					  request_hash, purpose, requested_amount, term_months, status, score, band, reasons, model_version,
-					  simulated, correlation_id, created_at)
+					  simulated, correlation_id, created_at, recommended_product_type, recommended_amount)
 					values (?, ?, ?, ?, ?, ?, 'Capital de trabajo', 3000.00, 12, ?, ?, ?,
-					  '{R1,R2,R3}'::text[], 'basic-v1', true, 'corr-test', ?)
+					  '{R1,R2,R3}'::text[], 'basic-v1', true, 'corr-test', ?, ?, ?)
 					""", id, tenantId, applicantId, UUID.randomUUID(), "key-" + id, "h".repeat(64), status, score, band,
-					Timestamp.from(createdAt));
+					Timestamp.from(createdAt), recommendedProductType, recommendedAmount);
 		}
 		finally {
 			TenantContext.clear();
