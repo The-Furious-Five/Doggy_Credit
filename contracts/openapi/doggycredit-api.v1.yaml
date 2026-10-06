@@ -26,8 +26,52 @@ tags:
   - name: politicas
   - name: productos
   - name: analytics
+  - name: webhooks
 
 paths:
+
+  /webhooks:
+    get:
+      tags: [webhooks]
+      operationId: obtenerWebhooks
+      summary: Configuración de Webhooks del tenant autenticado (Pro)
+      description: Solo TENANT_ADMIN. El secreto HMAC nunca se devuelve.
+      responses:
+        "200":
+          description: Configuración actual; URL nula y eventos vacíos si no está configurada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookConfiguracion" }
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+    put:
+      tags: [webhooks]
+      operationId: actualizarWebhooks
+      summary: Configura o desactiva Webhooks para el tenant autenticado (Pro)
+      description: >
+        Solo TENANT_ADMIN. La primera configuración requiere un secreto HMAC de
+        32–128 caracteres; omitirlo después conserva el existente. URL nula con
+        eventos vacíos desactiva las entregas. Cambiar la configuración cancela
+        las entregas pendientes; una llamada ya en curso puede finalizar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WebhookCambio" }
+      responses:
+        "200":
+          description: Configuración guardada, sin secreto
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookConfiguracion" }
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
 
   /analytics/resumen:
     get:
@@ -755,6 +799,44 @@ components:
             $ref: "#/components/schemas/ProblemDetail"
 
   schemas:
+
+    EventoWebhook:
+      type: string
+      enum: [ConsentGranted.v1, ConsentRevoked.v1, CreditAssessmentCompleted.v1]
+
+    WebhookConfiguracion:
+      type: object
+      required: [eventos, secretoConfigurado]
+      properties:
+        url:
+          type: [string, "null"]
+          format: uri
+          description: URL HTTPS absoluta, con un máximo de 2048 caracteres validado por el servidor.
+        eventos:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/EventoWebhook" }
+        secretoConfigurado: { type: boolean }
+        actualizadaEn: { type: [string, "null"], format: date-time }
+
+    WebhookCambio:
+      type: object
+      required: [eventos]
+      properties:
+        url:
+          type: [string, "null"]
+          format: uri
+          description: URL HTTPS absoluta, con un máximo de 2048 caracteres validado por el servidor.
+        eventos:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/EventoWebhook" }
+        secreto:
+          type: string
+          minLength: 32
+          maxLength: 128
+          writeOnly: true
+          description: Clave HMAC compartida con tu receptor. Omitirla conserva la actual.
 
     AnalyticsResumen:
       type: object

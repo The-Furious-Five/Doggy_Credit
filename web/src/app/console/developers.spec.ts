@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 import { ClavesApiService } from '../api/api/clavesApi.service';
+import { WebhooksService } from '../api/api/webhooks.service';
 import { ClaveApi, ClaveApiEntornoEnum } from '../api/model/claveApi';
 import { ClaveApiCreada, ClaveApiCreadaEntornoEnum } from '../api/model/claveApiCreada';
 import { Developers } from './developers';
@@ -46,7 +47,10 @@ describe('Desarrolladores › Claves de API', () => {
     vi.resetAllMocks();
     TestBed.configureTestingModule({
       imports: [Developers],
-      providers: [{ provide: ClavesApiService, useValue: api }],
+      providers: [
+        { provide: ClavesApiService, useValue: api },
+        { provide: WebhooksService, useValue: { obtenerWebhooks: () => of({ eventos: [], secretoConfigurado: false }) } },
+      ],
     });
   });
 
