@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "test:helpers": "tsc -p tsconfig.helpers.json && node --test .generated/helpers/unit/*.test.js",
     "test:list": "playwright test --list",
     "typecheck": "tsc --noEmit"
   },

@@ -35,6 +35,7 @@ npm ci --prefix e2e
 .venv/bin/python scripts/generate_realm.py --origin https://localhost
 .venv/bin/python scripts/generate_e2e_fixture.py
 npm run typecheck --prefix e2e
+npm run test:helpers --prefix e2e
 npm run test:list --prefix e2e
 
 export COMPOSE_PROJECT_NAME=doggycredit-e2e
@@ -53,6 +54,13 @@ Keycloak. `E2E_BASE_URL` cambia el origen del navegador, cuyo issuer/realm debe
 coincidir. La suite permite la CA local en el navegador; el paso de salud verifica
 el certificado con la CA de Caddy. Un solo worker y cero reintentos mantienen
 deterministas las mutaciones. No se guardan trazas, videos ni estado autenticado.
+
+El helper de respuestas lee el cuerpo apenas llega el evento de red, antes de
+esperar a que termine el clic o la navegación. Así Chromium no pierde el recurso
+cuando luego se consulta `json()`. `test:helpers` reproduce esa pérdida del cuerpo
+y comprueba el filtrado por ruta/método y la propagación de errores, sin requerir
+Docker ni navegador. Estas pruebas del helper no sustituyen los cinco escenarios
+reales contra Compose.
 
 Abrir `e2e/playwright-report/index.html` para revisar fallos. Al terminar, eliminar
 **solo los volúmenes de este proyecto de pruebas**, para repetir desde cero:

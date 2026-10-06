@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { expect, type Page, type Response } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { apiResponse } from './api-response.js';
+
+export { apiResponse } from './api-response.js';
 
 export interface Tenant {
   id: string;
@@ -13,12 +16,6 @@ export interface Tenant {
 export const seed: { tenants: Tenant[]; document: string } = JSON.parse(
   readFileSync(new URL('../.generated/seed.json', import.meta.url), 'utf8'),
 );
-
-export function apiResponse(page: Page, path: string, method = 'GET'): Promise<Response> {
-  return page.waitForResponse(response =>
-    new URL(response.url()).pathname === `/api/v1${path}` && response.request().method() === method,
-  );
-}
 
 export async function login(page: Page, tenant: Tenant): Promise<{ Authorization: string }> {
   const password = process.env[tenant.passwordEnv];
