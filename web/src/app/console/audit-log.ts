@@ -1,10 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { OidcSecurityService } from 'angular-auth-oidc-client';
-import { map } from 'rxjs';
 import { AuditoriaService } from '../api';
+import { AuthSessionService } from '../auth/session.service';
 import { DsAlert, DsButton, DsDatePicker, DsEmptyState, DsField, DsSpinner, DsTable } from '../design-system';
 
 const PAGE_SIZE = 20;
@@ -98,14 +97,12 @@ const startOfDay = (iso: string, plusDays = 0): string => {
 })
 export class AuditLog {
   private readonly api = inject(AuditoriaService);
-  private readonly roles = toSignal(
-    inject(OidcSecurityService).userData$.pipe(
-      map(({ userData }) => (userData?.realm_access?.roles ?? []) as string[]),
-    ),
-    { initialValue: [] as string[] },
-  );
-  /** Solo TENANT_ADMIN ve la bitácora; el backend lo exige igual (403 INSUFFICIENT_ROLE). */
-  readonly isAdmin = computed(() => this.roles().includes('TENANT_ADMIN'));
+  private readonly session = inject(AuthSessionService).session;
+  /**
+   * Solo TENANT_ADMIN ve la bitácora; el backend lo exige igual (403 INSUFFICIENT_ROLE).
+   * Los roles salen del access token (E-01), no de UserInfo, que no los trae.
+   */
+  readonly isAdmin = computed(() => this.session().roles.includes('TENANT_ADMIN'));
 
   fromDraft: string | null = null;
   toDraft: string | null = null;

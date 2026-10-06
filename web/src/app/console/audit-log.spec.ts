@@ -1,8 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { OidcSecurityService } from 'angular-auth-oidc-client';
+import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { AuditoriaService, PaginaAuditoria } from '../api';
+import { AuthSessionService } from '../auth/session.service';
+import { AppRole } from '../auth/permissions';
 import { AuditLog } from './audit-log';
 
 const page = (n: number, siguienteCursor?: number): PaginaAuditoria => ({
@@ -22,11 +24,14 @@ const page = (n: number, siguienteCursor?: number): PaginaAuditoria => ({
 describe('Bitácora de auditoría (C-08)', () => {
   const api = { listarAuditoria: vi.fn() };
 
-  async function render(roles: string[]): Promise<ComponentFixture<AuditLog>> {
+  async function render(roles: AppRole[]): Promise<ComponentFixture<AuditLog>> {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuditoriaService, useValue: api },
-        { provide: OidcSecurityService, useValue: { userData$: of({ userData: { realm_access: { roles } } }) } },
+        {
+          provide: AuthSessionService,
+          useValue: { session: signal({ isAuthenticated: true, name: 'Ana', tenantId: 't-1', roles }) },
+        },
       ],
     });
     const fixture = TestBed.createComponent(AuditLog);
@@ -47,7 +52,7 @@ describe('Bitácora de auditoría (C-08)', () => {
   beforeEach(() => api.listarAuditoria.mockReset());
 
   it('quien no es TENANT_ADMIN no ve la bitácora ni se consulta la API', async () => {
-    const f = await render(['ANALISTA']);
+    const f = await render(['ANALYST']);
     expect(text(f)).not.toContain('Bitácora de auditoría');
     expect(api.listarAuditoria).not.toHaveBeenCalled();
   });
