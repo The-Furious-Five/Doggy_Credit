@@ -17,6 +17,13 @@ record SourceCollection(Map<Source, SourceOutcome> outcomes) {
 		return outcomes.values().stream().anyMatch(SourceOutcome::failed);
 	}
 
+	/** C-05: cuántas fuentes respondieron de verdad (no cuenta las caídas ni las sin consentimiento). */
+	int receivedCount() {
+		return (int) outcomes.values().stream()
+			.filter(outcome -> outcome.status() == SourceOutcome.Status.RECEIVED)
+			.count();
+	}
+
 	boolean failed(Source source) {
 		return outcomes.containsKey(source) && outcomes.get(source).failed();
 	}

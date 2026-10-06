@@ -15,6 +15,8 @@ export * from './paginaAuditoria';
 export * from './paginaSolicitantes';
 export * from './perfilFinanciero360';
 export * from './perfilFinanciero360FuentesInner';
+export * from './politica';
+export * from './politicaCambio';
 export * from './preferenciasTenant';
 export * from './problemDetail';
 export * from './registroAuditoria';

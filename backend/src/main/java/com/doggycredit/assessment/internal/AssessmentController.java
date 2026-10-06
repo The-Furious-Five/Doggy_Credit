@@ -51,7 +51,10 @@ class AssessmentController implements EvaluacionesApi {
 	private Evaluacion toContract(AssessmentResult result) {
 		return new Evaluacion()
 			.id(result.id())
-			.estado(Evaluacion.EstadoEnum.fromValue(result.status().name()))
+			.estado(Evaluacion.EstadoEnum.fromValue(result.status().published().name()))
+			.decision(result.status().decision()
+				.map(decision -> Evaluacion.DecisionEnum.fromValue(decision.name()))
+				.orElse(null))
 			.score(result.score())
 			.banda(Evaluacion.BandaEnum.fromValue(result.band().name()))
 			.razones(result.reasons())

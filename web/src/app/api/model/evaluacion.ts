@@ -12,6 +12,10 @@
 export interface Evaluacion { 
     id?: string;
     estado?: EvaluacionEstadoEnum;
+    /**
+     * Decisión de las políticas activas del tenant (C-05). Nunca hay rechazo automático: un rechazo siempre pasa por una persona. Un resultado PARCIAL nunca se preaprueba (queda en REVISION_MANUAL). Con SOLICITAR_DATOS el estado es REVISION_MANUAL. 
+     */
+    decision?: EvaluacionDecisionEnum;
     score?: number;
     banda?: EvaluacionBandaEnum;
     razones?: Array<string>;
@@ -25,6 +29,11 @@ export enum EvaluacionEstadoEnum {
     Preaprobado = 'PREAPROBADO',
     RevisionManual = 'REVISION_MANUAL',
     Fallida = 'FALLIDA'
+};
+export enum EvaluacionDecisionEnum {
+    Preaprobado = 'PREAPROBADO',
+    RevisionManual = 'REVISION_MANUAL',
+    SolicitarDatos = 'SOLICITAR_DATOS'
 };
 export enum EvaluacionBandaEnum {
     A = 'A',

@@ -139,6 +139,70 @@ class AssessmentControllerTests {
 	}
 
 	@Test
+	void conLaReglaDePreaprobacionActivaElTitularSolidoQuedaPreaprobado() throws Exception {
+		// C-05: la evaluación aplica las reglas activas del tenant.
+		when(bureau.fetch(any(), anyString())).thenReturn(Optional.of(report()));
+		withRule("PREAPROBACION_SCORE", "PREAPROBADO", () -> createAssessment("assessment-policy-0001", DOCUMENT)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.banda").value("A"))
+			.andExpect(jsonPath("$.estado").value("PREAPROBADO"))
+			.andExpect(jsonPath("$.decision").value("PREAPROBADO")));
+	}
+
+	@Test
+	void conLaReglaDePreaprobacionActivaUnResultadoParcialNuncaSePreaprueba() throws Exception {
+		when(bureau.fetch(any(), anyString()))
+			.thenThrow(new SourceUnavailableException(Source.BURO, "simulada", null));
+		withRule("PREAPROBACION_SCORE", "PREAPROBADO", () -> createAssessment("assessment-policy-0002", DOCUMENT)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.estado").value("PARCIAL"))
+			.andExpect(jsonPath("$.decision").value("REVISION_MANUAL")));
+	}
+
+	@Test
+	void conDatosInsuficientesPideDatosYElEstadoPublicadoEsRevisionManual() throws Exception {
+		// Solo el buró está consentido: 1 fuente respondió (< 2). El enum `estado` del
+		// contrato v1 no incluye SOLICITAR_DATOS, así que la decisión va en `decision`.
+		when(bureau.fetch(any(), anyString())).thenReturn(Optional.of(report()));
+		withRule("DATOS_INSUFICIENTES", "SOLICITAR_DATOS", () -> createAssessment("assessment-policy-0003", DOCUMENT)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.estado").value("REVISION_MANUAL"))
+			.andExpect(jsonPath("$.decision").value("SOLICITAR_DATOS")));
+	}
+
+	/** Activa una regla para el tenant de la prueba y la borra al terminar (la app no tiene INSERT). */
+	private void withRule(String code, String effect, ThrowingRunnable body) throws Exception {
+		try (var admin = java.sql.DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(),
+				postgres.getPassword())) {
+			try (var insert = admin.prepareStatement("""
+					INSERT INTO assessment.policies (id, tenant_id, code, name, condition_text, effect, active)
+					VALUES (gen_random_uuid(), ?::uuid, ?, 'regla de prueba', 'x', ?, true)
+					""")) {
+				insert.setString(1, TENANT);
+				insert.setString(2, code);
+				insert.setString(3, effect);
+				insert.executeUpdate();
+			}
+			try {
+				body.run();
+			}
+			finally {
+				try (var delete = admin.prepareStatement(
+						"DELETE FROM assessment.policies WHERE tenant_id = ?::uuid AND code = ?")) {
+					delete.setString(1, TENANT);
+					delete.setString(2, code);
+					delete.executeUpdate();
+				}
+			}
+		}
+	}
+
+	@FunctionalInterface
+	private interface ThrowingRunnable {
+		void run() throws Exception;
+	}
+
+	@Test
 	void caidaDeFuenteProduceParcial() throws Exception {
 		when(bureau.fetch(any(), anyString()))
 			.thenThrow(new SourceUnavailableException(Source.BURO, "simulada", null));

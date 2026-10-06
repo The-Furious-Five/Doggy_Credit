@@ -26,7 +26,8 @@ public enum ErrorCode {
     CONSENT_NOT_FOUND("consent-not-found", 404, "Consentimiento no encontrado"),
     UNKNOWN_APPLICANT("unknown-applicant", 404, "Solicitante no encontrado"),
     INSUFFICIENT_ROLE("insufficient-role", 403, "Rol insuficiente"),
-    API_KEY_NOT_FOUND("api-key-not-found", 404, "Clave de API no encontrada");
+    API_KEY_NOT_FOUND("api-key-not-found", 404, "Clave de API no encontrada"),
+    POLICY_NOT_FOUND("policy-not-found", 404, "Regla no encontrada");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
 
