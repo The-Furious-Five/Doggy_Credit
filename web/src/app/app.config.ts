@@ -1,9 +1,11 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
-import { authInterceptor, provideAuth } from 'angular-auth-oidc-client';
+import { provideAuth } from 'angular-auth-oidc-client';
 import { BASE_PATH } from './api/variables';
 import { routes } from './app.routes';
+import { apiErrorInterceptor } from './http/api-error.interceptor';
+import { jwtInterceptor } from './http/jwt.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,7 +17,7 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding(),
     ),
     { provide: BASE_PATH, useValue: `${window.location.origin}/api/v1` },
-    provideHttpClient(withInterceptors([authInterceptor()])),
+    provideHttpClient(withInterceptors([apiErrorInterceptor, jwtInterceptor])),
     provideAuth({
       config: {
         authority: `${window.location.origin}/auth/realms/doggycredit`,
@@ -26,7 +28,6 @@ export const appConfig: ApplicationConfig = {
         postLogoutRedirectUri: `${window.location.origin}/`,
         silentRenew: true,
         useRefreshToken: true,
-        secureRoutes: [`${window.location.origin}/api/v1/`],
       },
     }),
   ],
