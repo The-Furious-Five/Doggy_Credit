@@ -2,7 +2,7 @@ name: CI/CD
 
 # Qué hace este flujo
 # -------------------
-# En cada PR y cada push a main corren 5 revisiones en paralelo (CI):
+# En cada PR y cada push a main corren 6 revisiones en paralelo (CI):
 #
 #   1. Backend        → compila la API Java, valida la arquitectura (ArchUnit,
 #                       Spring Modulith) y corre todos los tests. Exige Docker
@@ -20,8 +20,12 @@ name: CI/CD
 #   5. Modelo ML      → reentrena el modelo de scoring desde cero y exige que
 #                       el .onnx y el golden set commiteados (en ml/ y en
 #                       backend/) sean byte a byte los que salen (DEBT-016).
+#   6. Flujo E2E      → levanta todo con Docker Compose y recorre la consola en
+#                       Chromium con Playwright (E-06): alta, consentimiento,
+#                       evaluación, perfil, revocación y auditoría, más los
+#                       bloqueos del plan Gratis frente al Pro (ver e2e/README.md).
 #
-# Despliegue (CD): solo en push a main o ejecución manual, y solo si las 5
+# Despliegue (CD): solo en push a main o ejecución manual, y solo si las 6
 # revisiones pasaron. Las imágenes se compilan aquí y se publican en GHCR con
 # el SHA del commit; el VPS no compila nada: descarga, arranca, valida salud y,
 # si falla, vuelve a la release anterior. Ver docs/runbooks/despliegue-vps.md.
@@ -218,9 +222,69 @@ jobs:
       - name: El backend sirve y prueba exactamente ese artefacto (por hash)
         run: python ci/check_ml_artifacts.py
 
+  e2e:
+    name: "6 · Flujo E2E: Playwright + Compose (Gratis y Pro)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias de los scripts
+        run: pip install -r scripts/requirements.txt
+
+      - name: Instalar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Instalar Playwright y Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npm run typecheck
+          npx playwright install --with-deps chromium
+
+      - name: Levantar el sistema completo con credenciales de ejemplo
+        run: |
+          python scripts/generate_realm.py
+          docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml up -d --build --wait --wait-timeout 300
+
+      - name: Recorrer el flujo completo (Gratis y Pro)
+        working-directory: e2e
+        run: |
+          set -a
+          source ../.env.example
+          set +a
+          npx playwright test
+
+      - name: Subir reporte de Playwright (si falló)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          if-no-files-found: ignore
+
+      - name: Mostrar logs de API, identidad y web (si falló)
+        if: failure()
+        run: docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml logs --no-color --timestamps --tail=250 doggycredit-api keycloak caddy postgres
+
+      - name: Apagar contenedores
+        if: always()
+        run: docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml down
+
   deploy:
-    name: "6 · Desplegar a producción (VPS)"
-    needs: [backend, web, contracts, identity, ml]
+    name: "7 · Desplegar a producción (VPS)"
+    needs: [backend, web, contracts, identity, ml, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -1,0 +1,12 @@
+# E-06: ajuste de Compose solo para el flujo E2E. Se aplica encima de infra/compose.yaml:
+#   docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml up -d --build --wait
+#
+# Los escenarios recorren la consola del mismo tenant FREE varias veces en menos
+# de un minuto y agotan sus 30 solicitudes/min (A-07). Aquí se sube ese límite
+# para que un 429 no oculte lo que se prueba. Las restricciones del plan
+# (FEATURE_NOT_IN_PLAN, PLAN_LIMIT_REACHED, cuota mensual) no cambian; el rate
+# limit lo cubren RateLimitBurstTests y la prueba de carga k6 (E-07).
+services:
+  doggycredit-api:
+    environment:
+      SPRING_APPLICATION_JSON: '{"doggycredit":{"rate-limit":{"requests-per-minute":{"FREE":600}}}}'
