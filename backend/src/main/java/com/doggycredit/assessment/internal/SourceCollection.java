@@ -1,9 +1,11 @@
 package com.doggycredit.assessment.internal;
 
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 
 import com.doggycredit.consent.Source;
+import com.doggycredit.customer.SourceResult;
 
 /** Resultado de la recolección en paralelo (C-01): qué pasó con cada fuente. */
 record SourceCollection(Map<Source, SourceOutcome> outcomes) {
@@ -33,6 +35,24 @@ record SourceCollection(Map<Source, SourceOutcome> outcomes) {
 		SourceOutcome outcome = outcomes.get(source);
 		return outcome == null || outcome.status() != SourceOutcome.Status.RECEIVED
 				? Optional.empty() : Optional.ofNullable(outcome.payload());
+	}
+
+	/**
+	 * B-04: lo recolectado, como entrada del Perfil 360. Los conectores devuelven
+	 * {@code Optional} (vacío = sin registro); una fuente caída queda NO_DISPONIBLE
+	 * y una sin consentimiento o desactivada, NO_CONSULTADA (no figura aquí).
+	 */
+	Map<Source, SourceResult> toSourceResults() {
+		Map<Source, SourceResult> results = new EnumMap<>(Source.class);
+		outcomes.forEach((source, outcome) -> {
+			switch (outcome.status()) {
+				case RECEIVED -> results.put(source, SourceResult.of(outcome.payload() instanceof Optional<?> fetched
+						? fetched : Optional.ofNullable(outcome.payload())));
+				case UNAVAILABLE, TIMED_OUT -> results.put(source, SourceResult.unavailable());
+				case NOT_CONSENTED -> results.put(source, SourceResult.notConsulted());
+			}
+		});
+		return results;
 	}
 
 	/** Qué pasó con una fuente que respondió, falló, no se consultó por consentimiento o no existe aún. */

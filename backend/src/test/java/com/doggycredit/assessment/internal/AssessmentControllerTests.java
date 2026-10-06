@@ -121,10 +121,14 @@ class AssessmentControllerTests {
 			.andReturn().getResponse().getContentAsString();
 
 		UUID id = UUID.fromString(response.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1"));
+		expectBureauInProfile("COMPLETA");
+		int snapshots = profileSnapshots();
 		createAssessment(key, DOCUMENT)
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.id").value(id.toString()));
 		verify(bureau).fetch(UUID.fromString(TENANT), DOCUMENT);
+		// La repetición idempotente no vuelve a consultar ni consolida otro perfil.
+		assertThat(profileSnapshots()).isEqualTo(snapshots);
 		assertThat(comoTenant(() -> jdbc.queryForObject(
 				"select need_category from assessment.credit_assessments where id = ?", String.class, id)))
 				.isEqualTo("CAPITAL_TRABAJO");
@@ -244,6 +248,7 @@ class AssessmentControllerTests {
 			.andExpect(jsonPath("$.razones[?(@ == 'HISTORIAL_MENOR_6_MESES')]").isEmpty())
 			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isEmpty())
 			.andExpect(jsonPath("$.banda").value(org.hamcrest.Matchers.not("A")));
+		expectBureauInProfile("NO_DISPONIBLE");
 	}
 
 	@Test
@@ -259,6 +264,7 @@ class AssessmentControllerTests {
 			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isNotEmpty())
 			.andExpect(jsonPath("$.razones[?(@ == 'REGISTRO_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isEmpty())
 			.andExpect(jsonPath("$.razones[?(@ == 'HISTORIAL_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isEmpty());
+		expectBureauInProfile("SIN_REGISTRO");
 	}
 
 	@Test
@@ -273,6 +279,21 @@ class AssessmentControllerTests {
 			.andExpect(status().isUnprocessableEntity())
 			.andExpect(jsonPath("$.code").value("CONSENT_REQUIRED"));
 		verify(bureau, never()).fetch(any(), anyString());
+	}
+
+	/** B-04: la evaluación deja consolidado el Perfil 360 que muestra el detalle del solicitante. */
+	private void expectBureauInProfile(String state) throws Exception {
+		UUID applicantId = comoTenant(() -> jdbc.queryForObject(
+				"select id from customer.applicants where tenant_id = ?::uuid", UUID.class, TENANT));
+		mvc.perform(get("/solicitantes/{id}", applicantId)
+				.with(jwt().jwt(token -> token.subject("analista-3").claim("tenant_id", TENANT))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.perfil.fuentes[?(@.fuente == 'BURO')].estado").value(state));
+	}
+
+	private int profileSnapshots() {
+		return comoTenant(() -> jdbc.queryForObject(
+				"select count(*) from customer.financial_profiles where tenant_id = ?::uuid", Integer.class, TENANT));
 	}
 
 	private org.springframework.test.web.servlet.ResultActions createAssessment(String key, String document)
