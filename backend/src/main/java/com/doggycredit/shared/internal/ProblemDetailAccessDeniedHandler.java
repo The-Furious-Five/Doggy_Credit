@@ -12,12 +12,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * RF-API-02.1 / RF-SEG-01.1: hoy la única fuente de {@link AccessDeniedException}
- * en la cadena de seguridad es {@code TenantClaimFilter} (tenant_id ausente
- * o mal formado), así que responde siempre INVALID_TENANT_CLAIM. Si más
- * adelante se agrega autorización por rol (p. ej. {@code @PreAuthorize}),
- * este manejador deja de ser específico y hay que revisarlo — no hay
- * todavía forma de distinguir el motivo del rechazo desde aquí.
+ * RF-API-02.1 / RF-SEG-01.1: responde INVALID_TENANT_CLAIM cuando el filtro
+ * JWT rechaza un tenant ausente o mal formado. Los rechazos por rol usan
+ * {@link com.doggycredit.shared.RoleGuard} y conservan INSUFFICIENT_ROLE.
  */
 @Component
 public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {

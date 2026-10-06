@@ -62,7 +62,7 @@ const summary = (premium = false): AnalyticsResumen => ({
     : {}),
 });
 
-describe('KPIs de Resumen y Analítica (E-02)', () => {
+describe('KPIs de Resumen y Analítica (E-02 / E-05)', () => {
   const api = { obtenerResumenAnalytics: vi.fn() };
   const assessments = { listarEvaluaciones: vi.fn() };
   const sensitive = { amount: vi.fn((value: string) => value) };
@@ -105,6 +105,7 @@ describe('KPIs de Resumen y Analítica (E-02)', () => {
     expect(stats(f)).toContain('710');
     expect(stats(f)).toContain('60 %');
     expect(text(f)).toContain('Capital de trabajo · 15');
+    expect(text(f)).not.toContain('Mora a 90 días');
   });
 
   it('muestra los indicadores comunes de Gratis y oculta los avanzados', async () => {
@@ -172,6 +173,7 @@ describe('KPIs de Resumen y Analítica (E-02)', () => {
     const empty = summary(true);
     empty.evaluaciones = 0;
     empty.scorePromedio = null;
+    empty.necesidades = [];
     empty.pro!.tiempoDecisionMedianaMs = null;
     empty.pro!.modelos = [];
     empty.pro!.recomendacionesPorProducto = [];
@@ -179,8 +181,49 @@ describe('KPIs de Resumen y Analítica (E-02)', () => {
     const f = await render();
     expect(stats(f)).toContain('—');
     expect(text(f)).toContain('Sin evaluaciones en este período');
+    expect(text(f)).toContain('Sin necesidades detectadas');
     expect(text(f)).toContain('Sin recomendaciones');
     expect(text(f)).toContain('Sin monitoreo de modelos');
+  });
+
+  it.each([
+    { needs: [] },
+    {
+      needs: [
+        { categoria: AnalyticsNecesidadCategoriaEnum.CapitalTrabajo, cantidad: 0, porcentaje: 0 },
+      ],
+    },
+  ])('explica la ausencia de necesidades aunque existan evaluaciones', async ({ needs }) => {
+    api.obtenerResumenAnalytics.mockReturnValue(of({ ...summary(), necesidades: needs }));
+    const f = await render();
+    expect(stats(f)).toContain('20');
+    expect(text(f)).toContain('Sin necesidades detectadas');
+    expect(text(f)).not.toContain('Sin evaluaciones en este período');
+    expect(f.nativeElement.querySelector('ds-progress')).toBeNull();
+  });
+
+  it('conserva los KPIs básicos y reintenta si faltan datos avanzados de Pro', async () => {
+    const premium = summary(true);
+    delete premium.pro;
+    api.obtenerResumenAnalytics.mockReturnValue(of(premium));
+    const f = await render();
+    expect(stats(f)).toContain('710');
+    expect(text(f)).toContain('Plan Pro');
+    expect(text(f)).toContain('Indicadores avanzados no disponibles');
+    expect(text(f)).not.toContain('Analítica avanzada disponible con Pro');
+    api.obtenerResumenAnalytics.mockReturnValue(of(summary(true)));
+    const retry = [...f.nativeElement.querySelectorAll('button')].find(
+      (button: HTMLButtonElement) => button.textContent?.includes('Reintentar'),
+    );
+    retry.click();
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    expect(stats(f)).toContain('Conversión');
+    expect(text(f)).not.toContain('Indicadores avanzados no disponibles');
+    expect(api.obtenerResumenAnalytics.mock.calls[1]).toEqual(
+      api.obtenerResumenAnalytics.mock.calls[0],
+    );
   });
 
   it('aplica el intervalo y evita consultas con fechas invertidas', async () => {

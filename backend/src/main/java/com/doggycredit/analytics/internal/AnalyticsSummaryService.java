@@ -15,7 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.ErrorResponseException;
 
 import com.doggycredit.analytics.ModelDrift;
-import com.doggycredit.billing.PlanCatalog;
+import com.doggycredit.billing.Feature;
+import com.doggycredit.billing.PlanGate;
 import com.doggycredit.recommendation.NeedCategory;
 import com.doggycredit.shared.ErrorCode;
 import com.doggycredit.shared.TenantContext;
@@ -33,14 +34,14 @@ class AnalyticsSummaryService {
     private static final ZoneId ZONE = ZoneId.of("America/La_Paz");
     private final AnalyticsSummaryRepository repository;
     private final TenantRegistry tenants;
-    private final PlanCatalog plans;
+    private final PlanGate planGate;
     private final ModelDrift drift;
 
     AnalyticsSummaryService(AnalyticsSummaryRepository repository, TenantRegistry tenants,
-            PlanCatalog plans, ModelDrift drift) {
+            PlanGate planGate, ModelDrift drift) {
         this.repository = repository;
         this.tenants = tenants;
-        this.plans = plans;
+        this.planGate = planGate;
         this.drift = drift;
     }
 
@@ -54,13 +55,13 @@ class AnalyticsSummaryService {
         }
         var tenantId = Objects.requireNonNull(TenantContext.currentOrNone(), "tenant autenticado");
         var tenant = tenants.requireById(TenantId.of(tenantId));
-        var plan = plans.requireById(tenant.plan());
+        boolean analyticsAvailable = planGate.isAvailable(tenant.plan(), Feature.ANALYTICS);
         var start = from.atStartOfDay(ZONE).toInstant();
         var end = until.plusDays(1).atStartOfDay(ZONE).toInstant();
         var rows = repository.basic(tenantId, start, end);
         var total = rows.stream().filter(AnalyticsSummaryRepository.Basic::total).findFirst().orElseThrow();
-        var response = new AnalyticsResumen().desde(from).hasta(until).plan(plan.id()).moneda(tenant.moneda())
-                .analiticaAvanzada(plan.analytics()).evaluaciones(total.evaluations()).scorePromedio(total.averageScore())
+        var response = new AnalyticsResumen().desde(from).hasta(until).moneda(tenant.moneda())
+                .analiticaAvanzada(analyticsAvailable).evaluaciones(total.evaluations()).scorePromedio(total.averageScore())
                 .integracionesActivas(repository.activeIntegrations(tenantId))
                 .porcentajeConRecomendacion(percent(total.recommended(), total.evaluations()))
                 .necesidades(Arrays.stream(NeedCategory.values()).map(category -> {
@@ -69,7 +70,7 @@ class AnalyticsSummaryService {
                     return new AnalyticsNecesidad().categoria(AnalyticsNecesidad.CategoriaEnum.fromValue(category.name()))
                             .cantidad(count).porcentaje(percent(count, total.evaluations()));
                 }).toList());
-        if (plan.analytics()) {
+        if (analyticsAvailable) {
             var premiumRows = repository.premium(tenantId, start, end);
             var premiumTotal = premiumRows.stream().filter(AnalyticsSummaryRepository.Premium::total).findFirst().orElseThrow();
             response.pro(new AnalyticsPro().conversionPorcentaje(percent(premiumTotal.preapproved(), total.evaluations()))
@@ -83,7 +84,7 @@ class AnalyticsSummaryService {
                             .desde(model.windowStart().atOffset(ZoneOffset.UTC)).hasta(model.windowEnd().atOffset(ZoneOffset.UTC))
                             .muestrasActuales(model.actualCount()).muestrasBase(model.baselineCount())).toList()));
         }
-        return response;
+        return response.plan(tenant.plan());
     }
 
     private static Double percent(long count, long total) {

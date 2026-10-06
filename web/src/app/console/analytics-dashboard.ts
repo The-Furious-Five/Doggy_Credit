@@ -3,6 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
   AnalyticsModeloEstadoEnum,
+  AnalyticsNecesidad,
   AnalyticsNecesidadCategoriaEnum,
   AnalyticsProductoTipoEnum,
   AnalyticsService,
@@ -76,7 +77,7 @@ const modelStates: Record<AnalyticsModeloEstadoEnum, { label: string; tone: DsTo
             dsButton
             type="submit"
             variant="secondary"
-            [disabled]="filters.invalid || summary.isLoading()"
+            [disabled]="filters.invalid"
           >
             Aplicar período
           </button>
@@ -139,18 +140,25 @@ const modelStates: Record<AnalyticsModeloEstadoEnum, { label: string; tone: DsTo
       }
       <ds-card>
         <div class="card-head"><h2>Necesidades detectadas</h2></div>
-        <div class="bars">
-          @for (need of data.necesidades; track need.categoria) {
-            <ds-progress
-              [label]="needLabels[need.categoria] + ' · ' + number(need.cantidad)"
-              [value]="need.porcentaje"
-            />
-          }
-        </div>
-        <p class="ds-caption">
-          Porcentaje del total evaluado. Los históricos sin necesidad registrada quedan sin
-          categoría.
-        </p>
+        @if (hasNeeds(data.necesidades)) {
+          <div class="bars">
+            @for (need of data.necesidades; track need.categoria) {
+              <ds-progress
+                [label]="needLabels[need.categoria] + ' · ' + number(need.cantidad)"
+                [value]="need.porcentaje"
+              />
+            }
+          </div>
+          <p class="ds-caption">
+            Porcentaje del total evaluado. Los históricos sin necesidad registrada quedan sin
+            categoría.
+          </p>
+        } @else {
+          <ds-empty-state
+            heading="Sin necesidades detectadas"
+            description="No hay necesidades registradas en las evaluaciones de este período."
+          />
+        }
       </ds-card>
 
       @if (data.analiticaAvanzada && data.pro; as pro) {
@@ -196,7 +204,7 @@ const modelStates: Record<AnalyticsModeloEstadoEnum, { label: string; tone: DsTo
         <ds-card>
           <div class="card-head">
             <h2>Modelos</h2>
-            <span class="ds-caption">Último monitoreo semanal · D-08</span>
+            <span class="ds-caption">Último monitoreo semanal</span>
           </div>
           @if (pro.modelos.length) {
             <div class="ds-table-scroll" tabindex="0" aria-label="Monitoreo de modelos de scoring">
@@ -239,6 +247,11 @@ const modelStates: Record<AnalyticsModeloEstadoEnum, { label: string; tone: DsTo
             />
           }
         </ds-card>
+      } @else if (data.analiticaAvanzada) {
+        <ds-alert heading="Indicadores avanzados no disponibles" tone="warning">
+          <p>No recibimos los indicadores avanzados. Los indicadores básicos siguen disponibles.</p>
+          <button dsButton variant="secondary" (click)="summary.reload()">Reintentar</button>
+        </ds-alert>
       } @else {
         <ds-alert heading="Analítica avanzada disponible con Pro">
           Conversión, tiempo de decisión, montos, recomendaciones por producto y monitoreo de
@@ -265,6 +278,10 @@ export class AnalyticsDashboard {
   readonly needLabels = needLabels;
   readonly productLabels = productLabels;
   readonly modelStates = modelStates;
+
+  hasNeeds(needs: AnalyticsNecesidad[]): boolean {
+    return needs.some((need) => need.cantidad > 0);
+  }
 
   apply(form: NgForm): void {
     if (form.invalid || !this.desdeDraft || !this.hastaDraft) return;

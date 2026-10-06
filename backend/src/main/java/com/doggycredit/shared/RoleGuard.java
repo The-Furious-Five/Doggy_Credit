@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.ErrorResponseException;
 
 /**
@@ -11,8 +12,8 @@ import org.springframework.web.ErrorResponseException;
  * ({@link ErrorCode#INSUFFICIENT_ROLE}). No se hace en la cadena de Spring Security
  * porque su AccessDeniedHandler responde siempre INVALID_TENANT_CLAIM (ver
  * ProblemDetailAccessDeniedHandler), que a un usuario con otro rol le diría que su
- * tenant es inválido. Cuando exista la autorización por rol general (A-10), esto
- * puede moverse ahí.
+ * tenant es inválido. Los controladores usan este guard para devolver el error de
+ * negocio INSUFFICIENT_ROLE de forma consistente.
  */
 public final class RoleGuard {
 
@@ -21,14 +22,20 @@ public final class RoleGuard {
 
 	/** @throws ErrorResponseException 403 INSUFFICIENT_ROLE si el usuario no tiene el rol. */
 	public static void require(String role) {
+		requireJwt(role);
+	}
+
+	/** Exige el rol y devuelve el JWT autenticado para operaciones que necesitan sus claims. */
+	public static JwtAuthenticationToken requireJwt(String role) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		boolean granted = authentication != null && authentication.getAuthorities().stream()
 			.map(GrantedAuthority::getAuthority)
 			.anyMatch(("ROLE_" + role)::equals);
-		if (!granted) {
+		if (!granted || !(authentication instanceof JwtAuthenticationToken jwt)) {
 			throw new ErrorResponseException(HttpStatus.FORBIDDEN,
 					ErrorCode.INSUFFICIENT_ROLE.toProblemDetail("La operación requiere el rol " + role + "."), null);
 		}
+		return jwt;
 	}
 
 }

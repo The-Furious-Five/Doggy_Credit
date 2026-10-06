@@ -51,3 +51,7 @@ tmp/
 # Herramientas de IA locales
 .claude/
 skills-lock.json
+
+# Prueba de carga E-07: datos derivados y resultados de cada ejecución.
+e2e/k6/.generated/
+e2e/k6/results/

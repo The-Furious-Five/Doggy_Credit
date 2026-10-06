@@ -15,6 +15,33 @@ ROOT = Path(__file__).resolve().parents[1]
 API_ADMIN_CLIENT = "doggycredit-api-admin"
 API_ADMIN_ROLES = ["manage-clients", "view-clients", "manage-users", "view-users", "view-realm"]
 
+def user_profile():
+    """Keycloak 26 oculta atributos no gestionados incluso en la Admin REST API.
+    tenant_id debe ser visible para la API administradora, sin ser editable
+    por el usuario. Mantener las validaciones del perfil estándar de Keycloak."""
+    permissions = {"view": ["admin", "user"], "edit": ["admin", "user"]}
+    attributes = [
+        {"name": "username", "displayName": "${username}", "multivalued": False,
+         "permissions": permissions,
+         "validations": {"length": {"min": 3, "max": 255},
+                         "username-prohibited-characters": {}, "up-username-not-idn-homograph": {}}},
+        {"name": "email", "displayName": "${email}", "multivalued": False,
+         "required": {"roles": ["user"]}, "permissions": permissions,
+         "validations": {"email": {}, "length": {"max": 255}}},
+    ]
+    for field in ("firstName", "lastName"):
+        attributes.append({"name": field, "displayName": "${" + field + "}", "multivalued": False,
+                           "required": {"roles": ["user"]}, "permissions": permissions,
+                           "validations": {"length": {"max": 255},
+                                           "person-name-prohibited-characters": {}}})
+    attributes.append({"name": "tenant_id", "displayName": "Tenant", "multivalued": False,
+                       "permissions": {"view": ["admin"], "edit": ["admin"]},
+                       "validations": {"pattern": {
+                           "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"}}})
+    return {"attributes": attributes, "unmanagedAttributePolicy": "DISABLED",
+            "groups": [{"name": "user-metadata", "displayHeader": "User metadata",
+                        "displayDescription": "Attributes, which refer to user metadata"}]}
+
 def mapper(name, kind, config):
     return {"name": name, "protocol": "openid-connect", "protocolMapper": kind,
             "config": {"access.token.claim": "true", "id.token.claim": "true",
@@ -108,6 +135,9 @@ def generate(seed, origin):
             "sslRequired": "external",
             "registrationAllowed": False, "resetPasswordAllowed": False,
             "editUsernameAllowed": False, "bruteForceProtected": True,
+            "components": {"org.keycloak.userprofile.UserProfileProvider": [
+                {"providerId": "declarative-user-profile", "subComponents": {},
+                 "config": {"kc.user.profile.config": [json.dumps(user_profile(), ensure_ascii=False)]}}]},
             "roles": {"realm": [{"name": r} for r in seed["roles"]]},
             "defaultDefaultClientScopes": ["basic", "profile", "email", "roles"],
             "clientScopes": standard_scopes + [{"name": s, "protocol": "openid-connect",

@@ -201,6 +201,74 @@ class TenantIsolationTests {
         });
     }
 
+    @Test
+    void apiKeysIntegrationsProductsAnalyticsPoliciesAndAuditAreIsolated() throws Exception {
+        UUID applicantId = UUID.randomUUID();
+        UUID financialProfileId = UUID.randomUUID();
+        UUID keyId = UUID.randomUUID();
+        UUID integrationId = UUID.randomUUID();
+        UUID productId = comoTenant(TENANT_A, () -> jdbc.queryForObject(
+                "select id from recommendation.products where tenant_id = ?::uuid and product_type = 'MICROCREDITO'",
+                UUID.class, TENANT_A));
+        UUID driftId = UUID.randomUUID();
+        UUID auditId = UUID.randomUUID();
+        String suffix = UUID.randomUUID().toString().replace("-", "");
+        UUID policyId = comoTenant(TENANT_A, () -> jdbc.queryForObject(
+                "select id from assessment.policies where tenant_id = ?::uuid order by id limit 1",
+                UUID.class, TENANT_A));
+
+        comoTenant(TENANT_A, () -> {
+            jdbc.update("""
+                    insert into customer.applicants (id, tenant_id, document_ref, document_ciphertext, activity,
+                      activity_seniority_months, monthly_income, income_currency, credit_destination, created_at)
+                    values (?, ?::uuid, ?, ?, 'Comercio', 12, 1000, 'BOB', 'Capital', now())
+                    """, applicantId, TENANT_A, "iso-" + suffix, "cipher-" + suffix);
+            jdbc.update("""
+                    insert into customer.financial_profiles (id, tenant_id, applicant_id, content_sha256,
+                      payload_ciphertext, created_at) values (?, ?::uuid, ?::uuid, ?, 'ciphertext', now())
+                    """, financialProfileId, TENANT_A, applicantId, suffix);
+            jdbc.update("""
+                    insert into tenancy.api_keys (id, tenant_id, nombre, client_id, keycloak_id, entorno,
+                      sufijo_secreto, creada_por, creada_en)
+                    values (?, ?::uuid, 'aislamiento', ?, ?, 'SANDBOX', '1234', 'test', now())
+                    """, keyId, TENANT_A, "dc-test-" + suffix, UUID.randomUUID());
+            jdbc.update("""
+                    insert into integration.tenant_integrations (id, tenant_id, source, active, updated_at, updated_by)
+                    values (?, ?::uuid, 'BANCO', true, now(), 'test')
+                    on conflict (tenant_id, source) do update
+                    set id = excluded.id, active = excluded.active, updated_at = excluded.updated_at,
+                        updated_by = excluded.updated_by
+                    """, integrationId, TENANT_A);
+            jdbc.update("""
+                    insert into analytics.model_drift (id, tenant_id, model_version, window_start, window_end,
+                      psi, actual_count, baseline_count, status, computed_at)
+                    values (?, ?::uuid, ?, now() - interval '7 days', now(), 0.01, 30, 30, 'ESTABLE', now())
+                    """, driftId, TENANT_A, "test-" + suffix.substring(0, 20));
+            jdbc.update("""
+                    insert into audit.access_log (id, tenant_id, actor, action, resource_type, correlation_id)
+                    values (?, ?::uuid, 'test', 'READ', 'TEST', ?)
+                    """, auditId, TENANT_A, "iso-" + suffix);
+            return null;
+        });
+
+        comoTenant(TENANT_B, () -> {
+            assertInvisible("customer.financial_profiles", financialProfileId);
+            assertInvisible("tenancy.api_keys", keyId);
+            assertInvisible("integration.tenant_integrations", integrationId);
+            assertInvisible("recommendation.products", productId);
+            assertInvisible("analytics.model_drift", driftId);
+            assertInvisible("audit.access_log", auditId);
+            assertThat(jdbc.queryForObject("select count(*) from assessment.policies where id = ?", Integer.class, policyId))
+                    .isZero();
+            return null;
+        });
+    }
+
+    private void assertInvisible(String table, UUID id) {
+        Integer count = jdbc.queryForObject("select count(*) from " + table + " where id = ?", Integer.class, id);
+        assertThat(count).as("fila ajena en %s", table).isZero();
+    }
+
     private <T> T comoTenant(String tenant, Callable<T> work) throws Exception {
         TenantContext.set(UUID.fromString(tenant));
         try {
