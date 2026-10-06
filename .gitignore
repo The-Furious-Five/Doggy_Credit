@@ -13,6 +13,10 @@ build/
 
 # --- Node / Angular ---
 web/node_modules/
+e2e/node_modules/
+e2e/.generated/
+e2e/test-results/
+e2e/playwright-report/
 web/dist/
 web/.angular/
 .angular/

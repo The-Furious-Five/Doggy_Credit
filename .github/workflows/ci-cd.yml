@@ -2,7 +2,7 @@ name: CI/CD
 
 # Qué hace este flujo
 # -------------------
-# En cada PR y cada push a main corren 5 revisiones en paralelo (CI):
+# En cada PR y cada push a main corren 6 revisiones (CI):
 #
 #   1. Backend        → compila la API Java, valida la arquitectura (ArchUnit,
 #                       Spring Modulith) y corre todos los tests. Exige Docker
@@ -20,8 +20,11 @@ name: CI/CD
 #   5. Modelo ML      → reentrena el modelo de scoring desde cero y exige que
 #                       el .onnx y el golden set commiteados (en ml/ y en
 #                       backend/) sean byte a byte los que salen (DEBT-016).
+#   6. Flujo (e2e)   → Playwright contra Compose: login, alta, consentimiento,
+#                       evaluación, perfil, revocación, auditoría y permisos
+#                       FREE/PRO. Espera a backend, web y contrato antes de arrancar.
 #
-# Despliegue (CD): solo en push a main o ejecución manual, y solo si las 5
+# Despliegue (CD): solo en push a main o ejecución manual, y solo si las 6
 # revisiones pasaron. Las imágenes se compilan aquí y se publican en GHCR con
 # el SHA del commit; el VPS no compila nada: descarga, arranca, valida salud y,
 # si falla, vuelve a la release anterior. Ver docs/runbooks/despliegue-vps.md.
@@ -207,9 +210,77 @@ jobs:
       - name: El backend sirve y prueba exactamente ese artefacto (por hash)
         run: python ci/check_ml_artifacts.py
 
+  e2e:
+    name: "6 · Flujo E2E: Playwright + Compose (Gratis y Pro)"
+    needs: [backend, web, contracts]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: doggycredit-e2e
+      E2E_BASE_URL: https://localhost
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Instalar dependencias y Chromium
+        run: |
+          pip install -r scripts/requirements.txt
+          npm ci --prefix e2e
+          cd e2e
+          npx playwright install --with-deps chromium
+
+      - name: Generar datos E2E desde la semilla común
+        run: |
+          python scripts/generate_realm.py
+          python scripts/generate_e2e_fixture.py
+          npm run typecheck --prefix e2e
+
+      - name: Levantar Compose completo con datos de demo y verificar salud
+        run: |
+          docker compose --env-file .env.example -f infra/compose.yaml up -d --build --wait --wait-timeout 300
+          docker compose --env-file .env.example -f infra/compose.yaml cp caddy:/data/caddy/pki/authorities/local/root.crt "$RUNNER_TEMP/doggycredit-e2e-root.crt"
+          curl --retry 30 --retry-all-errors --retry-delay 2 --fail --silent --cacert "$RUNNER_TEMP/doggycredit-e2e-root.crt" https://localhost/actuator/health
+
+      - name: Ejecutar flujo completo y restricciones de plan
+        run: |
+          set -a
+          source .env.example
+          set +a
+          npm test --prefix e2e
+
+      - name: Mostrar logs de Compose (si falló)
+        if: failure()
+        run: docker compose --env-file .env.example -f infra/compose.yaml logs --no-color --timestamps --tail=200
+
+      - name: Subir reporte y capturas de las pruebas fallidas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Apagar Compose y eliminar los volúmenes de este job
+        if: always()
+        run: docker compose --env-file .env.example -f infra/compose.yaml down --volumes --remove-orphans
+
   deploy:
-    name: "6 · Desplegar a producción (VPS)"
-    needs: [backend, web, contracts, identity, ml]
+    name: "7 · Desplegar a producción (VPS)"
+    needs: [backend, web, contracts, identity, ml, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
