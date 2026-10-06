@@ -43,7 +43,14 @@ en `components.org.keycloak.userprofile.UserProfileProvider[0].config` bajo
 `kc.user.profile.config`. Aplicar ese atributo al perfil actual; conservar los
 demás atributos y mantener deshabilitados los atributos no gestionados.
 
-Referencia: [perfiles y atributos de Keycloak](https://www.keycloak.org/docs/latest/server_admin/index.html#_user-profile).
+En Keycloak **26.4**, Disabled se representa omitiendo `unmanagedAttributePolicy`
+o asignándole `null`. El literal `"DISABLED"` no existe en su enum e impide
+arrancar al importar el realm. Omitir la propiedad conserva el valor por defecto
+sin habilitar atributos no gestionados ni cambiar los permisos de `tenant_id`.
+
+Referencias de la versión 26.4:
+[valores aceptados](https://github.com/keycloak/keycloak/blob/26.4.7/core/src/main/java/org/keycloak/representations/userprofile/config/UPConfig.java)
+y [política por defecto](https://github.com/keycloak/keycloak/blob/26.4.7/server-spi-private/src/main/java/org/keycloak/userprofile/DefaultAttributes.java).
 
 ## Realm ya importado (Docker local con volumen viejo, VPS)
 
