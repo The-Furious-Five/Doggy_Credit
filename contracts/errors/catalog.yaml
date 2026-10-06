@@ -132,3 +132,9 @@ errors:
     status: 404
     title: "Producto no encontrado"
     detail_template: "El producto no existe o pertenece a otro tenant."
+
+  - code: CONCURRENT_UPDATE
+    type: concurrent-update
+    status: 409
+    title: "Cambio simultáneo"
+    detail_template: "Otra persona modificó este registro al mismo tiempo. Recarga y vuelve a intentarlo."
