@@ -18,25 +18,28 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
  * (una excepción de negocio, Spring Security, Bean Validation, etc.).
  */
 @ControllerAdvice
-class ProblemDetailAdvice implements ResponseBodyAdvice<ProblemDetail> {
+class ProblemDetailAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType,
             Class<? extends HttpMessageConverter<?>> converterType) {
-        return ProblemDetail.class.isAssignableFrom(returnType.getParameterType());
+        // MVC entrega también los cuerpos de ResponseEntity<ProblemDetail>.
+        // El tipo declarado del método puede ser ResponseEntity o ErrorResponse:
+        // comprobar el cuerpo real evita perder las extensiones en esos casos.
+        return true;
     }
 
     @Override
-    public ProblemDetail beforeBodyWrite(ProblemDetail body,
+    public Object beforeBodyWrite(Object body,
             MethodParameter returnType, MediaType selectedContentType,
             Class<? extends HttpMessageConverter<?>> selectedConverterType,
             ServerHttpRequest request, ServerHttpResponse response) {
-        if (body != null) {
+        if (body instanceof ProblemDetail problem) {
             String cid = MDC.get(CorrelationFilter.MDC_KEY);
             if (cid != null) {
-                body.setProperty("correlationId", cid);
+                problem.setProperty("correlationId", cid);
             }
-            body.setProperty("timestamp", Instant.now().toString());
+            problem.setProperty("timestamp", Instant.now().toString());
         }
         return body;
     }

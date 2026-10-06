@@ -5,6 +5,7 @@ import { OidcSecurityService } from 'angular-auth-oidc-client';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import {
   AdminService,
+  AnalyticsService,
   AuditoriaService,
   BASE_PATH,
   ClavesApiService,
@@ -51,6 +52,11 @@ describe('Interceptores HTTP registrados en la aplicación', () => {
   });
 
   it.each([
+    [
+      'analytics',
+      () => TestBed.inject(AnalyticsService).obtenerResumenAnalytics(),
+      '/analytics/resumen',
+    ],
     [
       'solicitantes',
       () => TestBed.inject(SolicitantesService).listarSolicitantes(),

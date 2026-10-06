@@ -25,8 +25,41 @@ tags:
   - name: claves-api
   - name: politicas
   - name: productos
+  - name: analytics
 
 paths:
+
+  /analytics/resumen:
+    get:
+      tags: [analytics]
+      operationId: obtenerResumenAnalytics
+      summary: KPIs del tenant autenticado para un intervalo de fechas
+      description: >
+        Fechas inclusivas en America/La_Paz; por defecto el mes actual. El tenant
+        se obtiene exclusivamente del JWT y el plan del catálogo del servidor.
+        Todos los planes reciben los KPIs básicos. El objeto pro se omite si el
+        plan no habilita analytics (actualmente Pro y Enterprise).
+        Integraciones activas refleja el estado actual, independiente del intervalo.
+        Los resultados históricos sin snapshot de recomendación o duración no se inventan.
+      parameters:
+        - name: desde
+          in: query
+          schema: { type: string, format: date }
+        - name: hasta
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Resumen agregado del tenant, sin datos personales
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalyticsResumen" }
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
 
   /solicitantes:
     get:
@@ -718,6 +751,89 @@ components:
             $ref: "#/components/schemas/ProblemDetail"
 
   schemas:
+
+    AnalyticsResumen:
+      type: object
+      required: [desde, hasta, plan, moneda, analiticaAvanzada, evaluaciones, integracionesActivas, porcentajeConRecomendacion, necesidades]
+      properties:
+        desde: { type: string, format: date }
+        hasta: { type: string, format: date }
+        plan: { type: string }
+        moneda: { type: string }
+        analiticaAvanzada: { type: boolean }
+        evaluaciones: { type: integer, format: int64, minimum: 0 }
+        scorePromedio:
+          type: [number, "null"]
+          format: double
+          description: Escala 0–1000. Null cuando no hay evaluaciones.
+        integracionesActivas: { type: integer, minimum: 1 }
+        porcentajeConRecomendacion:
+          type: number
+          format: double
+          description: Evaluaciones con un producto recomendado / total de evaluaciones × 100.
+        necesidades:
+          type: array
+          items: { $ref: "#/components/schemas/AnalyticsNecesidad" }
+        pro:
+          $ref: "#/components/schemas/AnalyticsPro"
+          x-field-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+
+    AnalyticsNecesidad:
+      type: object
+      required: [categoria, cantidad, porcentaje]
+      properties:
+        categoria:
+          type: string
+          enum: [CAPITAL_TRABAJO, INVERSION_PRODUCTIVA, EFICIENCIA_ENERGETICA, CONSUMO_CONSOLIDACION]
+        cantidad: { type: integer, format: int64, minimum: 0 }
+        porcentaje:
+          type: number
+          format: double
+          description: Porcentaje del total de evaluaciones; sin snapshot de necesidad no se asigna categoría.
+
+    AnalyticsPro:
+      type: object
+      required: [conversionPorcentaje, montoRecomendado, recomendacionesPorProducto, modelos]
+      properties:
+        conversionPorcentaje:
+          type: number
+          format: double
+          description: Evaluaciones PREAPROBADO / total de evaluaciones × 100. No mide desembolsos.
+        tiempoDecisionMedianaMs:
+          type: [number, "null"]
+          format: double
+          description: Mediana del tiempo de procesamiento registrado, en milisegundos. Null sin muestras.
+        montoRecomendado:
+          type: string
+          description: Suma del monto del primer producto recomendado, en la moneda del tenant; decimal exacto.
+        recomendacionesPorProducto:
+          type: array
+          items: { $ref: "#/components/schemas/AnalyticsProducto" }
+        modelos:
+          type: array
+          description: Último monitoreo semanal D-08 por modelo, independiente del intervalo consultado.
+          items: { $ref: "#/components/schemas/AnalyticsModelo" }
+
+    AnalyticsProducto:
+      type: object
+      required: [tipo, cantidad, porcentaje, montoRecomendado]
+      properties:
+        tipo: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        cantidad: { type: integer, format: int64, minimum: 0 }
+        porcentaje: { type: number, format: double, description: Porcentaje de las evaluaciones con recomendación. }
+        montoRecomendado: { type: string }
+
+    AnalyticsModelo:
+      type: object
+      required: [version, estado, desde, hasta, muestrasActuales, muestrasBase]
+      properties:
+        version: { type: string }
+        psi: { type: [number, "null"], format: double }
+        estado: { type: string, enum: [ESTABLE, VIGILAR, ALERTA, INSUFICIENTE] }
+        desde: { type: string, format: date-time }
+        hasta: { type: string, format: date-time }
+        muestrasActuales: { type: integer }
+        muestrasBase: { type: integer }
 
     ProblemDetail:
       type: object

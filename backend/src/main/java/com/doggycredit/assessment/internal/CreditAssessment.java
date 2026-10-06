@@ -78,6 +78,18 @@ class CreditAssessment {
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
+	@Column(name = "need_category", length = 32)
+	private String needCategory;
+
+	@Column(name = "recommended_product_type", length = 16)
+	private String recommendedProductType;
+
+	@Column(name = "recommended_amount", precision = 19, scale = 2)
+	private BigDecimal recommendedAmount;
+
+	@Column(name = "decision_time_ms")
+	private Long decisionTimeMs;
+
 	protected CreditAssessment() {
 	}
 
@@ -105,6 +117,13 @@ class CreditAssessment {
 
 	UUID id() {
 		return id;
+	}
+
+	void captureAnalytics(AssessmentAnalyticsSnapshot.Snapshot snapshot, long elapsedMs) {
+		this.needCategory = snapshot.needCategory();
+		this.recommendedProductType = snapshot.productType();
+		this.recommendedAmount = snapshot.recommendedAmount();
+		this.decisionTimeMs = elapsedMs;
 	}
 
 	String requestHash() {
