@@ -30,9 +30,9 @@ class PlanGateImplTest {
             @Override
             public PlanInfo requireById(String planId) {
                 if ("FREE".equals(planId)) {
-                    return new PlanInfo("FREE", "Free", 100, 1, 0, false, false, false);
+                    return new PlanInfo("FREE", "Free", 100, 1, 0, false, false, false, false);
                 } else if ("PRO".equals(planId)) {
-                    return new PlanInfo("PRO", "Pro", 1000, 10, 5, true, true, true);
+                    return new PlanInfo("PRO", "Pro", 1000, 10, 5, true, true, true, true);
                 }
                 throw new IllegalArgumentException("Unknown plan: " + planId);
             }
@@ -45,6 +45,7 @@ class PlanGateImplTest {
         assertThrowsFeatureNotInPlan("FREE", Feature.SCORING_AVANZADO);
         assertThrowsFeatureNotInPlan("FREE", Feature.WEBHOOKS);
         assertThrowsFeatureNotInPlan("FREE", Feature.ANALYTICS);
+        assertThrowsFeatureNotInPlan("FREE", Feature.RECOMENDACIONES);
     }
 
     @Test
@@ -52,6 +53,7 @@ class PlanGateImplTest {
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.SCORING_AVANZADO));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.WEBHOOKS));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.ANALYTICS));
+        assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.RECOMENDACIONES));
     }
 
     private void assertThrowsFeatureNotInPlan(String planId, Feature feature) {

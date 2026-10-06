@@ -45,7 +45,11 @@ class AnalyticsMigrationUpgradeTests {
         String indexBefore = admin.queryForObject("SELECT pg_get_indexdef('assessment.assessments_tenant_created_idx'::regclass)", String.class);
 
         var upgraded = migration("latest");
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);
+        // Lo que importa es que se aplique la migración de E-02 (1200) sobre el esquema de main,
+        // no cuántas vienen después: contar exactamente 1 rompía con cualquier migración nueva.
+        assertThat(upgraded.migrate().migrationsExecuted).isGreaterThanOrEqualTo(1);
+        assertThat(upgraded.info().applied())
+                .anySatisfy(applied -> assertThat(applied.getVersion().getVersion()).isEqualTo("2026.10.06.1200"));
         upgraded.validate();
 
         var row = admin.queryForMap("""

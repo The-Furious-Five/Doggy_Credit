@@ -23,6 +23,7 @@ class PlanGateImpl implements PlanGate {
             case SCORING_AVANZADO -> plan.scoringAvanzado();
             case WEBHOOKS -> plan.webhooks();
             case ANALYTICS -> plan.analytics();
+            case RECOMENDACIONES -> plan.recomendaciones();
         };
         if (!allowed) {
             throw new FeatureNotInPlanException(feature.name(), plan.nombre());

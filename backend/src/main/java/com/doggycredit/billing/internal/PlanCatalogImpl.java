@@ -39,7 +39,8 @@ class PlanCatalogImpl implements PlanCatalog {
             plan.getMaxIntegraciones(),
             plan.isScoringAvanzado(),
             plan.isWebhooks(),
-            plan.isAnalytics()
+            plan.isAnalytics(),
+            plan.isRecomendaciones()
         );
     }
 }
