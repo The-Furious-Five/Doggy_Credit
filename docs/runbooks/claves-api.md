@@ -22,6 +22,36 @@ de Keycloak. La API lo crea y lo borra con la cuenta de servicio
 el realm y la API, para autenticarse. Tiene que ser la misma en los dos.
 Compose no arranca sin ella.
 
+## Equipo y atributo del tenant
+
+Keycloak 26 filtra los atributos de usuario que no están definidos en el perfil.
+`scripts/generate_realm.py` declara `tenant_id` como atributo gestionado de un
+solo valor UUID, visible y editable sólo por administradores de Keycloak. Los
+usuarios conservan sus permisos habituales sobre nombre y correo. La cuenta
+administradora de la API sigue sin tenant ni audiencia de la API.
+
+Esto permite que la Admin REST API devuelva `attributes.tenant_id` y que
+`listTeamMembers` filtre el equipo por tenant y descarte cuentas de servicio.
+Sin esa configuración la consulta devuelve un equipo vacío, aunque los
+usuarios estén sembrados en el realm.
+
+En un realm **ya existente**, `--import-realm` no actualiza el perfil. En la
+consola administradora, abrir el realm `doggycredit` → Realm settings → User
+profile y agregar `tenant_id`: un solo valor, permisos View/Edit sólo Admin,
+opcional y validador Pattern para UUID. El JSON generado contiene la definición
+en `components.org.keycloak.userprofile.UserProfileProvider[0].config` bajo
+`kc.user.profile.config`. Aplicar ese atributo al perfil actual; conservar los
+demás atributos y mantener deshabilitados los atributos no gestionados.
+
+En Keycloak **26.4**, Disabled se representa omitiendo `unmanagedAttributePolicy`
+o asignándole `null`. El literal `"DISABLED"` no existe en su enum e impide
+arrancar al importar el realm. Omitir la propiedad conserva el valor por defecto
+sin habilitar atributos no gestionados ni cambiar los permisos de `tenant_id`.
+
+Referencias de la versión 26.4:
+[valores aceptados](https://github.com/keycloak/keycloak/blob/26.4.7/core/src/main/java/org/keycloak/representations/userprofile/config/UPConfig.java)
+y [política por defecto](https://github.com/keycloak/keycloak/blob/26.4.7/server-spi-private/src/main/java/org/keycloak/userprofile/DefaultAttributes.java).
+
 ## Realm ya importado (Docker local con volumen viejo, VPS)
 
 La importación solo crea realms que no existen, así que en un realm ya
@@ -52,7 +82,10 @@ anterior.
 
 - `KeycloakApiKeyIntegrationTests`: Keycloak real (Testcontainers, mismo realm
   generado). La clave obtiene un token del tenant correcto y, revocada, ya no
-  obtiene tokens.
+  obtiene tokens. También verifica que la Admin REST API conserve el tenant
+  de los usuarios humanos y que los equipos y roles estén aislados por tenant.
+- `scripts/test_realm.py`: perfil administrado, permisos del atributo y
+  correspondencia entre el generador y el realm versionado.
 - `ApiKeyControllerTests`: rol, plan, aislamiento por tenant, revocación y
   falla de Keycloak, con Keycloak simulado.
 - `e2e/identity_smoke.py`: con Compose completo, un TENANT_ADMIN crea una

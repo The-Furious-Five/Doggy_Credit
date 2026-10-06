@@ -23,6 +23,8 @@ import com.doggycredit.scoring.ScoringFeatures;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.billing.Feature;
+import com.doggycredit.billing.PlanGate;
 
 /** D-02: qué scoring recibe cada plan, y la degradación si el modelo avanzado falla. */
 class PlanAwareCreditScoringTest {
@@ -35,13 +37,15 @@ class PlanAwareCreditScoringTest {
 	private static final BasicScoreResult ADVANCED = new BasicScoreResult(640, ScoreBand.B, List.of(), "scoring-v2");
 
 	private final TenantRegistry tenants = mock(TenantRegistry.class);
+	private final PlanGate planGate = mock(PlanGate.class);
 	private final BasicScorecard basic = mock(BasicScorecard.class);
 	private final AdvancedScorer advanced = mock(AdvancedScorer.class);
-	private final PlanAwareCreditScoring scoring = new PlanAwareCreditScoring(tenants, basic, advanced);
+	private final PlanAwareCreditScoring scoring = new PlanAwareCreditScoring(tenants, planGate, basic, advanced);
 
 	@Test
 	void freeUsaElScorecardBasico() {
 		UUID tenant = tenantWithPlan("FREE");
+		when(planGate.isAvailable("FREE", Feature.SCORING_AVANZADO)).thenReturn(false);
 		when(basic.score(INPUT)).thenReturn(BASIC);
 		assertThat(scoring.score(tenant, INPUT, FEATURES).modelVersion()).isEqualTo("basic-v1");
 		verify(advanced, never()).score(any());
@@ -50,6 +54,7 @@ class PlanAwareCreditScoringTest {
 	@Test
 	void proUsaElModeloAvanzado() {
 		UUID tenant = tenantWithPlan("PRO");
+		when(planGate.isAvailable("PRO", Feature.SCORING_AVANZADO)).thenReturn(true);
 		when(advanced.score(FEATURES)).thenReturn(ADVANCED);
 		assertThat(scoring.score(tenant, INPUT, FEATURES).modelVersion()).isEqualTo("scoring-v2");
 		verify(basic, never()).score(any());
@@ -66,6 +71,7 @@ class PlanAwareCreditScoringTest {
 	@Test
 	void siElModeloAvanzadoFallaDegradaAlBasico() {
 		UUID tenant = tenantWithPlan("PRO");
+		when(planGate.isAvailable("PRO", Feature.SCORING_AVANZADO)).thenReturn(true);
 		when(advanced.score(FEATURES)).thenThrow(new IllegalStateException("ONNX caído"));
 		when(basic.score(INPUT)).thenReturn(BASIC);
 		assertThat(scoring.score(tenant, INPUT, FEATURES).modelVersion()).isEqualTo("basic-v1");

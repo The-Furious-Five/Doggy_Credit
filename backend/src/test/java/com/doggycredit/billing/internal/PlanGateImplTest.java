@@ -42,6 +42,9 @@ class PlanGateImplTest {
 
     @Test
     void testFreePlanBlocksFeatures() {
+        org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("FREE", Feature.SCORING_AVANZADO));
+        org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("FREE", Feature.WEBHOOKS));
+        org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("FREE", Feature.ANALYTICS));
         assertThrowsFeatureNotInPlan("FREE", Feature.SCORING_AVANZADO);
         assertThrowsFeatureNotInPlan("FREE", Feature.WEBHOOKS);
         assertThrowsFeatureNotInPlan("FREE", Feature.ANALYTICS);
@@ -49,6 +52,9 @@ class PlanGateImplTest {
 
     @Test
     void testProPlanAllowsFeatures() {
+        org.junit.jupiter.api.Assertions.assertTrue(planGate.isAvailable("PRO", Feature.SCORING_AVANZADO));
+        org.junit.jupiter.api.Assertions.assertTrue(planGate.isAvailable("PRO", Feature.WEBHOOKS));
+        org.junit.jupiter.api.Assertions.assertTrue(planGate.isAvailable("PRO", Feature.ANALYTICS));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.SCORING_AVANZADO));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.WEBHOOKS));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.ANALYTICS));

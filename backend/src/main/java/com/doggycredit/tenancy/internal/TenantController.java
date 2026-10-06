@@ -5,11 +5,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.access.prepost.PreAuthorize;
 import com.doggycredit.shared.contract.api.TenantApi;
+import com.doggycredit.shared.RoleGuard;
 import com.doggycredit.shared.contract.model.TenantActual;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
@@ -28,13 +27,15 @@ public class TenantController implements TenantApi {
     private final TenantPreferencesService preferences;
     private final PlanCatalog planCatalog;
     private final UsageMeter usageMeter;
+    private final KeycloakClients keycloak;
 
     TenantController(TenantRegistry tenantRegistry, TenantPreferencesService preferences,
-            PlanCatalog planCatalog, UsageMeter usageMeter) {
+            PlanCatalog planCatalog, UsageMeter usageMeter, KeycloakClients keycloak) {
         this.tenantRegistry = tenantRegistry;
         this.preferences = preferences;
         this.planCatalog = planCatalog;
         this.usageMeter = usageMeter;
+        this.keycloak = keycloak;
     }
 
     @Override
@@ -59,19 +60,12 @@ public class TenantController implements TenantApi {
 
     @Override
     public ResponseEntity<List<MiembroEquipo>> listarEquipo() {
-        var jwt = ((JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication()).getToken();
-        String name = jwt.getClaimAsString("name");
-        if (name == null || name.isBlank()) name = jwt.getClaimAsString("preferred_username");
-        if (name == null || name.isBlank()) name = jwt.getSubject();
-        String email = jwt.getClaimAsString("email");
-        var realm = jwt.getClaimAsMap("realm_access");
-        List<String> roles = realm != null && realm.get("roles") instanceof List<?> values
-                ? values.stream().filter(String.class::isInstance).map(String.class::cast).sorted().toList()
-                : List.of();
-        String role = roles.isEmpty() ? "SIN_ROL" : String.join(", ", roles);
-        MiembroEquipo member = new MiembroEquipo().nombre(name).email(email).rol(role)
-                .estado(MiembroEquipo.EstadoEnum.ACTIVO);
-        return ResponseEntity.ok(List.of(member));
+        UUID tenantId = currentTenantId();
+        List<MiembroEquipo> members = keycloak.listTeamMembers(tenantId).stream()
+                .map(member -> new MiembroEquipo().nombre(member.nombre()).email(member.email()).rol(member.rol())
+                        .estado(member.enabled() ? MiembroEquipo.EstadoEnum.ACTIVO : MiembroEquipo.EstadoEnum.DESACTIVADO))
+                .toList();
+        return ResponseEntity.ok(members);
     }
 
     @Override
@@ -82,8 +76,8 @@ public class TenantController implements TenantApi {
     }
 
     @Override
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<PreferenciasTenant> actualizarPreferenciasTenant(@Valid @RequestBody PreferenciasTenant body) {
+        RoleGuard.require("TENANT_ADMIN");
         if (body.getEnmascararDatos() == null) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST, "enmascararDatos es obligatorio");
@@ -104,8 +98,8 @@ public class TenantController implements TenantApi {
     }
 
     @Override
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<TenantActual> actualizarOrganizacionTenant(@Valid @RequestBody OrganizacionTenantPatch body) {
+        RoleGuard.require("TENANT_ADMIN");
         if (body.getNombre() == null || body.getNombre().trim().length() < 2 || body.getNombre().trim().length() > 100) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST, "nombre debe tener entre 2 y 100 caracteres");

@@ -6,6 +6,7 @@ import { ClavesApiService } from '../api/api/clavesApi.service';
 import { ClaveApi } from '../api/model/claveApi';
 import { ClaveApiCreada } from '../api/model/claveApiCreada';
 import { ClaveApiNuevaEntornoEnum } from '../api/model/claveApiNueva';
+import { WebhookSettings } from './webhook-settings';
 import {
   DsAlert,
   DsBadge,
@@ -47,6 +48,7 @@ type KeysState =
     DsSelect,
     DsSkeleton,
     DsTable,
+    WebhookSettings,
   ],
   styleUrl: './page.scss',
   template: `
@@ -142,10 +144,7 @@ type KeysState =
           <ds-progress label="Solicitudes por minuto" [value]="18" [max]="60" />
           <p class="ds-caption">Límite del plan Gratis: 60 por minuto.</p>
         </ds-card>
-        <ds-card>
-          <div class="card-head"><h2>Webhooks</h2><ds-badge tone="info">Plan Pro</ds-badge></div>
-          <p class="ds-muted">Recibe eventos como evaluacion.completada o consentimiento.revocado.</p>
-        </ds-card>
+        <dc-webhook-settings />
       </div>
     </div>
 

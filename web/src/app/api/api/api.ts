@@ -20,4 +20,6 @@ export * from './solicitantes.service';
 import { SolicitantesService } from './solicitantes.service';
 export * from './tenant.service';
 import { TenantService } from './tenant.service';
-export const APIS = [AdminService, AnalyticsService, AuditoriaService, ClavesApiService, ConsentimientosService, EvaluacionesService, IntegracionesService, PoliticasService, ProductosService, SolicitantesService, TenantService];
+export * from './webhooks.service';
+import { WebhooksService } from './webhooks.service';
+export const APIS = [AdminService, AnalyticsService, AuditoriaService, ClavesApiService, ConsentimientosService, EvaluacionesService, IntegracionesService, PoliticasService, ProductosService, SolicitantesService, TenantService, WebhooksService];
