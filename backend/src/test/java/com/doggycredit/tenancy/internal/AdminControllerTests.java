@@ -80,7 +80,8 @@ class AdminControllerTests {
     void nonAdminGets403() throws Exception {
         mvc.perform(get("/admin/tenants")
                 .header("Authorization", "Bearer analyst"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INSUFFICIENT_ROLE"));
     }
 
     @Test

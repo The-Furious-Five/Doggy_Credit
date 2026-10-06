@@ -7,14 +7,11 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.doggycredit.shared.ErrorCode;
+import com.doggycredit.shared.RoleGuard;
 import com.doggycredit.shared.contract.api.ClavesApiApi;
 import com.doggycredit.shared.contract.model.ClaveApi;
 import com.doggycredit.shared.contract.model.ClaveApiCreada;
@@ -37,13 +34,13 @@ class ApiKeyController implements ClavesApiApi {
 
 	@Override
 	public ResponseEntity<List<ClaveApi>> listarClavesApi() {
-		requireRole(REQUIRED_ROLE);
+		RoleGuard.require(REQUIRED_ROLE);
 		return ResponseEntity.ok(keys.list().stream().map(ApiKeyController::toDto).toList());
 	}
 
 	@Override
 	public ResponseEntity<ClaveApiCreada> crearClaveApi(ClaveApiNueva body) {
-		JwtAuthenticationToken jwt = requireRole(REQUIRED_ROLE);
+		var jwt = RoleGuard.requireJwt(REQUIRED_ROLE);
 		String nombre = body == null || body.getNombre() == null ? "" : body.getNombre().strip();
 		if (nombre.length() < 2 || nombre.length() > 80) {
 			throw new ErrorResponseException(HttpStatus.BAD_REQUEST,
@@ -69,7 +66,7 @@ class ApiKeyController implements ClavesApiApi {
 
 	@Override
 	public ResponseEntity<Void> revocarClaveApi(UUID id) {
-		JwtAuthenticationToken jwt = requireRole(REQUIRED_ROLE);
+		var jwt = RoleGuard.requireJwt(REQUIRED_ROLE);
 		keys.revoke(UUID.fromString(jwt.getToken().getClaimAsString("tenant_id")), id);
 		return ResponseEntity.noContent().build();
 	}
@@ -81,23 +78,6 @@ class ApiKeyController implements ClavesApiApi {
 			.sufijoSecreto(key.sufijoSecreto())
 			.entorno(ClaveApi.EntornoEnum.fromValue(key.entorno().name().toLowerCase()))
 			.creadaEn(key.creadaEn().atOffset(ZoneOffset.UTC));
-	}
-
-	/**
-	 * Autorización por rol dentro del endpoint, con su propio código de error
-	 * (mismo criterio que C-04): el AccessDeniedHandler de la cadena de
-	 * seguridad responde siempre INVALID_TENANT_CLAIM.
-	 */
-	private static JwtAuthenticationToken requireRole(String role) {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		boolean granted = authentication != null && authentication.getAuthorities().stream()
-			.map(GrantedAuthority::getAuthority)
-			.anyMatch(("ROLE_" + role)::equals);
-		if (!granted || !(authentication instanceof JwtAuthenticationToken jwt)) {
-			throw new ErrorResponseException(HttpStatus.FORBIDDEN,
-					ErrorCode.INSUFFICIENT_ROLE.toProblemDetail("La operación requiere el rol " + role + "."), null);
-		}
-		return jwt;
 	}
 
 }
