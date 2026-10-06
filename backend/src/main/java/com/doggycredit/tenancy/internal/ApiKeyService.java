@@ -6,7 +6,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -15,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.ErrorResponseException;
 
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.billing.Feature;
+import com.doggycredit.billing.PlanGate;
 import com.doggycredit.shared.ErrorCode;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantRegistry;
@@ -26,20 +27,20 @@ import com.doggycredit.tenancy.TenantRegistry;
 @Service
 class ApiKeyService {
 
-	/** Planes con API_AVANZADA. TODO(A-02): reemplazar por PlanGate cuando los entitlements estén en BD. */
-	private static final Set<String> PLANS_WITH_PRODUCTION_KEYS = Set.of("PRO", "ENTERPRISE");
-
 	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private final ApiKeyRepository keys;
 	private final KeycloakClients keycloak;
 	private final TenantRegistry tenants;
+	private final PlanGate planGate;
 	private final AuditTrail audit;
 
-	ApiKeyService(ApiKeyRepository keys, KeycloakClients keycloak, TenantRegistry tenants, AuditTrail audit) {
+	ApiKeyService(ApiKeyRepository keys, KeycloakClients keycloak, TenantRegistry tenants, PlanGate planGate,
+			AuditTrail audit) {
 		this.keys = keys;
 		this.keycloak = keycloak;
 		this.tenants = tenants;
+		this.planGate = planGate;
 		this.audit = audit;
 	}
 
@@ -54,10 +55,8 @@ class ApiKeyService {
 	 */
 	@Transactional
 	Created create(UUID tenantId, String nombre, ApiKey.Environment environment, String createdBy) {
-		if (environment == ApiKey.Environment.PRODUCCION
-				&& !PLANS_WITH_PRODUCTION_KEYS.contains(tenants.requireById(TenantId.of(tenantId)).plan())) {
-			throw new ErrorResponseException(HttpStatus.FORBIDDEN, ErrorCode.FEATURE_NOT_IN_PLAN.toProblemDetail(
-					"Las claves de producción requieren el plan Pro. Puedes crear una clave de sandbox."), null);
+		if (environment == ApiKey.Environment.PRODUCCION) {
+			planGate.requireFeature(tenants.requireById(TenantId.of(tenantId)).plan(), Feature.API_PRODUCCION);
 		}
 		String clientId = "dc-" + (environment == ApiKey.Environment.PRODUCCION ? "live" : "test") + "-"
 				+ HexFormat.of().formatHex(randomBytes(6));

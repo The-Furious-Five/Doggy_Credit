@@ -27,6 +27,7 @@ import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.billing.QuotaGuard;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistry;
+import com.doggycredit.customer.FinancialProfiles;
 import com.doggycredit.consent.Source;
 import com.doggycredit.tenancy.TenantRegistry;
 import com.doggycredit.tenancy.TenantInfo;
@@ -43,6 +44,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 
 	private final CreditAssessmentRepository assessments;
 	private final ApplicantRegistry applicants;
+	private final FinancialProfiles profiles;
 	private final SourceCollector sources;
 	private final CreditScoring scoring;
 	private final AuditTrail audit;
@@ -53,11 +55,12 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final AssessmentAnalyticsSnapshot analytics;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
-			SourceCollector sources, CreditScoring scoring, AuditTrail audit,
+			FinancialProfiles profiles, SourceCollector sources, CreditScoring scoring, AuditTrail audit,
 			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events,
 			PolicyRepository policies, AssessmentAnalyticsSnapshot analytics) {
 		this.assessments = assessments;
 		this.applicants = applicants;
+		this.profiles = profiles;
 		this.sources = sources;
 		this.scoring = scoring;
 		this.audit = audit;
@@ -88,6 +91,8 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		String normalizedDocument = DocumentNumber.normalize(command.document());
 		ApplicantProfile applicant = applicants.findRequired(command.tenantId(), normalizedDocument);
 		SourceCollection collection = sources.collect(command.tenantId(), command.consentId(), normalizedDocument);
+		// B-04: el Perfil 360 se consolida con lo mismo que ve el score, en la misma transacción.
+		profiles.consolidate(command.tenantId(), applicant.id(), collection.toSourceResults());
 		BasicScoreResult score = scoring.score(command.tenantId(),
 				toScorecardInput(command, applicant, collection),
 				toScoringFeatures(applicant, bureauReport(collection)));

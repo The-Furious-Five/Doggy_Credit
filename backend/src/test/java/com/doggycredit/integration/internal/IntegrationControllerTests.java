@@ -73,6 +73,21 @@ class IntegrationControllerTests {
 	}
 
 	@Test
+	void laConfiguracionDeIntegracionesDeUnTenantNoAlteraLaDeOtro() throws Exception {
+		set(PRO, "BANCO", true).andExpect(status().isOk());
+		try {
+			mvc.perform(get("/integraciones").with(as(PRO)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[1].estado").value("CONECTADO"));
+			mvc.perform(get("/integraciones").with(as(FREE)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[1].estado").value("REQUIERE_PRO"));
+		} finally {
+			set(PRO, "BANCO", false).andExpect(status().isOk());
+		}
+	}
+
+	@Test
 	void nadaSinImplementacionNiBuroApagado() throws Exception {
 		set(PRO, "OPEN_BANKING", true).andExpect(status().isBadRequest());
 		set(PRO, "BURO", false).andExpect(status().isBadRequest());

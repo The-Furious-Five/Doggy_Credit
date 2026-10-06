@@ -24,15 +24,18 @@ class PlanGateImplTest {
         PlanCatalog stubCatalog = new PlanCatalog() {
             @Override
             public Optional<PlanInfo> findById(String planId) {
-                return Optional.ofNullable(requireById(planId));
+                if (!"FREE".equals(planId) && !"PRO".equals(planId)) {
+                    return Optional.empty();
+                }
+                return Optional.of(requireById(planId));
             }
 
             @Override
             public PlanInfo requireById(String planId) {
                 if ("FREE".equals(planId)) {
-                    return new PlanInfo("FREE", "Free", 100, 1, 0, false, false, false, false);
+                    return new PlanInfo("FREE", "Free", 100, 1, 0, false, false, false, false, false);
                 } else if ("PRO".equals(planId)) {
-                    return new PlanInfo("PRO", "Pro", 1000, 10, 5, true, true, true, true);
+                    return new PlanInfo("PRO", "Pro", 1000, 10, 5, true, true, true, true, true);
                 }
                 throw new IllegalArgumentException("Unknown plan: " + planId);
             }
@@ -45,9 +48,11 @@ class PlanGateImplTest {
         org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("FREE", Feature.SCORING_AVANZADO));
         org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("FREE", Feature.WEBHOOKS));
         org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("FREE", Feature.ANALYTICS));
+        org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("FREE", Feature.API_PRODUCCION));
         assertThrowsFeatureNotInPlan("FREE", Feature.SCORING_AVANZADO);
         assertThrowsFeatureNotInPlan("FREE", Feature.WEBHOOKS);
         assertThrowsFeatureNotInPlan("FREE", Feature.ANALYTICS);
+        assertThrowsFeatureNotInPlan("FREE", Feature.API_PRODUCCION);
     }
 
     @Test
@@ -55,9 +60,16 @@ class PlanGateImplTest {
         org.junit.jupiter.api.Assertions.assertTrue(planGate.isAvailable("PRO", Feature.SCORING_AVANZADO));
         org.junit.jupiter.api.Assertions.assertTrue(planGate.isAvailable("PRO", Feature.WEBHOOKS));
         org.junit.jupiter.api.Assertions.assertTrue(planGate.isAvailable("PRO", Feature.ANALYTICS));
+        org.junit.jupiter.api.Assertions.assertTrue(planGate.isAvailable("PRO", Feature.API_PRODUCCION));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.SCORING_AVANZADO));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.WEBHOOKS));
         assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.ANALYTICS));
+        assertDoesNotThrow(() -> planGate.requireFeature("PRO", Feature.API_PRODUCCION));
+    }
+
+    @Test
+    void planDesconocidoNoHabilitaNingunaFuncion() {
+        org.junit.jupiter.api.Assertions.assertFalse(planGate.isAvailable("UNKNOWN", Feature.API_PRODUCCION));
     }
 
     private void assertThrowsFeatureNotInPlan(String planId, Feature feature) {
