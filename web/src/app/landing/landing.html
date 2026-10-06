@@ -9,6 +9,13 @@
       <a dsLink routerLink="/" fragment="planes">Planes</a>
     </nav>
     <div class="ds-row">
+      <ds-menu
+        label="Tema"
+        icon="sun"
+        variant="quiet"
+        [items]="themes"
+        (itemSelected)="setTheme($event)"
+      />
       <a dsLink class="site-header__login" routerLink="/acceso">Iniciar sesión</a>
       <a dsLink appearance="primary" routerLink="/acceso">Empezar gratis</a>
     </div>

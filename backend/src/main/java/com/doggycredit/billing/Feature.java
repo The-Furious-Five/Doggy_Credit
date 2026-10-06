@@ -6,5 +6,6 @@ package com.doggycredit.billing;
 public enum Feature {
     SCORING_AVANZADO,
     WEBHOOKS,
-    ANALYTICS
+    ANALYTICS,
+    RECOMENDACIONES
 }
