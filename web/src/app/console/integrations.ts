@@ -1,70 +1,306 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import {
+  FuenteIntegracion,
+  Integracion,
+  IntegracionEstadoEnum,
+  IntegracionesService,
+} from '../api';
 import {
   DsAlert,
   DsBadge,
   DsButton,
   DsCard,
+  DsEmptyState,
   DsField,
   DsIcon,
+  DsIconName,
   DsOption,
   DsSelect,
+  DsSpinner,
   DsToastService,
+  DsTone,
 } from '../design-system';
-import { Connector, connectors, connectorStatus } from '../data';
+
+type Category = 'Banco' | 'Buró' | 'Wallet' | 'Contabilidad' | 'Open banking';
+
+/** Textos de presentación; el catálogo y sus estados pertenecen a la API. */
+const PRESENTATION: Record<
+  FuenteIntegracion,
+  { name: string; category: Category; icon: DsIconName; description: string }
+> = {
+  [FuenteIntegracion.Buro]: {
+    name: 'Buró de crédito nacional',
+    category: 'Buró',
+    icon: 'database',
+    description: 'Historial, deudas vigentes y comportamiento de pago.',
+  },
+  [FuenteIntegracion.Banco]: {
+    name: 'Core bancario',
+    category: 'Banco',
+    icon: 'building',
+    description: 'Cuentas, saldos y movimientos de tus propios clientes.',
+  },
+  [FuenteIntegracion.Wallet]: {
+    name: 'Billetera móvil',
+    category: 'Wallet',
+    icon: 'wallet',
+    description: 'Flujos de ingresos y pagos frecuentes de la billetera.',
+  },
+  [FuenteIntegracion.OpenBanking]: {
+    name: 'Agregador open banking',
+    category: 'Open banking',
+    icon: 'plug',
+    description: 'Datos de otras entidades con consentimiento del cliente.',
+  },
+  [FuenteIntegracion.Facturacion]: {
+    name: 'Facturación electrónica',
+    category: 'Contabilidad',
+    icon: 'store',
+    description: 'Ventas declaradas y estacionalidad de la empresa.',
+  },
+  [FuenteIntegracion.Garantias]: {
+    name: 'Registro de garantías',
+    category: 'Buró',
+    icon: 'shield',
+    description: 'Garantías registradas y gravámenes vigentes.',
+  },
+};
+
+const STATUS: Record<IntegracionEstadoEnum, { label: string; tone: DsTone }> = {
+  [IntegracionEstadoEnum.Conectado]: { label: 'Conectado', tone: 'success' },
+  [IntegracionEstadoEnum.Disponible]: { label: 'Disponible', tone: 'neutral' },
+  [IntegracionEstadoEnum.RequierePro]: { label: 'Plan Pro', tone: 'info' },
+  [IntegracionEstadoEnum.Proximamente]: { label: 'Próximamente', tone: 'neutral' },
+};
 
 @Component({
   selector: 'dc-integrations',
-  imports: [FormsModule, DsAlert, DsBadge, DsButton, DsCard, DsField, DsIcon, DsSelect],
+  imports: [
+    FormsModule,
+    DsAlert,
+    DsBadge,
+    DsButton,
+    DsCard,
+    DsEmptyState,
+    DsField,
+    DsIcon,
+    DsSelect,
+    DsSpinner,
+  ],
   styleUrl: './page.scss',
   template: `
     <header class="page-header">
       <div class="ds-stack-sm">
         <h1>Integraciones</h1>
-        <p class="ds-muted">Conecta las fuentes que alimentan el perfil financiero de tus clientes.</p>
+        <p class="ds-muted">
+          Conecta las fuentes que alimentan el perfil financiero de tus clientes.
+        </p>
       </div>
       <ds-field label="Categoría">
-        <ds-select [options]="categories" [ngModel]="category()" (ngModelChange)="category.set($event)" />
+        <ds-select
+          [options]="categories"
+          [ngModel]="category()"
+          (ngModelChange)="category.set($event)"
+        />
       </ds-field>
     </header>
-    <ds-alert tone="warning" heading="Tu plan Gratis incluye 1 integración">
-      Ya está en uso. Desconéctala o mejora a Pro para sumar más fuentes.
-    </ds-alert>
-    <div class="ds-grid">
-      @for (connector of visible(); track connector.name) {
-        <ds-card>
-          <div class="ds-stack">
-            <div class="ds-row ds-between">
-              <span class="icon-tile"><ds-icon [name]="connector.icon" /></span>
-              <ds-badge [tone]="status[connector.status].tone">{{ status[connector.status].label }}</ds-badge>
-            </div>
-            <div class="ds-stack-sm">
-              <p class="ds-caption">{{ connector.category }}</p>
-              <h2>{{ connector.name }}</h2>
-              <p class="ds-muted">{{ connector.description }}</p>
-            </div>
-            <button dsButton [variant]="connector.status === 'connected' ? 'secondary' : 'primary'" [disabled]="connector.status === 'pro'" (click)="act(connector)">
-              {{ connector.status === 'connected' ? 'Configurar' : 'Conectar' }}
-            </button>
-          </div>
-        </ds-card>
+
+    @switch (saveProblem()) {
+      @case ('plan-limit') {
+        <ds-alert tone="warning" heading="Tu plan Gratis incluye 1 integración" urgent>
+          El buró obligatorio ya ocupa ese lugar. Mejora a Pro para sumar más fuentes.
+        </ds-alert>
       }
-    </div>
+      @case ('error') {
+        <ds-alert tone="danger" heading="No pudimos guardar el cambio" urgent>
+          La configuración se conserva. Revisa tu conexión y vuelve a intentar con el botón del
+          conector.
+        </ds-alert>
+      }
+      @case ('refresh') {
+        <ds-alert
+          tone="warning"
+          heading="El cambio se guardó, pero no pudimos actualizar el catálogo"
+          urgent
+        >
+          <p>Actualiza los estados antes de cambiar otra integración.</p>
+          <button dsButton variant="secondary" (click)="load()">Actualizar estados</button>
+        </ds-alert>
+      }
+    }
+
+    @switch (state()) {
+      @case ('loading') {
+        <ds-spinner label="Cargando integraciones…" />
+      }
+      @case ('error') {
+        <ds-alert tone="danger" heading="No pudimos cargar las integraciones">
+          <p>Revisa tu conexión y vuelve a intentarlo. La categoría seleccionada se conserva.</p>
+          <button dsButton variant="secondary" (click)="load()">Reintentar</button>
+        </ds-alert>
+      }
+      @case ('ready') {
+        @if (connectors().length === 0) {
+          <ds-empty-state
+            heading="Sin integraciones"
+            description="No hay conectores disponibles para tu institución."
+            icon="plug"
+          />
+        } @else if (visible().length === 0) {
+          <ds-empty-state
+            heading="Sin integraciones en esta categoría"
+            description="Selecciona otra categoría para ver las fuentes disponibles."
+            icon="plug"
+          >
+            <button dsButton variant="secondary" (click)="category.set('')">Ver todas</button>
+          </ds-empty-state>
+        } @else {
+          <div class="ds-grid">
+            @for (connector of visible(); track connector.fuente) {
+              <ds-card>
+                <div class="ds-stack">
+                  <div class="ds-row ds-between">
+                    <span class="icon-tile"><ds-icon [name]="presentation(connector).icon" /></span>
+                    <ds-badge [tone]="status[connector.estado].tone">{{
+                      status[connector.estado].label
+                    }}</ds-badge>
+                  </div>
+                  <div class="ds-stack-sm">
+                    <p class="ds-caption">{{ presentation(connector).category }}</p>
+                    <h2>{{ presentation(connector).name }}</h2>
+                    <p class="ds-muted">{{ presentation(connector).description }}</p>
+                    @if (connector.fuente === mandatorySource) {
+                      <p class="ds-caption">Esta fuente es obligatoria y permanece conectada.</p>
+                    }
+                  </div>
+                  <button
+                    dsButton
+                    [variant]="connector.estado === connectedStatus ? 'secondary' : 'primary'"
+                    [busy]="saving() === connector.fuente"
+                    [disabled]="
+                      saving() !== null || saveProblem() === 'refresh' || unavailable(connector)
+                    "
+                    [attr.aria-label]="actionLabel(connector) + ': ' + presentation(connector).name"
+                    (click)="act(connector)"
+                  >
+                    {{ actionLabel(connector) }}
+                  </button>
+                </div>
+              </ds-card>
+            }
+          </div>
+        }
+      }
+    }
   `,
 })
 export class Integrations {
+  private readonly api = inject(IntegracionesService);
   private readonly toast = inject(DsToastService);
-  readonly status = connectorStatus;
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly status = STATUS;
+  readonly mandatorySource = FuenteIntegracion.Buro;
+  readonly connectedStatus = IntegracionEstadoEnum.Conectado;
+  readonly state = signal<'loading' | 'ready' | 'error'>('loading');
+  readonly connectors = signal<Integracion[]>([]);
+  readonly saving = signal<FuenteIntegracion | null>(null);
+  readonly saveProblem = signal<'plan-limit' | 'error' | 'refresh' | null>(null);
   readonly category = signal('');
   readonly categories: DsOption<string>[] = [
     { value: '', label: 'Todas' },
-    ...[...new Set(connectors.map((c) => c.category))].map((value) => ({ value, label: value })),
+    ...[...new Set(Object.values(PRESENTATION).map((item) => item.category))].map((value) => ({
+      value,
+      label: value,
+    })),
   ];
   readonly visible = computed(() =>
-    connectors.filter((c) => !this.category() || c.category === this.category()),
+    this.connectors().filter(
+      (connector) => !this.category() || this.presentation(connector).category === this.category(),
+    ),
   );
 
-  act(connector: Connector): void {
-    this.toast.show(`${connector.name}: configuración disponible próximamente.`);
+  constructor() {
+    this.load();
+  }
+
+  load(): void {
+    if (this.saving()) return;
+    this.state.set('loading');
+    this.saveProblem.set(null);
+    this.fetch();
+  }
+
+  act(connector: Integracion): void {
+    if (
+      this.state() !== 'ready' ||
+      this.saving() ||
+      this.saveProblem() === 'refresh' ||
+      this.unavailable(connector)
+    )
+      return;
+    this.saving.set(connector.fuente);
+    this.saveProblem.set(null);
+    this.api
+      .actualizarIntegracion(connector.fuente, {
+        activa: connector.estado !== IntegracionEstadoEnum.Conectado,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.connectors.update((all) =>
+            all.map((item) => (item.fuente === updated.fuente ? updated : item)),
+          );
+          this.toast.show(`${this.presentation(updated).name}: ${STATUS[updated.estado].label}.`);
+          // Activar/desactivar también puede cambiar REQUIERE_PRO en otros conectores.
+          this.fetch(true);
+        },
+        error: (error: unknown) => {
+          this.saving.set(null);
+          this.saveProblem.set(
+            error instanceof HttpErrorResponse && error.error?.code === 'PLAN_LIMIT_REACHED'
+              ? 'plan-limit'
+              : 'error',
+          );
+        },
+      });
+  }
+
+  presentation(connector: Integracion) {
+    return PRESENTATION[connector.fuente];
+  }
+
+  unavailable(connector: Integracion): boolean {
+    return (
+      connector.fuente === FuenteIntegracion.Buro ||
+      connector.estado === IntegracionEstadoEnum.Proximamente
+    );
+  }
+
+  actionLabel(connector: Integracion): string {
+    if (connector.fuente === FuenteIntegracion.Buro) return 'Obligatorio';
+    if (connector.estado === IntegracionEstadoEnum.Proximamente) return 'Próximamente';
+    return connector.estado === IntegracionEstadoEnum.Conectado ? 'Desconectar' : 'Conectar';
+  }
+
+  private fetch(afterSave = false): void {
+    this.api
+      .listarIntegraciones()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (connectors) => {
+          this.connectors.set(connectors);
+          this.state.set('ready');
+          this.saving.set(null);
+        },
+        error: () => {
+          this.saving.set(null);
+          if (afterSave) this.saveProblem.set('refresh');
+          else this.state.set('error');
+        },
+      });
   }
 }
