@@ -24,8 +24,8 @@ class QuotaGuardImplTest {
 
     @BeforeEach
     void configurePlans() {
-        when(plans.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false));
-        when(plans.requireById("PRO")).thenReturn(new PlanInfo("PRO", "Pro", 0, 50, 999, true, true, true, true));
+        when(plans.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false, false));
+        when(plans.requireById("PRO")).thenReturn(new PlanInfo("PRO", "Pro", 0, 50, 999, true, true, true, true, true));
     }
 
     @Test

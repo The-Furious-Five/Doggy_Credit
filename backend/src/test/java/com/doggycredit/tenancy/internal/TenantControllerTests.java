@@ -162,7 +162,7 @@ class TenantControllerTests {
         UUID id = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         when(tenantRegistry.requireById(TenantId.of(id)))
                 .thenReturn(new TenantInfo(id, "Mi Fintech", "1234567", "FINTECH", "FREE", "BO", "BOB", true));
-        when(planCatalog.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false));
+        when(planCatalog.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false, false));
         when(usageMeter.currentMonthEvaluations(id)).thenReturn(81);
 
         mvc.perform(get("/tenant/actual/uso").header("Authorization", "Bearer valid"))
