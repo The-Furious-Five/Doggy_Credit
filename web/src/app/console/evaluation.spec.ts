@@ -150,7 +150,8 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
     await f.componentInstance.next();
     await f.componentInstance.next();
     f.detectChanges();
-    expect(text(f)).toContain('Falta el consentimiento obligatorio');
+    expect(f.nativeElement.querySelector('ds-alert[role="status"]')?.textContent)
+      .toContain('Falta el consentimiento obligatorio');
     expect(consents.crearConsentimiento).not.toHaveBeenCalled();
 
     f.componentInstance.consentBureau = true;

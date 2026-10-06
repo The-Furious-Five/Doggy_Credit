@@ -30,7 +30,11 @@ for (const tenant of seed.tenants) {
     const bureau = page.getByRole('checkbox', { name: 'Consultar burós de crédito' });
     await expect(bureau).not.toBeChecked();
     await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Falta el consentimiento obligatorio' })).toBeVisible();
+    await expect(page.getByRole('status').filter({
+      has: page.getByText('Falta el consentimiento obligatorio', { exact: true }),
+    })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Consentimiento', exact: true })).toBeVisible();
+    await expect(bureau).not.toBeChecked();
     await bureau.check();
     if (tenant.plan === 'PRO') {
       await page.getByRole('checkbox', { name: 'Consultar cuentas y movimientos bancarios' }).check();

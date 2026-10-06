@@ -51,7 +51,8 @@ describe('Desarrolladores › Webhooks', () => {
     const { fixture, load, page } = render();
     load.flush({ code: 'FEATURE_NOT_IN_PLAN' }, { status: 403, statusText: 'Forbidden' });
     fixture.detectChanges();
-    expect(page.textContent).toContain('Webhooks disponibles con Pro');
+    expect(page.querySelector('ds-alert[role="status"]')?.textContent)
+      .toContain('Webhooks disponibles con Pro');
     expect(page.querySelector('form')).toBeNull();
   });
 

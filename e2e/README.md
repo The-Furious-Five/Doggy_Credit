@@ -91,16 +91,19 @@ propio con volúmenes nuevos, ejecuta la suite, conserva reportes y capturas de
 fallos por 7 días y siempre elimina
 sus contenedores y volúmenes. El despliegue requiere también este job en verde.
 
-E-08 ya está implementada en `feature/LOS-103-webhooks`. La prueba de permisos
-ahora verifica la respuesta consumida por su tarjeta y el formulario vacío PRO
-o el aviso de restricción FREE. Ejecuta el PR con E-08 integrada en su base.
+La rama `feature/LOS-105-e2e-flujo-completo` integra E-08 desde
+`feature/LOS-103-webhooks`, incluida la corrección del lector de cabeceras de
+WireMock. La pantalla de Desarrolladores consulta `GET /webhooks` y la prueba de
+permisos verifica esa respuesta junto con el formulario vacío PRO o el aviso de
+restricción FREE. Los avisos de consentimiento, analytics y Webhooks se buscan
+por su rol accesible `status` y su título exacto, conforme a `ds-alert`.
 E-07 conserva su job de carga independiente; estos cambios no alteran sus
 fixtures ni resultados.
 
-E-09 seguía en progreso en Linear al revisar este fallo. El main local
-`94804ea` aún muestra la pestaña Recomendaciones estática y no publica
-`recomendaciones[]` de C-06 en la evaluación; no se pudo actualizar el main
-remoto en esta sesión. Verifica esas integraciones en la base actual del PR.
+Queda pendiente integrar la publicación de `recomendaciones[]` de C-06 y su
+presentación en el perfil. La versión disponible incluye la función
+`RECOMENDACIONES` del PlanGate y el cálculo para analytics, pero la respuesta de
+la evaluación todavía carece de ese campo y la pestaña muestra un estado estático.
 Las comprobaciones siguen activas: un `404` de Webhooks, recomendaciones
 ausentes o el mensaje estático no cuentan como éxito. Las comprobaciones suaves
 de recomendaciones permiten terminar revocación y auditoría, pero hacen fallar

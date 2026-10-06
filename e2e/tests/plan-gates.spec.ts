@@ -15,7 +15,9 @@ for (const tenant of seed.tenants) {
       await expect(page.getByRole('heading', { name: 'Recomendaciones por producto' })).toBeVisible();
     } else {
       expect(analytics.pro == null).toBe(true);
-      await expect(page.getByRole('heading', { name: 'Analítica avanzada disponible con Pro' })).toBeVisible();
+      await expect(page.getByRole('status').filter({
+        has: page.getByText('Analítica avanzada disponible con Pro', { exact: true }),
+      })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Recomendaciones por producto' })).not.toBeVisible();
     }
 
@@ -52,7 +54,9 @@ for (const tenant of seed.tenants) {
       await expect(page.getByRole('button', { name: 'Guardar Webhooks', exact: true })).toBeEnabled();
     } else {
       expect(await webhooks.json()).toMatchObject({ code: 'FEATURE_NOT_IN_PLAN' });
-      await expect(page.getByRole('heading', { name: 'Webhooks disponibles con Pro', exact: true })).toBeVisible();
+      await expect(page.getByRole('status').filter({
+        has: page.getByText('Webhooks disponibles con Pro', { exact: true }),
+      })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Guardar Webhooks', exact: true })).not.toBeVisible();
     }
   });

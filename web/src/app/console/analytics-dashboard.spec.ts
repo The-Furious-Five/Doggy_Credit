@@ -115,7 +115,8 @@ describe('KPIs de Resumen y Analítica (E-02 / E-05)', () => {
     expect(stats(f)).not.toContain('Conversión');
     expect(f.nativeElement.querySelector('table')).toBeNull();
     expect(text(f)).toContain('Plan Gratis');
-    expect(text(f)).toContain('Analítica avanzada disponible con Pro');
+    expect(f.nativeElement.querySelector('ds-alert[role="status"]')?.textContent)
+      .toContain('Analítica avanzada disponible con Pro');
   });
 
   it('conserva las evaluaciones recientes de main junto con los KPIs de E-02', async () => {
