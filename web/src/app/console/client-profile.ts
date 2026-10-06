@@ -28,6 +28,7 @@ import {
   DsToastService,
   DsTone,
 } from '../design-system';
+import { AssessmentList } from './assessment-list';
 import { day, money, segmentLabel } from './client-format';
 import { SensitiveDataService } from './sensitive-data.service';
 
@@ -55,6 +56,7 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
 @Component({
   selector: 'dc-client-profile',
   imports: [
+    AssessmentList,
     RouterLink,
     DsAlert,
     DsBadge,
@@ -126,7 +128,10 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
         </ds-tab>
 
         <ds-tab value="score" label="Score">
-          <ds-empty-state heading="Score no disponible" description="El score y sus factores aparecerán aquí cuando la evaluación los publique." />
+          <ds-card>
+            <div class="card-head"><h2>Historial de evaluaciones</h2></div>
+            <dc-assessment-list label="Historial de evaluaciones" [applicantId]="c.id" paginate />
+          </ds-card>
         </ds-tab>
 
         <ds-tab value="recomendaciones" label="Recomendaciones">
