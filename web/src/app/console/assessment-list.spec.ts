@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import {
   EvaluacionResumen,
   EvaluacionResumenBandaEnum,
+  EvaluacionResumenDecisionEnum,
   EvaluacionResumenEstadoEnum,
   EvaluacionesService,
   PaginaEvaluaciones,
@@ -87,6 +88,21 @@ describe('Listado de evaluaciones (C-09)', () => {
     expect(text(f)).toContain('Preaprobado');
     expect(text(f)).toContain('Parcial');
     expect(text(f)).toContain('Fallida');
+  });
+
+  it('muestra la decisión de las políticas, incluida «Solicitar datos», y marca los parciales', async () => {
+    api.listarEvaluaciones.mockReturnValue(
+      of({
+        items: [
+          { ...item(0, EvaluacionResumenEstadoEnum.RevisionManual), decision: EvaluacionResumenDecisionEnum.SolicitarDatos },
+          { ...item(1, EvaluacionResumenEstadoEnum.Parcial), decision: EvaluacionResumenDecisionEnum.RevisionManual },
+        ],
+        total: 2,
+      }),
+    );
+    const f = await render();
+    const badges = [...f.nativeElement.querySelectorAll('ds-badge')].map((b: Element) => b.textContent?.trim());
+    expect(badges).toEqual(['Solicitar datos', 'Parcial']);
   });
 
   it('muestra un estado vacío distinto para el Resumen y para un cliente', async () => {

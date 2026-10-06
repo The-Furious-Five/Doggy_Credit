@@ -16,6 +16,10 @@ export interface EvaluacionResumen {
     id: string;
     solicitanteId: string;
     estado: EvaluacionResumenEstadoEnum;
+    /**
+     * Decisión de las políticas (C-05), igual que en Evaluacion. Nunca un rechazo.
+     */
+    decision?: EvaluacionResumenDecisionEnum;
     score: number;
     banda: EvaluacionResumenBandaEnum;
     /**
@@ -31,6 +35,11 @@ export enum EvaluacionResumenEstadoEnum {
     Preaprobado = 'PREAPROBADO',
     RevisionManual = 'REVISION_MANUAL',
     Fallida = 'FALLIDA'
+};
+export enum EvaluacionResumenDecisionEnum {
+    Preaprobado = 'PREAPROBADO',
+    RevisionManual = 'REVISION_MANUAL',
+    SolicitarDatos = 'SOLICITAR_DATOS'
 };
 export enum EvaluacionResumenBandaEnum {
     A = 'A',

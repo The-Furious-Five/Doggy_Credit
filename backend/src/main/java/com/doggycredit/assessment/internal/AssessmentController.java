@@ -70,6 +70,9 @@ class AssessmentController implements EvaluacionesApi {
 			.solicitanteId(summary.applicantId())
 			// El enum de EvaluacionResumen no incluye SOLICITAR_DATOS: se publica el equivalente.
 			.estado(EvaluacionResumen.EstadoEnum.fromValue(summary.status().published().name()))
+			.decision(summary.status().decision()
+				.map(decision -> EvaluacionResumen.DecisionEnum.fromValue(decision.name()))
+				.orElse(null))
 			.score(summary.score())
 			.banda(EvaluacionResumen.BandaEnum.fromValue(summary.band().name()))
 			.montoSolicitado(summary.requestedAmount() == null ? null : summary.requestedAmount().toPlainString())

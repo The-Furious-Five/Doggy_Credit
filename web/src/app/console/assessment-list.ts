@@ -1,7 +1,12 @@
 import { Component, booleanAttribute, inject, input, linkedSignal, numberAttribute } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { EvaluacionResumen, EvaluacionResumenEstadoEnum, EvaluacionesService } from '../api';
+import {
+  EvaluacionResumen,
+  EvaluacionResumenDecisionEnum,
+  EvaluacionResumenEstadoEnum,
+  EvaluacionesService,
+} from '../api';
 import { DsAlert, DsBadge, DsButton, DsEmptyState, DsLink, DsPagination, DsSpinner, DsTable, DsTone } from '../design-system';
 import { day } from './client-format';
 
@@ -14,6 +19,13 @@ const STATUS: Record<EvaluacionResumenEstadoEnum, { label: string; tone: DsTone 
   [EvaluacionResumenEstadoEnum.Parcial]: { label: 'Parcial', tone: 'warning' },
   [EvaluacionResumenEstadoEnum.Pendiente]: { label: 'Pendiente', tone: 'neutral' },
   [EvaluacionResumenEstadoEnum.Fallida]: { label: 'Fallida', tone: 'danger' },
+};
+
+/** Decisión de las políticas (C-05): se muestra en vez del estado cuando viene. */
+const DECISION: Record<EvaluacionResumenDecisionEnum, { label: string; tone: DsTone }> = {
+  [EvaluacionResumenDecisionEnum.Preaprobado]: { label: 'Preaprobado', tone: 'success' },
+  [EvaluacionResumenDecisionEnum.RevisionManual]: { label: 'Revisión manual', tone: 'info' },
+  [EvaluacionResumenDecisionEnum.SolicitarDatos]: { label: 'Solicitar datos', tone: 'neutral' },
 };
 
 /**
@@ -101,8 +113,10 @@ export class AssessmentList {
 
   readonly day = day;
 
+  /** Un parcial se marca como tal (nunca se preaprueba); si no, la decisión, y si no hay, el estado. */
   status(item: EvaluacionResumen) {
-    return STATUS[item.estado];
+    if (item.estado === EvaluacionResumenEstadoEnum.Parcial || !item.decision) return STATUS[item.estado];
+    return DECISION[item.decision];
   }
 
   /** La evaluación guarda el monto sin moneda: se muestra el número, sin inventar el símbolo. */
