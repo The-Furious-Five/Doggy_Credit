@@ -21,6 +21,8 @@ import { Evaluacion } from '../model/evaluacion';
 // @ts-ignore
 import { EvaluacionNueva } from '../model/evaluacionNueva';
 // @ts-ignore
+import { PaginaEvaluaciones } from '../model/paginaEvaluaciones';
+// @ts-ignore
 import { ProblemDetail } from '../model/problemDetail';
 
 // @ts-ignore
@@ -106,6 +108,105 @@ export class EvaluacionesService extends BaseService {
             {
                 context: localVarHttpContext,
                 body: evaluacionNueva,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Evaluaciones del tenant, de la más reciente a la más antigua, paginadas
+     * @endpoint get /credit-assessments
+     * @param solicitanteId Solo las evaluaciones de este solicitante (historial de la pestaña Score)
+     * @param desde Incluye evaluaciones creadas en o después de este instante
+     * @param pagina 
+     * @param tamano 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public listarEvaluaciones(solicitanteId?: string, desde?: string, pagina?: number, tamano?: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<PaginaEvaluaciones>;
+    public listarEvaluaciones(solicitanteId?: string, desde?: string, pagina?: number, tamano?: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PaginaEvaluaciones>>;
+    public listarEvaluaciones(solicitanteId?: string, desde?: string, pagina?: number, tamano?: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PaginaEvaluaciones>>;
+    public listarEvaluaciones(solicitanteId?: string, desde?: string, pagina?: number, tamano?: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarQueryParameters = new OpenApiHttpParams(this.encoder);
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'solicitanteId',
+            <any>solicitanteId,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'desde',
+            <any>desde,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'pagina',
+            <any>pagina,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        localVarQueryParameters = this.addToHttpParams(
+            localVarQueryParameters,
+            'tamano',
+            <any>tamano,
+            QueryParamStyle.Form,
+            true,
+        );
+
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json',
+            'application/problem+json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/credit-assessments`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<PaginaEvaluaciones>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                params: localVarQueryParameters.toHttpParams(),
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
