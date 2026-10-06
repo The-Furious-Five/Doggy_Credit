@@ -639,6 +639,8 @@ paths:
           $ref: "#/components/responses/ErrorNegocio"
         "404":
           $ref: "#/components/responses/ErrorNegocio"
+        "409":
+          $ref: "#/components/responses/ErrorNegocio"
 
   /politicas:
     get:
@@ -687,6 +689,8 @@ paths:
         "403":
           $ref: "#/components/responses/ErrorNegocio"
         "404":
+          $ref: "#/components/responses/ErrorNegocio"
+        "409":
           $ref: "#/components/responses/ErrorNegocio"
 
 components:
