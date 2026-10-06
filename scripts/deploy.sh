@@ -57,8 +57,13 @@ while IFS= read -r old; do
   fi
   # Las carpetas empaquetadas pueden ser de solo lectura (p. ej., temas).
   # Habilitar escritura en directorios permite borrarlas sin elevar privilegios.
-  find "$old" -type d -exec chmod u+rwx {} +
-  rm -rf -- "$old"
+  # La release nueva ya está activa (trap - ERR): si una vieja no se puede borrar
+  # (archivos de otro dueño, como los temas que escribe Keycloak), se avisa y se
+  # reintenta en el próximo despliegue, sin dejar el despliegue en rojo (LOS-109).
+  find "$old" -type d -exec chmod u+rwx {} + 2>/dev/null || true
+  if ! rm -rf -- "$old" 2>/dev/null; then
+    echo "Aviso: no se pudo borrar la release vieja $old; se reintentará en el próximo despliegue." >&2
+  fi
 done < <(find "$base/releases" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
   | sort -rn | cut -d' ' -f2-)
 keep=$(cat infra/release.env "$previous/infra/release.env" 2>/dev/null || true)
