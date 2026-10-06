@@ -75,11 +75,22 @@ describe('Perfil del cliente (B-09)', () => {
   }
   const text = (f: ComponentFixture<ClientProfile>) => (f.nativeElement as HTMLElement).textContent ?? '';
 
+  // jsdom no implementa el diálogo modal nativo. Se restaura al final porque los
+  // specs comparten el mismo jsdom: si no, otros specs heredan estos stubs.
+  const { showModal, close } = HTMLDialogElement.prototype;
+
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal = vi.fn();
+    HTMLDialogElement.prototype.close = vi.fn();
+  });
+
+  afterAll(() => {
+    HTMLDialogElement.prototype.showModal = showModal;
+    HTMLDialogElement.prototype.close = close;
+  });
+
   beforeEach(() => {
     vi.resetAllMocks();
-    // jsdom no implementa el diálogo modal nativo.
-    HTMLDialogElement.prototype.showModal ??= vi.fn();
-    HTMLDialogElement.prototype.close ??= vi.fn();
     consents.listarConsentimientos.mockReturnValue(of([consent(ConsentimientoEstadoEnum.Activo)]));
   });
 
