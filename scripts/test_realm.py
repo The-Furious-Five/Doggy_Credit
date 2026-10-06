@@ -41,7 +41,10 @@ class RealmTest(unittest.TestCase):
         self.assertEqual(tenant['permissions'], {'view': ['admin'], 'edit': ['admin']})
         self.assertFalse(tenant['multivalued'])
         self.assertNotIn('required', tenant, 'La cuenta administradora no tiene tenant')
-        self.assertEqual(profile['unmanagedAttributePolicy'], 'DISABLED')
+        # Keycloak 26.4 representa Disabled con la propiedad ausente (null).
+        # Su enum sólo acepta ENABLED, ADMIN_VIEW y ADMIN_EDIT.
+        self.assertNotIn('unmanagedAttributePolicy', profile,
+                         'Usar el valor por defecto de Keycloak 26.4; DISABLED impide importar el realm')
         self.assertEqual(set(attributes), {'username', 'email', 'firstName', 'lastName', 'tenant_id'})
         for field in ('username', 'email', 'firstName', 'lastName'):
             self.assertEqual(attributes[field]['permissions']['view'], ['admin', 'user'])
