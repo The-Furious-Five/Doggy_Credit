@@ -23,6 +23,7 @@ tags:
   - name: tenant
   - name: admin
   - name: claves-api
+  - name: politicas
   - name: productos
 
 paths:
@@ -639,6 +640,55 @@ paths:
         "404":
           $ref: "#/components/responses/ErrorNegocio"
 
+  /politicas:
+    get:
+      tags: [politicas]
+      operationId: listarPoliticas
+      summary: Reglas de decisión del tenant (solo TENANT_ADMIN)
+      responses:
+        "200":
+          description: Reglas, activas y pausadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Politica"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /politicas/{id}:
+    put:
+      tags: [politicas]
+      operationId: actualizarPolitica
+      summary: Activa o pausa una regla de decisión (solo TENANT_ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PoliticaCambio"
+      responses:
+        "200":
+          description: Regla actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Politica"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -867,6 +917,14 @@ components:
         estado:
           type: string
           enum: [PENDIENTE, PARCIAL, PREAPROBADO, REVISION_MANUAL, FALLIDA]
+        decision:
+          type: string
+          enum: [PREAPROBADO, REVISION_MANUAL, SOLICITAR_DATOS]
+          description: >
+            Decisión de las políticas activas del tenant (C-05). Nunca hay rechazo
+            automático: un rechazo siempre pasa por una persona. Un resultado PARCIAL
+            nunca se preaprueba (queda en REVISION_MANUAL). Con SOLICITAR_DATOS el
+            estado es REVISION_MANUAL.
         score: { type: integer }
         banda: { type: string, enum: [A, B, C, D, E] }
         razones:
@@ -1016,3 +1074,23 @@ components:
         plazoMinimoMeses: { type: integer, minimum: 1, maximum: 360 }
         plazoMaximoMeses: { type: integer, minimum: 1, maximum: 360 }
       required: [activo, montoMinimo, montoMaximo, plazoMinimoMeses, plazoMaximoMeses]
+
+    Politica:
+      type: object
+      description: >
+        Regla de decisión. Las reglas son fijas (el editor está fuera de alcance);
+        el tenant solo las activa o pausa. Ninguna rechaza.
+      properties:
+        id: { type: string, format: uuid }
+        codigo: { type: string, description: "Identificador estable de la regla" }
+        nombre: { type: string }
+        condicion: { type: string, description: "Condición legible, p. ej. \"score ≥ 650\"" }
+        resultado: { type: string, enum: [PREAPROBADO, REVISION_MANUAL, SOLICITAR_DATOS] }
+        activa: { type: boolean }
+      required: [id, codigo, nombre, condicion, resultado, activa]
+
+    PoliticaCambio:
+      type: object
+      properties:
+        activa: { type: boolean }
+      required: [activa]

@@ -121,6 +121,12 @@ errors:
     title: "Clave de API no encontrada"
     detail_template: "La clave no existe, ya fue revocada o pertenece a otro tenant."
 
+  - code: POLICY_NOT_FOUND
+    type: policy-not-found
+    status: 404
+    title: "Regla no encontrada"
+    detail_template: "La regla no existe o pertenece a otro tenant."
+
   - code: PRODUCT_NOT_FOUND
     type: product-not-found
     status: 404

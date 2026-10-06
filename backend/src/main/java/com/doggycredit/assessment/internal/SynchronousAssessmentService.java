@@ -49,10 +49,12 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final QuotaGuard quotaGuard;
 	private final TenantRegistry tenantRegistry;
 	private final ApplicationEventPublisher events;
+	private final PolicyRepository policies;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			SourceCollector sources, CreditScoring scoring, AuditTrail audit,
-			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events) {
+			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events,
+			PolicyRepository policies) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.sources = sources;
@@ -61,6 +63,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.quotaGuard = quotaGuard;
 		this.tenantRegistry = tenantRegistry;
 		this.events = events;
+		this.policies = policies;
 	}
 
 	@Override
@@ -85,7 +88,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		BasicScoreResult score = scoring.score(command.tenantId(),
 				toScorecardInput(command, applicant, collection),
 				toScoringFeatures(applicant, bureauReport(collection)));
-		AssessmentStatus status = collection.partial() ? AssessmentStatus.PARCIAL : AssessmentStatus.REVISION_MANUAL;
+		AssessmentStatus status = decide(command, collection, score);
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
 				command.termMonths(), status, score, command.correlationId());
@@ -94,6 +97,14 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
 		events.publishEvent(assessment.completedEvent());
 		return assessment.toResult();
+	}
+
+	/** C-05: las reglas activas del tenant deciden; nunca hay rechazo automático. */
+	private AssessmentStatus decide(AssessmentCommand command, SourceCollection collection, BasicScoreResult score) {
+		var facts = new PolicyRule.DecisionFacts(score.score(), score.band(), collection.partial(),
+				command.requestedAmount(), collection.receivedCount());
+		var activeRules = policies.findByTenantIdAndActiveTrue(command.tenantId()).stream().map(Policy::rule).toList();
+		return DecisionEngine.decide(facts, activeRules);
 	}
 
 	@Override

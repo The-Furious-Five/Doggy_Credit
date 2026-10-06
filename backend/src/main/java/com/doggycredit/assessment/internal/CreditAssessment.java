@@ -112,8 +112,9 @@ class CreditAssessment {
 	}
 
 	CreditAssessmentCompleted completedEvent() {
+		// El evento v1 no conoce SOLICITAR_DATOS: se publica el estado equivalente.
 		return new CreditAssessmentCompleted(UUID.randomUUID(), Instant.now(), tenantId, id, applicantId,
-				AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band), List.of(reasons), modelVersion,
+				AssessmentStatus.valueOf(status).published(), score, ScoreBand.valueOf(band), List.of(reasons), modelVersion,
 				simulated, correlationId);
 	}
 

@@ -9,6 +9,7 @@ api/clavesApi.service.ts
 api/consentimientos.service.ts
 api/evaluaciones.service.ts
 api/integraciones.service.ts
+api/politicas.service.ts
 api/productos.service.ts
 api/solicitantes.service.ts
 api/tenant.service.ts
@@ -36,6 +37,8 @@ model/paginaEvaluaciones.ts
 model/paginaSolicitantes.ts
 model/perfilFinanciero360.ts
 model/perfilFinanciero360FuentesInner.ts
+model/politica.ts
+model/politicaCambio.ts
 model/preferenciasTenant.ts
 model/problemDetail.ts
 model/producto.ts

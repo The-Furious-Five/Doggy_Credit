@@ -114,6 +114,17 @@ class AssessmentListTests {
 	}
 
 	@Test
+	void unaEvaluacionQuePideDatosSeListaComoRevisionManual() throws Exception {
+		// C-05: el enum `estado` del contrato v1 no incluye SOLICITAR_DATOS (agregarlo rompía a
+		// los consumidores); sin publicar el equivalente, el listado respondería 500.
+		insert(tenant, applicant, NOW, "SOLICITAR_DATOS", 820, "A");
+
+		list(tenant, "")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.items[0].estado").value("REVISION_MANUAL"));
+	}
+
+	@Test
 	void sinTokenResponde401YRechazaParametrosFueraDeRango() throws Exception {
 		mvc.perform(get("/credit-assessments")).andExpect(status().isUnauthorized());
 		// Antes respondía 500 (ConstraintViolationException sin traducir); es error del cliente.
