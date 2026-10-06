@@ -1137,6 +1137,16 @@ components:
         modelVersion: { type: string }
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
+        recomendaciones:
+          type: array
+          description: >
+            C-06: productos del catálogo del tenant para los que el titular es elegible,
+            del más adecuado al menos, cada uno con su razón. Solo en los planes con
+            recomendaciones (PRO y ENTERPRISE). Ausente si el plan no las incluye o si el
+            resultado es PARCIAL (no se recomienda con fuentes fallidas); vacío si ningún
+            producto aplica.
+          items:
+            $ref: "#/components/schemas/Recomendacion"
 
 
     RegistroAuditoria:
@@ -1302,3 +1312,13 @@ components:
       properties:
         activa: { type: boolean }
       required: [activa]
+
+    Recomendacion:
+      type: object
+      description: Un producto recomendado. Es una recomendación, no una aprobación.
+      properties:
+        tipoProducto: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        moneda: { type: string, enum: [BOB, USD] }
+        montoSugerido: { type: string, description: "Decimal como string: monto ajustado a la capacidad de pago y al rango del producto" }
+        razon: { type: string, description: "Por qué aplica, en lenguaje legible" }
+      required: [tipoProducto, moneda, montoSugerido, razon]

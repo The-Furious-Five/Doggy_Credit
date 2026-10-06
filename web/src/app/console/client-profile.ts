@@ -28,6 +28,7 @@ import {
   DsToastService,
   DsTone,
 } from '../design-system';
+import { ApplicantRecommendations } from './applicant-recommendations';
 import { AssessmentList } from './assessment-list';
 import { day, money, segmentLabel } from './client-format';
 import { SensitiveDataService } from './sensitive-data.service';
@@ -56,6 +57,7 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
 @Component({
   selector: 'dc-client-profile',
   imports: [
+    ApplicantRecommendations,
     AssessmentList,
     RouterLink,
     DsAlert,
@@ -135,7 +137,10 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
         </ds-tab>
 
         <ds-tab value="recomendaciones" label="Recomendaciones">
-          <ds-empty-state heading="Sin recomendaciones" description="Las recomendaciones de productos aparecerán aquí después de evaluar al cliente." />
+          <ds-card>
+            <div class="card-head"><h2>Productos recomendados</h2></div>
+            <dc-applicant-recommendations [applicantId]="c.id" />
+          </ds-card>
         </ds-tab>
 
         <ds-tab value="fuentes" label="Fuentes">
