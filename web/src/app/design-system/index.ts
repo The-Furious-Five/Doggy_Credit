@@ -8,3 +8,6 @@ export * from './navigation';
 export * from './dialog';
 export * from './toast';
 export * from './theme';
+export * from './marquee';
+export * from './reveal';
+export * from './slides';

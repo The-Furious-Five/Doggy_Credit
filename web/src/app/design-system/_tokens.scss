@@ -173,7 +173,8 @@
   --ds-icon-size: 1.25rem;
   --ds-icon-size-sm: 1rem;
   --ds-dot-size: 0.5rem;
-  --ds-content-width: 72rem;
+  // Margen lateral de página: las secciones usan todo el ancho con este respiro.
+  --ds-page-gutter: clamp(1rem, 3vw, 3rem);
   --ds-reading-width: 42rem;
   --ds-form-width: 26rem;
   --ds-dialog-width: 28rem;
@@ -197,6 +198,24 @@
   --ds-z-sticky: 10;
   --ds-z-popover: 50;
   --ds-z-toast: 100;
+
+  // Marketing (landing): titulares grandes, movimiento expresivo y medios.
+  --ds-hero: clamp(3rem, 1.2rem + 6.6vw, 7.5rem);
+  --ds-statement: clamp(2.25rem, 0.9rem + 5.2vw, 6rem);
+  --ds-leading-hero: 0.98;
+  --ds-duration-reveal: 800ms;
+  --ds-duration-slide: 650ms;
+  --ds-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-reveal-distance: 2.5rem;
+  --ds-reveal-step: 90ms;
+  --ds-logo-height: 2.75rem;
+  --ds-logo-gap: clamp(2.5rem, 5vw, 5rem);
+  --ds-media-height: clamp(18rem, 40vw, 36rem);
+  --ds-sheet-overlap: var(--ds-space-12);
+  // Velo sólido sobre fotos: mismo en ambos temas, el texto encima es claro.
+  --ds-scrim: rgba(8, 12, 11, 0.5);
+  --ds-on-media: #fffefd;
+  --ds-on-media-muted: #e4e8e6;
 }
 
 @media (prefers-color-scheme: dark) {

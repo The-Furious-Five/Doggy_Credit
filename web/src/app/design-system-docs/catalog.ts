@@ -36,6 +36,8 @@ import {
   DsTable,
   DsTabs,
   DsThemeService,
+  DsThemeToggle,
+  DsMarquee,
   DsToastService,
 } from '../design-system';
 
@@ -45,6 +47,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 @Component({
   selector: 'dc-design-system',
   imports: [
+    DsThemeToggle,
+    DsMarquee,
     FormsModule,
     RouterLink,
     DsAlert,

@@ -2,18 +2,8 @@
 
 Plataforma SaaS multi-tenant de inteligencia crediticia. Los 5 furiosos.
 
-Este repositorio es el código; **no** duplica el informe de arquitectura,
-el Product Backlog ni la guía de inducción — esos viven un nivel arriba, en
-`../DoggyCredit/`:
-
-- [`../DoggyCredit/DoggyCredit_Guia_Induccion_Sprint1.pdf`](../DoggyCredit/DoggyCredit_Guia_Induccion_Sprint1.pdf) — **empiecen por aquí**.
-- `../DoggyCredit/DoggyCredit_Backlogs.xlsx` — Product Backlog y Sprint 1 Backlog (fuente de verdad de horas y estado).
-- `../DoggyCredit/mesa_de_diseno/` — el documento de arquitectura completo y las 9 posiciones de la mesa de diseño.
-
 ## Estado (28 de septiembre de 2026)
 
-Trabajo de Nicole (Dev4, Technical Lead / Scrum Master) previo y del Día 1
-del Sprint 1 (`HAB-01`, `HAB-07`, `SPIKE-3`):
 
 - ✅ Estructura del monorepo, `.gitignore`, `.env.example`.
 - ✅ `seed/tenants.yaml` — única fuente de tenants, usuarios e IDs de demo.

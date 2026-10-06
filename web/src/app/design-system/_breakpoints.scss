@@ -9,3 +9,14 @@
     @content;
   }
 }
+// Monitores grandes y televisores: la interfaz escala para leerse a distancia.
+@mixin large {
+  @media (min-width: 120rem) {
+    @content;
+  }
+}
+@mixin huge {
+  @media (min-width: 160rem) {
+    @content;
+  }
+}

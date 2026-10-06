@@ -1,5 +1,8 @@
 @use '../design-system/breakpoints' as screen;
 
+// La landing compone piezas del Design System (ds-cover, ds-sheet, ds-media,
+// dsReveal, ds-slides, ds-marquee). Aquí solo hay layout con tokens.
+
 // Cabecera
 .site-header {
   position: sticky;
@@ -17,94 +20,132 @@
 }
 .site-nav {
   display: flex;
-  gap: var(--ds-space-6);
+  gap: var(--ds-space-8);
 }
 .site-nav a {
   color: var(--ds-muted);
-  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
 }
 .site-nav a:hover {
   color: var(--ds-text);
 }
 
-// Hero
+// 1. Hero: foto a pantalla completa, texto abajo a la izquierda.
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--ds-space-16);
-  padding-block: var(--ds-space-20) var(--ds-space-16);
+  align-items: end;
 }
 .hero__copy {
-  container-type: inline-size;
-}
-.hero__title {
-  font-size: var(--ds-display-fit);
-}
-.preview {
-  box-shadow: var(--ds-shadow-raised);
-}
-.preview__score {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--ds-space-5);
+  gap: var(--ds-space-6);
+  padding-block: var(--ds-space-24);
 }
-.icon-tile {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: var(--ds-space-10);
-  height: var(--ds-space-10);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface-muted);
-  color: var(--ds-accent-text);
+.hero__eyebrow {
+  color: var(--ds-brand-sand);
+}
+.hero__lead {
+  max-width: var(--ds-reading-width);
+  font-size: var(--ds-text-xl);
+}
+.hero__secondary {
+  color: var(--ds-on-media);
+  font-weight: var(--ds-weight-semibold);
 }
 
-// Fuentes de datos
-.sources {
-  display: grid;
-  justify-items: center;
-  gap: var(--ds-space-5);
-  padding-block: var(--ds-space-10);
-  border-block: var(--ds-hairline) solid var(--ds-border);
+// 2. Hoja que tapa el hero.
+.intro {
+  padding-block: var(--ds-space-24);
 }
-.sources__list {
+.intro__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ds-space-16);
+}
+.intro__copy {
+  gap: var(--ds-space-8);
+}
+.intro__facts {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--ds-space-3) var(--ds-space-10);
+  gap: var(--ds-space-10);
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.sources__list li {
-  display: flex;
-  align-items: center;
-  gap: var(--ds-space-2);
+.intro__facts li {
+  display: grid;
+  gap: var(--ds-space-1);
+}
+.intro__facts strong {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-title);
+  letter-spacing: var(--ds-tracking-display);
+  color: var(--ds-primary);
+}
+.intro__facts span {
   color: var(--ds-muted);
-  font-weight: var(--ds-weight-medium);
+}
+.preview {
+  display: grid;
+  gap: var(--ds-space-6);
+  padding: var(--ds-space-8);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface-raised);
+  box-shadow: var(--ds-shadow-raised);
+}
+.preview__score {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ds-space-6);
+}
+.preview__need {
+  padding-top: var(--ds-space-6);
+  border-top: var(--ds-hairline) solid var(--ds-border);
+}
+.icon-tile {
+  display: inline-grid;
+  place-items: center;
+  width: var(--ds-control-height);
+  height: var(--ds-control-height);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-muted);
+  color: var(--ds-primary);
 }
 
-// Secciones
+// Encabezados de sección.
 .section {
-  gap: var(--ds-space-12);
-  padding-block: var(--ds-space-24) 0;
+  display: grid;
+  gap: var(--ds-space-16);
+  padding-block: var(--ds-space-24);
 }
 .section__heading {
   max-width: var(--ds-reading-width);
 }
-.section__heading h2,
-.security h2,
-.cta h2 {
-  font-size: var(--ds-title);
-  letter-spacing: var(--ds-tracking-display);
-}
 .section__heading--center {
-  align-self: center;
+  justify-self: center;
   text-align: center;
 }
-.steps,
-.features {
+
+// 3. Integraciones: banda clara con una sola franja de logos.
+.integrations {
+  display: grid;
+  gap: var(--ds-space-10);
+  padding-block: var(--ds-space-24);
+}
+.integrations__heading {
+  justify-items: center;
+  text-align: center;
+}
+.integrations__heading .ds-statement {
+  max-width: var(--ds-reading-width);
+}
+.integrations__note {
+  text-align: center;
+}
+
+// 4. Cómo funciona: números grandes y líneas, sin tarjetas.
+.how__steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--ds-space-10);
@@ -112,35 +153,105 @@
   padding: 0;
   list-style: none;
 }
-.features {
-  row-gap: var(--ds-space-12);
+.how__steps li {
+  display: grid;
+  align-content: start;
+  gap: var(--ds-space-3);
+  padding-top: var(--ds-space-6);
+  border-top: var(--ds-control-stroke) solid var(--ds-text);
 }
-.features__icon {
-  color: var(--ds-accent-text);
-}
-.facts {
-  display: flex;
-  gap: var(--ds-space-8);
-  padding-top: var(--ds-space-3);
-  border-top: var(--ds-hairline) solid var(--ds-border);
-}
-.facts dd {
-  font-weight: var(--ds-weight-medium);
+.how__number {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-statement);
+  font-weight: var(--ds-weight-bold);
+  line-height: var(--ds-leading-hero);
+  color: var(--ds-primary);
 }
 
-// Seguridad
+// 5. Frase de marca a pantalla completa.
+.statement {
+  display: grid;
+  align-items: center;
+}
+.statement__text {
+  max-width: 18ch;
+}
+.statement__accent {
+  color: var(--ds-brand-honey);
+}
+
+// 6. Productos: foto grande y texto, en diapositivas.
+.products {
+  gap: var(--ds-space-12);
+}
+.products .section__heading {
+  max-width: none;
+}
+.product {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--ds-space-12);
+}
+.product__media {
+  height: var(--ds-media-height);
+  border-radius: var(--ds-radius-xl);
+}
+.product__copy {
+  gap: var(--ds-space-5);
+}
+.product__name {
+  margin: 0;
+  font-size: var(--ds-title);
+  letter-spacing: var(--ds-tracking-display);
+}
+.product__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-10);
+  margin: 0;
+}
+.product__facts dd {
+  margin: 0;
+  font-size: var(--ds-text-lg);
+  font-weight: var(--ds-weight-semibold);
+}
+
+// 7. Plataforma.
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ds-space-16) var(--ds-space-10);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.features li {
+  display: grid;
+  align-content: start;
+  gap: var(--ds-space-3);
+}
+.features__icon {
+  width: var(--ds-control-height);
+  height: var(--ds-control-height);
+  color: var(--ds-primary);
+}
+
+// 8. Seguridad.
 .security {
-  margin-top: var(--ds-space-24);
-  padding-block: var(--ds-space-20);
+  padding-block: var(--ds-space-24);
 }
 .security__inner {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--ds-space-16);
 }
+.security__intro {
+  gap: var(--ds-space-6);
+}
 .security__list {
   display: grid;
-  gap: var(--ds-space-6);
+  gap: var(--ds-space-8);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -148,29 +259,44 @@
 .security__list li {
   display: flex;
   gap: var(--ds-space-4);
-  color: var(--ds-accent-text);
+}
+.security__list .ds-icon {
+  flex: none;
+  width: var(--ds-icon-size);
+  height: var(--ds-icon-size);
+  margin-top: var(--ds-inset);
+  color: var(--ds-accent);
 }
 .security__list strong {
-  color: var(--ds-text);
+  font-size: var(--ds-text-lg);
 }
 
-// Planes
+// 9. Planes: superficies lisas, sin bordes; Pro sobre el verde de marca.
 .plans {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--ds-space-6);
   width: 100%;
   max-width: calc(var(--ds-form-width) * 2 + var(--ds-space-6));
-  margin-inline: auto;
+  justify-self: center;
 }
-.plan--featured {
-  border-color: var(--ds-primary);
-  box-shadow: var(--ds-shadow);
+.plan {
+  display: grid;
+  align-content: start;
+  gap: var(--ds-space-6);
+  padding: var(--ds-space-10);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface-muted);
+}
+.plan h3 {
+  margin: 0;
+  font-size: var(--ds-text-xl);
 }
 .plan__price {
+  margin: 0;
   font-family: var(--ds-font-display);
   font-size: var(--ds-title);
-  font-weight: var(--ds-weight-semibold);
+  font-weight: var(--ds-weight-bold);
   letter-spacing: var(--ds-tracking-display);
 }
 .checklist {
@@ -186,24 +312,38 @@
   gap: var(--ds-space-3);
 }
 .checklist .ds-icon {
-  color: var(--ds-success);
+  color: var(--ds-primary);
 }
 .plans__note {
   text-align: center;
 }
 
-// Cierre
+// 10. Cierre con foto.
 .cta {
   display: grid;
-  justify-items: center;
-  gap: var(--ds-space-6);
-  padding-bottom: var(--ds-space-24);
-  text-align: center;
+  min-height: var(--ds-media-height);
+  align-items: center;
 }
+.cta__inner {
+  display: grid;
+  justify-items: start;
+  gap: var(--ds-space-8);
+  padding-block: var(--ds-space-24);
+}
+.cta__inner .ds-statement {
+  max-width: 20ch;
+}
+
+// Pie
 .site-footer {
-  padding-block: var(--ds-space-6);
+  display: grid;
+  gap: var(--ds-space-3);
+  padding-block: var(--ds-space-8);
   border-top: var(--ds-hairline) solid var(--ds-border);
   background: var(--ds-surface);
+}
+.site-footer__credits {
+  margin: 0;
 }
 
 @include screen.compact {
@@ -211,29 +351,30 @@
   .site-header__login {
     display: none;
   }
-  .hero,
+  // Logo a la izquierda; tema y acción principal juntos a la derecha, en una fila.
+  .site-header__actions {
+    flex-wrap: nowrap;
+    gap: var(--ds-space-2);
+  }
+  .hero__copy {
+    padding-block: var(--ds-space-16);
+  }
+  .intro,
+  .section,
+  .integrations,
+  .security {
+    padding-block: var(--ds-space-16);
+  }
+  .intro__inner,
+  .how__steps,
+  .product,
+  .features,
   .security__inner,
   .plans {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--ds-space-10);
   }
-  .hero {
-    padding-block: var(--ds-space-10);
-  }
-  .steps,
-  .features {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--ds-space-8);
-  }
-  .section {
-    gap: var(--ds-space-8);
-    padding-top: var(--ds-space-16);
-  }
-  .security {
-    margin-top: var(--ds-space-16);
-    padding-block: var(--ds-space-12);
-  }
-  .cta {
-    padding-bottom: var(--ds-space-16);
+  .plan {
+    padding: var(--ds-space-6);
   }
 }

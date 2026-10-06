@@ -1,6 +1,11 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
+import {
+  provideRouter,
+  withComponentInputBinding,
+  withInMemoryScrolling,
+  withRouterConfig,
+} from '@angular/router';
 import { provideAuth } from 'angular-auth-oidc-client';
 import { BASE_PATH } from './api/variables';
 import { routes } from './app.routes';
@@ -14,6 +19,8 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withInMemoryScrolling({ anchorScrolling: 'enabled' }),
+      // Volver a hacer clic en un enlace del menú (misma URL) debe volver a llevar a su sección.
+      withRouterConfig({ onSameUrlNavigation: 'reload' }),
       withComponentInputBinding(),
     ),
     { provide: BASE_PATH, useValue: `${window.location.origin}/api/v1` },

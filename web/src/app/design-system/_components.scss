@@ -1278,3 +1278,313 @@ textarea.ds-control {
     background: Highlight;
   }
 }
+
+// Botón de tema: la luna (claro) y el sol (oscuro) se cruzan girando.
+// Movimiento reducido: _foundation.scss anula la duración de las transiciones.
+.ds-theme-toggle {
+  position: relative;
+  overflow: hidden;
+}
+.ds-theme-toggle__icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  transition:
+    transform var(--ds-duration-slow) var(--ds-ease),
+    opacity var(--ds-duration) var(--ds-ease);
+}
+.ds-theme-toggle[data-theme-state='light'] .ds-theme-toggle__icon--sun,
+.ds-theme-toggle[data-theme-state='dark'] .ds-theme-toggle__icon--moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.4);
+}
+.ds-theme-toggle[data-theme-state='light'] .ds-theme-toggle__icon--moon,
+.ds-theme-toggle[data-theme-state='dark'] .ds-theme-toggle__icon--sun {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+
+// ---------------------------------------------------------------------------
+// Movimiento de la landing (estilo editorial): marquesina, aparición al hacer
+// scroll, secciones que se tapan y diapositivas. Movimiento reducido: sin
+// desplazamientos (ver también _foundation.scss).
+// ---------------------------------------------------------------------------
+
+// Marquesina de logos: dos copias del grupo; la pista recorre el ancho de una.
+.ds-marquee {
+  display: block;
+  overflow: hidden;
+  padding-block: var(--ds-space-4);
+}
+.ds-marquee:focus-visible {
+  outline: var(--ds-focus-width) solid var(--ds-focus);
+  outline-offset: var(--ds-focus-offset);
+}
+.ds-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: ds-marquee var(--ds-marquee-duration, 40s) linear infinite;
+}
+.ds-marquee[data-direction='left'] .ds-marquee__track {
+  animation-direction: reverse;
+}
+.ds-marquee:hover .ds-marquee__track,
+.ds-marquee:focus-within .ds-marquee__track {
+  animation-play-state: paused;
+}
+.ds-marquee__group {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-logo-gap);
+  margin: 0;
+  padding: 0 var(--ds-logo-gap) 0 0;
+  list-style: none;
+}
+.ds-marquee__item {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.ds-marquee__logo {
+  display: block;
+  height: var(--ds-logo-height);
+  width: auto;
+  max-width: none;
+  transition: transform var(--ds-duration) var(--ds-ease-out);
+}
+.ds-marquee__logo:hover {
+  transform: scale(1.08);
+}
+.ds-marquee__label {
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xl);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: var(--ds-tracking);
+  white-space: nowrap;
+}
+// De izquierda a derecha: arranca desplazada una copia y vuelve a 0.
+@keyframes ds-marquee {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+// Aparición al hacer scroll (directiva dsReveal).
+.ds-reveal {
+  opacity: 0;
+  transition:
+    opacity var(--ds-duration-reveal) var(--ds-ease-out),
+    transform var(--ds-duration-reveal) var(--ds-ease-out);
+  transition-delay: calc(var(--ds-reveal-order, 0) * var(--ds-reveal-step));
+}
+.ds-reveal[data-reveal='up'] {
+  transform: translateY(var(--ds-reveal-distance));
+}
+.ds-reveal[data-reveal='left'] {
+  transform: translateX(calc(var(--ds-reveal-distance) * -1));
+}
+.ds-reveal[data-reveal='right'] {
+  transform: translateX(var(--ds-reveal-distance));
+}
+.ds-reveal[data-reveal='scale'] {
+  transform: scale(0.94);
+}
+.ds-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+// Secciones que se tapan: dentro de .ds-cover-stack, una .ds-cover (alto de
+// una pantalla) queda fija arriba y la sección siguiente sube cubriéndola.
+.ds-cover-stack > * {
+  position: relative;
+  background: var(--ds-bg);
+}
+.ds-cover-stack > .ds-cover {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+// Hoja que entra tapando: esquinas superiores redondeadas y sombra.
+.ds-cover-stack > .ds-sheet {
+  margin-top: calc(var(--ds-sheet-overlap) * -1);
+  border-radius: var(--ds-radius-xl) var(--ds-radius-xl) 0 0;
+  box-shadow: var(--ds-shadow-raised);
+}
+
+// Medios a sangre: foto que cubre su caja, con velo sólido para el texto.
+.ds-media {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+.ds-media__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ds-media--scrim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ds-scrim);
+}
+.ds-on-media {
+  position: relative;
+  z-index: 1;
+  color: var(--ds-on-media);
+}
+.ds-on-media .ds-lead,
+.ds-on-media .ds-muted {
+  color: var(--ds-on-media-muted);
+}
+
+// Titulares de la landing.
+.ds-hero-title {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-hero);
+  font-weight: var(--ds-weight-bold);
+  line-height: var(--ds-leading-hero);
+  letter-spacing: var(--ds-tracking-display);
+}
+.ds-statement {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-statement);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-display);
+  text-wrap: balance;
+}
+
+// Diapositivas (ds-slides): se apilan en la misma celda; solo la activa (y la
+// que sale durante la transición) es visible.
+.ds-slides {
+  display: grid;
+  gap: var(--ds-space-8);
+}
+.ds-slides__viewport {
+  display: grid;
+  overflow: hidden;
+}
+.ds-slide {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.ds-slide:not(.is-active):not(.is-leaving) {
+  visibility: hidden;
+}
+.ds-slides__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--ds-space-2);
+}
+.ds-slides__tab {
+  min-height: var(--ds-control-height);
+  padding: 0 var(--ds-space-6);
+  border: 0;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
+  font: inherit;
+  font-weight: var(--ds-weight-semibold);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-duration) var(--ds-ease),
+    color var(--ds-duration) var(--ds-ease),
+    transform var(--ds-duration-fast) var(--ds-ease);
+}
+.ds-slides__tab:hover {
+  background: var(--ds-surface-strong);
+}
+.ds-slides__tab:active {
+  transform: scale(var(--ds-press-scale));
+}
+.ds-slides__tab[aria-selected='true'] {
+  background: var(--ds-primary);
+  color: var(--ds-on-primary);
+}
+.ds-slides__tab:focus-visible,
+.ds-slides__arrow:focus-visible,
+.ds-slides__dot:focus-visible {
+  outline: var(--ds-focus-width) solid var(--ds-focus);
+  outline-offset: var(--ds-focus-offset);
+}
+.ds-slides__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-6);
+}
+.ds-slides__arrow {
+  display: grid;
+  place-items: center;
+  width: var(--ds-control-height);
+  height: var(--ds-control-height);
+  border: 0;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-primary);
+  color: var(--ds-on-primary);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-duration-fast) var(--ds-ease),
+    transform var(--ds-duration-fast) var(--ds-ease);
+}
+.ds-slides__arrow:hover {
+  background: var(--ds-primary-hover);
+}
+.ds-slides__arrow:active {
+  transform: scale(var(--ds-press-scale));
+}
+.ds-slides__arrow-icon--back {
+  transform: scaleX(-1);
+}
+.ds-slides__dots {
+  display: flex;
+  gap: var(--ds-space-2);
+}
+.ds-slides__dot {
+  width: var(--ds-dot-size);
+  height: var(--ds-dot-size);
+  padding: 0;
+  border: 0;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-strong);
+  cursor: pointer;
+  transition:
+    width var(--ds-duration) var(--ds-ease-out),
+    background-color var(--ds-duration) var(--ds-ease);
+}
+.ds-slides__dot[aria-selected='true'] {
+  width: calc(var(--ds-dot-size) * 4);
+  background: var(--ds-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-marquee__track {
+    width: auto;
+    animation: none;
+  }
+  .ds-marquee__group {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: var(--ds-space-8);
+  }
+  .ds-marquee__group[aria-hidden='true'],
+  .ds-marquee__item[aria-hidden='true'] {
+    display: none;
+  }
+  .ds-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

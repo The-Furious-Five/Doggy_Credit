@@ -1,4 +1,5 @@
 @use 'tokens';
+@use 'breakpoints' as screen;
 
 * {
   box-sizing: border-box;
@@ -8,6 +9,17 @@ html {
   scroll-padding-top: var(--ds-space-24);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+// Los tokens están en rem: subir la base escala texto, controles y espacios a la vez.
+@include screen.large {
+  html {
+    font-size: 112.5%;
+  }
+}
+@include screen.huge {
+  html {
+    font-size: 137.5%;
+  }
 }
 body {
   margin: 0;
@@ -87,9 +99,11 @@ img {
 }
 
 // Layout
+// Ancho completo con margen lateral proporcional. Limitar el ancho es una
+// decisión de cada bloque (textos con --ds-reading-width), no de la página.
 .ds-container {
-  width: min(100% - var(--ds-space-8), var(--ds-content-width));
-  margin-inline: auto;
+  width: 100%;
+  padding-inline: var(--ds-page-gutter);
 }
 .ds-stack {
   display: flex;
@@ -175,6 +189,12 @@ img {
 // hereda roles reasignados con contraste AA.
 .ds-brand-surface {
   @include tokens.brand;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+}
+// Superficie clara en ambos temas (p. ej. franjas de logos de marca, hechos para fondo claro).
+.ds-light-surface {
+  @include tokens.light;
   background: var(--ds-surface);
   color: var(--ds-text);
 }

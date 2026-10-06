@@ -82,7 +82,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--ds-space-3);
-  padding: var(--ds-space-2) var(--ds-space-8);
+  padding: var(--ds-space-2) var(--ds-page-gutter);
   border-bottom: var(--ds-hairline) solid var(--ds-border);
   background: var(--ds-surface);
 }
@@ -95,9 +95,7 @@
 .console-main {
   flex: 1;
   width: 100%;
-  max-width: var(--ds-content-width);
-  margin-inline: auto;
-  padding: var(--ds-space-10) var(--ds-space-8) var(--ds-space-16);
+  padding: var(--ds-space-10) var(--ds-page-gutter) var(--ds-space-16);
 }
 
 @include screen.compact {

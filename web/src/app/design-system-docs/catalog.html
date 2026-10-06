@@ -142,6 +142,29 @@
               /><span>Oscuro</span></label
             >
           </fieldset>
+          <div class="ds-row">
+            <ds-theme-toggle />
+            <span class="ds-caption"
+              >Botón de tema de la consola y la landing: un clic alterna claro y oscuro. Luna en
+              claro, sol en oscuro.</span
+            >
+          </div>
+          <div class="ds-stack-sm">
+            <ds-marquee
+              label="Ejemplo de marquesina"
+              [items]="[
+                { label: 'Fuente uno' },
+                { label: 'Fuente dos' },
+                { label: 'Fuente tres' },
+                { label: 'Fuente cuatro' }
+              ]"
+            />
+            <span class="ds-caption"
+              >Marquesina (<code>ds-marquee</code>): logos (<code>image</code>) o nombres sueltos, sin
+              contenedores, que se desplazan de izquierda a derecha. Se pausa con el mouse o el foco
+              y queda quieta con movimiento reducido.</span
+            >
+          </div>
           <dl class="roles">
             <div class="role">
               <dt class="ds-row ds-mono"><ds-swatch color="primary" shape="dot" />primary</dt>

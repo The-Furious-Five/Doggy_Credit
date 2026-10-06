@@ -68,7 +68,7 @@ temas. Se usan para la marca y la documentación; las pantallas consumen roles.
 | Forma | `--ds-radius-xs/sm/md/lg/xl/pill`; controles en md, tarjetas en lg |
 | Profundidad | `--ds-shadow-sm`, `--ds-shadow`, `--ds-shadow-raised`, `--ds-backdrop`, `--ds-z-sticky/toast` |
 | Movimiento | `--ds-duration-fast/duration/slow`, `--ds-ease`, `--ds-press-scale` |
-| Layout | `--ds-content-width`, `--ds-reading-width`, `--ds-form-width`, `--ds-dialog-width`, `--ds-sidebar-width` |
+| Layout | `--ds-page-gutter` (margen lateral; las páginas usan todo el ancho), `--ds-reading-width`, `--ds-form-width`, `--ds-dialog-width`, `--ds-sidebar-width` |
 
 Los nombres describen intención. Nunca usar el color verde para representar
 éxito directamente: usar `success`, que puede cambiar por tema. Las constantes

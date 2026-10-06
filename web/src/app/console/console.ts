@@ -14,8 +14,7 @@ import {
   DsMenu,
   DsMenuItem,
   DsProgress,
-  DsTheme,
-  DsThemeService,
+  DsThemeToggle,
   DsToastService,
 } from '../design-system';
 
@@ -35,6 +34,7 @@ interface NavigationGroup {
     DsIcon,
     DsLink,
     DsMenu,
+    DsThemeToggle,
     DsProgress,
   ],
   styleUrl: './console.scss',
@@ -117,13 +117,7 @@ interface NavigationGroup {
             <ds-badge tone="warning">Datos simulados</ds-badge>
           </div>
           <div class="ds-row">
-            <ds-menu
-              label="Tema"
-              icon="sun"
-              variant="quiet"
-              [items]="themes"
-              (itemSelected)="setTheme($event)"
-            />
+            <ds-theme-toggle />
             <span class="ds-caption">{{ user().name || 'Cargando usuario…' }}</span>
             <ds-menu
               [label]="'Cuenta de ' + (user().name || 'usuario')"
@@ -143,7 +137,6 @@ interface NavigationGroup {
 })
 export class Console {
   private readonly router = inject(Router);
-  private readonly theme = inject(DsThemeService);
   private readonly auth = inject(AuthSessionService);
   private readonly toast = inject(DsToastService);
   private readonly destroyRef = inject(DestroyRef);
@@ -190,11 +183,6 @@ export class Console {
       }))
       .filter((group) => group.items.length > 0),
   );
-  readonly themes: DsMenuItem[] = [
-    { id: 'system', label: 'Según el sistema' },
-    { id: 'light', label: 'Claro', icon: 'sun' },
-    { id: 'dark', label: 'Oscuro', icon: 'moon' },
-  ];
   readonly account = computed<DsMenuItem[]>(() => [
     ...(this.canAccess('/app/configuracion')
       ? [{ id: 'profile', label: 'Mi perfil', icon: 'user' as const, disabled: this.loggingOut() }]
@@ -213,9 +201,6 @@ export class Console {
     return isAuthenticated && canAccessAppRoute(path, roles);
   }
 
-  setTheme(id: string): void {
-    this.theme.preference.set(id as DsTheme);
-  }
   onAccount(id: string): void {
     if (this.loggingOut()) return;
     if (id === 'profile' && this.canAccess('/app/configuracion')) {
