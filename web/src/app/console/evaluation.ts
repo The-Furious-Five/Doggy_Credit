@@ -1,6 +1,23 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Observable, catchError, firstValueFrom, map, of, switchMap, throwError } from 'rxjs';
+import {
+  ConsentimientoNuevoFuentesEnum,
+  ConsentimientosService,
+  Evaluacion,
+  EvaluacionDecisionEnum,
+  EvaluacionEstadoEnum,
+  EvaluacionesService,
+  FuenteIntegracion,
+  Integracion,
+  IntegracionEstadoEnum,
+  IntegracionesService,
+  Segmento,
+  SolicitanteNuevoMonedaEnum,
+  SolicitantesService,
+} from '../api';
 import {
   DsAlert,
   DsBadge,
@@ -9,15 +26,62 @@ import {
   DsCheckbox,
   DsField,
   DsIcon,
+  DsIconName,
   DsInput,
   DsLink,
   DsNumberField,
-  DsRadio,
+  DsOption,
   DsSelect,
+  DsSkeleton,
   DsStat,
   DsSteps,
+  DsTone,
 } from '../design-system';
-import { connectors, connectorStatus, products, purposeOptions } from '../data';
+import { money } from './client-format';
+
+const SEGMENTS: DsOption<Segmento>[] = [
+  { value: Segmento.Persona, label: 'Persona' },
+  { value: Segmento.Emprendedor, label: 'Emprendedor' },
+  { value: Segmento.Pyme, label: 'PYME' },
+];
+
+const PURPOSES: DsOption<string>[] = [
+  { value: 'Capital de trabajo', label: 'Capital de trabajo' },
+  { value: 'Consumo o consolidación', label: 'Consumo o consolidación' },
+  { value: 'Eficiencia energética', label: 'Eficiencia energética', description: 'Puede calificar a crédito ecológico' },
+  { value: 'Inversión productiva', label: 'Inversión productiva' },
+];
+
+const SOURCES: Record<FuenteIntegracion, { name: string; icon: DsIconName }> = {
+  [FuenteIntegracion.Buro]: { name: 'Buró de crédito', icon: 'database' },
+  [FuenteIntegracion.Banco]: { name: 'Core bancario', icon: 'building' },
+  [FuenteIntegracion.Wallet]: { name: 'Billetera móvil', icon: 'wallet' },
+  [FuenteIntegracion.OpenBanking]: { name: 'Agregador open banking', icon: 'plug' },
+  [FuenteIntegracion.Facturacion]: { name: 'Facturación electrónica', icon: 'store' },
+  [FuenteIntegracion.Garantias]: { name: 'Registro de garantías', icon: 'shield' },
+};
+
+const SOURCE_STATUS: Record<IntegracionEstadoEnum, { label: string; tone: DsTone }> = {
+  [IntegracionEstadoEnum.Conectado]: { label: 'Conectado', tone: 'success' },
+  [IntegracionEstadoEnum.Disponible]: { label: 'Disponible', tone: 'neutral' },
+  [IntegracionEstadoEnum.RequierePro]: { label: 'Plan Pro', tone: 'info' },
+  [IntegracionEstadoEnum.Proximamente]: { label: 'Próximamente', tone: 'neutral' },
+};
+
+/** Nunca hay rechazo automático: ninguna decisión es un rechazo. */
+const DECISION: Record<EvaluacionDecisionEnum, { label: string; tone: DsTone }> = {
+  [EvaluacionDecisionEnum.Preaprobado]: { label: 'Preaprobado', tone: 'success' },
+  [EvaluacionDecisionEnum.RevisionManual]: { label: 'Revisión manual', tone: 'warning' },
+  [EvaluacionDecisionEnum.SolicitarDatos]: { label: 'Solicitar datos', tone: 'neutral' },
+};
+
+/** Avisos del paso de evaluación según el código del catálogo de errores. */
+type Problem = 'quota' | 'consent' | 'error' | null;
+
+const code = (error: unknown): string =>
+  error instanceof HttpErrorResponse && error.error && typeof error.error === 'object'
+    ? String((error.error as Record<string, unknown>)['code'] ?? '')
+    : '';
 
 @Component({
   selector: 'dc-evaluation',
@@ -34,8 +98,8 @@ import { connectors, connectorStatus, products, purposeOptions } from '../data';
     DsInput,
     DsLink,
     DsNumberField,
-    DsRadio,
     DsSelect,
+    DsSkeleton,
     DsStat,
     DsSteps,
   ],
@@ -54,17 +118,23 @@ import { connectors, connectorStatus, products, purposeOptions } from '../data';
         @switch (step()) {
           @case (0) {
             <h2>Solicitante</h2>
-            <fieldset class="ds-segmented">
-              <legend class="ds-sr-only">Tipo de solicitante</legend>
-              <label><input dsRadio type="radio" name="kind" value="persona" [(ngModel)]="kind" /><span>Persona</span></label>
-              <label><input dsRadio type="radio" name="kind" value="empresa" [(ngModel)]="kind" /><span>Empresa</span></label>
-            </fieldset>
             <div class="filters">
-              <ds-field [label]="kind === 'empresa' ? 'Razón social' : 'Nombre completo'" required>
-                <input dsInput name="name" [(ngModel)]="name" autocomplete="off" />
+              <ds-field label="Segmento">
+                <ds-select name="segment" [options]="segments" [(ngModel)]="segment" />
               </ds-field>
-              <ds-field [label]="kind === 'empresa' ? 'NIT' : 'Documento de identidad'" required>
+              <ds-field label="Documento de identidad o NIT" required>
                 <input dsInput name="document" [(ngModel)]="document" autocomplete="off" />
+              </ds-field>
+            </div>
+            <div class="filters">
+              <ds-field label="Actividad económica" required>
+                <input dsInput name="activity" [(ngModel)]="activity" autocomplete="off" />
+              </ds-field>
+              <ds-field label="Antigüedad de la actividad">
+                <ds-number-field name="seniority" suffix="meses" [min]="0" [max]="1200" [(ngModel)]="seniority" />
+              </ds-field>
+              <ds-field label="Ingreso mensual declarado" required>
+                <ds-number-field name="income" prefix="Bs" [min]="0" [step]="100" [(ngModel)]="income" />
               </ds-field>
             </div>
             <div class="filters">
@@ -72,12 +142,17 @@ import { connectors, connectorStatus, products, purposeOptions } from '../data';
                 <ds-number-field name="amount" prefix="Bs" [min]="0" [step]="500" [(ngModel)]="amount" />
               </ds-field>
               <ds-field label="Plazo">
-                <ds-number-field name="term" suffix="meses" [min]="1" [max]="84" [(ngModel)]="term" />
+                <ds-number-field name="term" suffix="meses" [min]="1" [max]="360" [(ngModel)]="term" />
               </ds-field>
             </div>
-            <ds-field label="Destino del crédito" hint="Ayuda a detectar la necesidad real.">
+            <ds-field label="Destino del crédito" hint="Ayuda a detectar la necesidad real." required>
               <ds-select name="purpose" placeholder="Elige un destino" [options]="purposes" [(ngModel)]="purpose" />
             </ds-field>
+            @if (invalid()) {
+              <ds-alert tone="warning" heading="Faltan datos del solicitante">
+                Completa documento (3 caracteres o más), actividad, ingreso mensual y destino del crédito.
+              </ds-alert>
+            }
           }
           @case (1) {
             <h2>Consentimiento</h2>
@@ -98,42 +173,88 @@ import { connectors, connectorStatus, products, purposeOptions } from '../data';
                 Sin la consulta a burós no podemos calcular el score.
               </ds-alert>
             }
+            @if (problem() === 'consent') {
+              <ds-alert tone="warning" heading="El consentimiento no es válido">
+                Vence o fue revocado. Registra un consentimiento nuevo para continuar.
+              </ds-alert>
+            }
           }
           @case (2) {
             <h2>Fuentes</h2>
-            <ul class="list">
-              @for (connector of connectors; track connector.name) {
-                <li>
-                  <span class="ds-row"><span class="icon-tile"><ds-icon [name]="connector.icon" /></span>{{ connector.name }}</span>
-                  <ds-badge [tone]="status[connector.status].tone">{{ status[connector.status].label }}</ds-badge>
-                </li>
-              }
-            </ul>
+            @if (sources() === null) {
+              <div aria-busy="true" aria-label="Cargando fuentes"><ds-skeleton /></div>
+            } @else if (sources()!.length) {
+              <ul class="list">
+                @for (source of sources()!; track source.fuente) {
+                  <li>
+                    <span class="ds-row"><span class="icon-tile"><ds-icon [name]="sourceInfo(source).icon" /></span>{{ sourceInfo(source).name }}</span>
+                    <ds-badge [tone]="sourceStatus(source).tone">{{ sourceStatus(source).label }}</ds-badge>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="ds-muted">No pudimos cargar el estado de las fuentes; la evaluación igual consulta las conectadas.</p>
+            }
             <p class="ds-caption">Solo se consultan las fuentes conectadas y autorizadas por el cliente.</p>
+            @if (problem() === 'quota') {
+              <ds-alert tone="warning" heading="Llegaste al límite de evaluaciones de tu plan">
+                Pausamos las nuevas evaluaciones hasta el próximo mes.
+                <a dsLink routerLink="/app/configuracion" fragment="plan">Conoce el plan Pro</a>
+              </ds-alert>
+            }
+            @if (problem() === 'error') {
+              <ds-alert tone="danger" heading="No pudimos completar la evaluación">
+                Revisa tu conexión y vuelve a intentarlo: no se duplicará la evaluación.
+              </ds-alert>
+            }
           }
           @case (3) {
-            <div class="card-head"><h2>Resultado</h2><ds-badge tone="warning">Datos simulados</ds-badge></div>
-            <div class="kpis">
-              <ds-stat label="Score" value="702" detail="Riesgo bajo" />
-              <ds-stat label="Capacidad de pago" value="Bs 3.100" detail="Cuota mensual máxima" />
-              <ds-stat label="Necesidad" value="Eficiencia" detail="Energética" />
-              <ds-stat label="Recomendación" [value]="products.eco.name" [detail]="products.eco.range" />
-            </div>
-            <ds-alert heading="Recomendación, no aprobación">
-              La decisión final corresponde a tu política de crédito.
-              <a dsLink routerLink="/app/clientes/c-1042">Ver perfil completo</a>
-            </ds-alert>
+            @if (result(); as r) {
+              <div class="card-head">
+                <h2>Resultado</h2>
+                @if (r.simulado) {
+                  <ds-badge tone="warning">Datos simulados</ds-badge>
+                }
+              </div>
+              @if (r.estado === parcial) {
+                <ds-alert tone="warning" heading="Resultado parcial">
+                  Una fuente no respondió a tiempo. No se inventó ningún dato y un resultado parcial
+                  nunca se preaprueba: queda para revisión.
+                </ds-alert>
+              }
+              <div class="kpis">
+                <ds-stat label="Score" [value]="(r.score ?? '—') + ''" [detail]="'Banda ' + (r.banda ?? '—')" />
+                <ds-stat label="Capacidad de pago" [value]="capacity()" detail="Mensual, del Perfil 360" />
+                <ds-stat label="Necesidad" [value]="purpose ?? '—'" detail="Destino declarado" />
+                <ds-stat label="Decisión" [value]="decisionLabel(r)" detail="Según tus políticas" />
+              </div>
+              @if (topReasons(r).length) {
+                <div class="ds-stack-sm">
+                  <h3>Principales razones</h3>
+                  <ul class="list">
+                    @for (reason of topReasons(r); track reason) {
+                      <li class="ds-mono">{{ reason }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+              <p class="ds-caption">Las recomendaciones de productos aparecerán aquí cuando estén disponibles para tu plan.</p>
+              <ds-alert heading="Recomendación, no aprobación">
+                La decisión final corresponde a tu política de crédito.
+                <a dsLink [routerLink]="['/app/clientes', applicantId()]">Ver perfil completo</a>
+              </ds-alert>
+            }
           }
         }
 
         <div class="ds-actions">
-          @if (step() > 0) {
-            <button dsButton variant="secondary" (click)="step.set(step() - 1)">Atrás</button>
+          @if (step() > 0 && step() < steps.length - 1) {
+            <button dsButton type="button" variant="secondary" [disabled]="busy()" (click)="back()">Atrás</button>
           }
           @if (step() < steps.length - 1) {
-            <button dsButton type="submit">{{ step() === 2 ? 'Evaluar' : 'Continuar' }}</button>
+            <button dsButton type="submit" [busy]="busy()">{{ step() === 2 ? 'Evaluar' : 'Continuar' }}</button>
           } @else {
-            <button dsButton (click)="step.set(0)">Nueva evaluación</button>
+            <button dsButton type="button" (click)="restart()">Nueva evaluación</button>
           }
         </div>
       </form>
@@ -141,16 +262,33 @@ import { connectors, connectorStatus, products, purposeOptions } from '../data';
   `,
 })
 export class Evaluation {
+  private readonly applicants = inject(SolicitantesService);
+  private readonly consents = inject(ConsentimientosService);
+  private readonly integrations = inject(IntegracionesService);
+  private readonly assessments = inject(EvaluacionesService);
+
   readonly steps = ['Solicitante', 'Consentimiento', 'Fuentes', 'Resultado'];
-  readonly purposes = purposeOptions;
-  readonly connectors = connectors;
-  readonly status = connectorStatus;
-  readonly products = products;
+  readonly segments = SEGMENTS;
+  readonly purposes = PURPOSES;
+  readonly parcial = EvaluacionEstadoEnum.Parcial;
+
   readonly step = signal(0);
+  readonly busy = signal(false);
+  readonly invalid = signal(false);
   readonly missingConsent = signal(false);
-  kind = 'persona';
-  name = '';
+  readonly problem = signal<Problem>(null);
+  readonly applicantId = signal<string | null>(null);
+  readonly consentId = signal<string | null>(null);
+  /** null mientras carga; [] si no se pudo cargar. */
+  readonly sources = signal<Integracion[] | null>(null);
+  readonly result = signal<Evaluacion | null>(null);
+  readonly capacity = signal('—');
+
+  segment: Segmento = Segmento.Persona;
   document = '';
+  activity = '';
+  seniority: number | null = 0;
+  income: number | null = null;
   amount: number | null = null;
   term: number | null = 12;
   purpose: string | null = null;
@@ -158,11 +296,187 @@ export class Evaluation {
   consentBureau = false;
   consentAccounts = false;
   consentWallet = false;
+  /** Se conserva entre reintentos para que un doble clic o un reintento no dupliquen la evaluación. */
+  private idempotencyKey = crypto.randomUUID();
 
-  next(): void {
-    // ponytail: solo se valida el consentimiento obligatorio; el resto al conectar la API.
-    const blocked = this.step() === 1 && !this.consentBureau;
-    this.missingConsent.set(blocked);
-    if (!blocked) this.step.set(Math.min(this.step() + 1, this.steps.length - 1));
+  async next(): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    try {
+      switch (this.step()) {
+        case 0:
+          await this.saveApplicant();
+          break;
+        case 1:
+          await this.saveConsent();
+          break;
+        case 2:
+          await this.evaluate();
+          break;
+      }
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  back(): void {
+    this.problem.set(null);
+    this.step.set(Math.max(0, this.step() - 1));
+  }
+
+  restart(): void {
+    this.step.set(0);
+    this.applicantId.set(null);
+    this.consentId.set(null);
+    this.result.set(null);
+    this.capacity.set('—');
+    this.problem.set(null);
+    this.document = '';
+    this.activity = '';
+    this.seniority = 0;
+    this.income = null;
+    this.amount = null;
+    this.term = 12;
+    this.purpose = null;
+    this.consentBureau = false;
+    this.consentAccounts = false;
+    this.consentWallet = false;
+    this.idempotencyKey = crypto.randomUUID();
+  }
+
+  sourceInfo(source: Integracion) {
+    return SOURCES[source.fuente];
+  }
+
+  sourceStatus(source: Integracion) {
+    return SOURCE_STATUS[source.estado];
+  }
+
+  decisionLabel(result: Evaluacion): string {
+    return result.decision ? DECISION[result.decision].label : '—';
+  }
+
+  /** Las 3 razones de mayor impacto (la API ya las devuelve ordenadas). */
+  topReasons(result: Evaluacion): string[] {
+    return (result.razones ?? []).slice(0, 3);
+  }
+
+  /** Paso 1: reutiliza el solicitante si el documento ya existe; si no, lo crea. */
+  private async saveApplicant(): Promise<void> {
+    const document = this.document.trim();
+    const activity = this.activity.trim();
+    const valid = document.length >= 3 && activity.length >= 2 && (this.income ?? 0) > 0 && !!this.purpose;
+    this.invalid.set(!valid);
+    if (!valid) return;
+    try {
+      const id = await firstValueFrom(this.findApplicant(document).pipe(
+        switchMap((existing) => (existing ? of(existing) : this.createApplicant(document, activity))),
+      ));
+      this.applicantId.set(id);
+      this.step.set(1);
+    } catch {
+      // El interceptor ya avisó con el detalle del error (RFC 9457).
+    }
+  }
+
+  private findApplicant(document: string): Observable<string | null> {
+    // El documento viaja en la cabecera X-Documento, nunca en la URL (B-08).
+    return this.applicants.listarSolicitantes(1, 1, undefined, document).pipe(
+      map((page) => page.items[0]?.id ?? null),
+    );
+  }
+
+  private createApplicant(document: string, activity: string): Observable<string> {
+    return this.applicants
+      .crearSolicitante({
+        documento: document,
+        actividad: activity,
+        antiguedadActividadMeses: Math.max(0, Math.round(this.seniority ?? 0)),
+        ingresosMensuales: (this.income ?? 0).toFixed(2),
+        moneda: SolicitanteNuevoMonedaEnum.Bob,
+        destinoCredito: this.purpose!,
+        segmento: this.segment,
+      })
+      .pipe(
+        map((created) => created.id),
+        // Alta simultánea del mismo documento (409): se reutiliza el que ganó.
+        catchError((error: unknown) =>
+          code(error) === 'APPLICANT_ALREADY_EXISTS'
+            ? this.findApplicant(document).pipe(
+                switchMap((id) => (id ? of(id) : throwError(() => error))),
+              )
+            : throwError(() => error),
+        ),
+      );
+  }
+
+  /** Paso 2: registra el consentimiento con las fuentes que el cliente autorizó. */
+  private async saveConsent(): Promise<void> {
+    this.missingConsent.set(!this.consentBureau);
+    if (!this.consentBureau) return;
+    const fuentes = [ConsentimientoNuevoFuentesEnum.Buro];
+    if (this.consentAccounts) fuentes.push(ConsentimientoNuevoFuentesEnum.Banco);
+    if (this.consentWallet) fuentes.push(ConsentimientoNuevoFuentesEnum.Wallet);
+    try {
+      const consent = await firstValueFrom(this.consents.crearConsentimiento({
+        titularDocumento: this.document.trim(),
+        fuentes,
+        finalidad: 'Evaluación de crédito',
+        vigenciaDias: 90,
+      }));
+      this.consentId.set(consent.id ?? null);
+      this.problem.set(null);
+      this.step.set(2);
+      this.loadSources();
+    } catch {
+      // El interceptor ya avisó con el detalle del error.
+    }
+  }
+
+  private loadSources(): void {
+    this.sources.set(null);
+    this.integrations.listarIntegraciones().subscribe({
+      next: (sources) => this.sources.set(sources),
+      error: () => this.sources.set([]),
+    });
+  }
+
+  /** Paso 3: evalúa con una Idempotency-Key estable entre reintentos. */
+  private async evaluate(): Promise<void> {
+    this.problem.set(null);
+    try {
+      const result = await firstValueFrom(this.assessments.crearEvaluacion(this.idempotencyKey, {
+        titularDocumento: this.document.trim(),
+        consentId: this.consentId()!,
+        proposito: this.purpose ?? undefined,
+        montoSolicitado: this.amount ? this.amount.toFixed(2) : undefined,
+        plazoMeses: this.term ?? undefined,
+      }));
+      this.result.set(result);
+      this.step.set(3);
+      this.loadCapacity();
+    } catch (error) {
+      const errorCode = code(error);
+      if (errorCode === 'QUOTA_EXCEEDED') {
+        this.problem.set('quota');
+      } else if (errorCode === 'CONSENT_REQUIRED') {
+        // El consentimiento venció o fue revocado: hay que registrar uno nuevo.
+        this.problem.set('consent');
+        this.consentId.set(null);
+        this.step.set(1);
+      } else {
+        this.problem.set('error');
+      }
+    }
+  }
+
+  /** La capacidad de pago sale del Perfil 360 que la evaluación acaba de consolidar. */
+  private loadCapacity(): void {
+    const id = this.applicantId();
+    if (!id) return;
+    this.applicants.obtenerSolicitante(id).subscribe({
+      next: (detail) => this.capacity.set(money(detail.perfil?.capacidadPago)),
+      error: () => this.capacity.set('—'),
+    });
   }
 }
