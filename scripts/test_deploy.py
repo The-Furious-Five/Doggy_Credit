@@ -185,13 +185,22 @@ class ReleasePackageTest(unittest.TestCase):
             ], cwd=extracted, env=env, text=True, capture_output=True)
             self.assertEqual(0, result.returncode, result.stderr)
             services = json.loads(result.stdout)["services"]
+            # BaseLoader admite las etiquetas Compose (!reset/!override) sin
+            # interpretarlas; sus escalares se conservan como texto.
+            production = yaml.load((extracted / "infra/compose.prod.yaml").read_text(),
+                                   Loader=yaml.BaseLoader)
             for service, source in (("wiremock-bank", "bank"), ("wiremock-wallet", "wallet")):
                 simulator = services[service]
                 self.assertFalse(simulator.get("ports"))
                 self.assertEqual("wiremock/wiremock:3.9.1", simulator["image"])
                 volume = next(v for v in simulator["volumes"] if v["target"] == "/home/wiremock")
                 self.assertTrue(volume["read_only"])
-                self.assertFalse(volume["bind"]["create_host_path"])
+                # compose-go antiguo serializa false con omitempty. Verificar
+                # también el YAML para exigir false explícito en toda versión.
+                configured = next(v for v in production["services"][service]["volumes"]
+                                  if v["target"] == "/home/wiremock")
+                self.assertEqual("false", configured["bind"]["create_host_path"])
+                self.assertFalse(volume.get("bind", {}).get("create_host_path", False))
                 self.assertEqual(extracted / "simulators/wiremock" / source, Path(volume["source"]))
                 self.assertTrue(list(Path(volume["source"]).glob("mappings/*.json")))
                 self.assertEqual("service_healthy", services["doggycredit-api"]["depends_on"][service]["condition"])
