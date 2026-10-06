@@ -2,19 +2,18 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   DsAlert,
-  DsBadge,
   DsCard,
   DsIcon,
   DsLink,
   DsProgress,
   DsStat,
-  DsTable,
 } from '../design-system';
-import { clients, needs, productKinds, products } from '../data';
+import { needs, productKinds, products } from '../data';
+import { AssessmentList } from './assessment-list';
 
 @Component({
   selector: 'dc-overview',
-  imports: [RouterLink, DsAlert, DsBadge, DsCard, DsIcon, DsLink, DsProgress, DsStat, DsTable],
+  imports: [RouterLink, AssessmentList, DsAlert, DsCard, DsIcon, DsLink, DsProgress, DsStat],
   styleUrl: './page.scss',
   template: `
     <header class="page-header">
@@ -38,29 +37,7 @@ import { clients, needs, productKinds, products } from '../data';
           <h2>Evaluaciones recientes</h2>
           <a dsLink routerLink="/app/clientes">Ver clientes <ds-icon name="arrow" /></a>
         </div>
-        <div class="ds-table-scroll" tabindex="0" aria-label="Evaluaciones recientes">
-          <table dsTable>
-            <caption class="ds-sr-only">Últimas evaluaciones de clientes</caption>
-            <thead>
-              <tr>
-                <th scope="col">Cliente</th>
-                <th scope="col">Producto sugerido</th>
-                <th scope="col" class="num">Score</th>
-                <th scope="col">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (client of recent; track client.id) {
-                <tr>
-                  <th scope="row"><a dsLink [routerLink]="['/app/clientes', client.id]">{{ client.name }}</a></th>
-                  <td>{{ products[client.product].name }}</td>
-                  <td class="num">{{ client.score }}</td>
-                  <td><ds-badge [tone]="client.status.tone">{{ client.status.label }}</ds-badge></td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+        <dc-assessment-list label="Evaluaciones recientes" [pageSize]="5" />
       </ds-card>
 
       <div class="ds-stack">
@@ -93,7 +70,6 @@ import { clients, needs, productKinds, products } from '../data';
   `,
 })
 export class Overview {
-  readonly recent = clients.slice(0, 5);
   readonly needs = needs;
   readonly products = products;
   readonly productKinds = productKinds;

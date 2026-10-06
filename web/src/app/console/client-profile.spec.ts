@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import {
+  EvaluacionesService,
   Consentimiento,
   ConsentimientoEstadoEnum,
   ConsentimientosService,
@@ -63,6 +64,8 @@ describe('Perfil del cliente (B-09)', () => {
         provideRouter([]),
         { provide: SolicitantesService, useValue: applicants },
         { provide: ConsentimientosService, useValue: consents },
+        // C-09: la pestaña Score lista el historial de evaluaciones.
+        { provide: EvaluacionesService, useValue: { listarEvaluaciones: () => of({ items: [], total: 0 }) } },
         { provide: SensitiveDataService, useValue: { document: (v: string) => v, amount: (v: string) => v } },
       ],
     });
