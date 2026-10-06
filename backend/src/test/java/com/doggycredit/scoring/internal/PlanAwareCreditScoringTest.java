@@ -27,7 +27,8 @@ import com.doggycredit.tenancy.TenantRegistry;
 /** D-02: qué scoring recibe cada plan, y la degradación si el modelo avanzado falla. */
 class PlanAwareCreditScoringTest {
 
-	private static final ScorecardInput INPUT = new ScorecardInput(OptionalInt.of(0), 36, 48, BigDecimal.ONE, BigDecimal.TEN, 12, true);
+	private static final ScorecardInput INPUT = new ScorecardInput(OptionalInt.of(0), 36, OptionalInt.of(48), BigDecimal.ONE,
+			BigDecimal.TEN, 12, Optional.of(true));
 	private static final ScoringFeatures FEATURES = new ScoringFeatures(null, null, null, null, null, null, null,
 			null, null, null, null, null, null, null, null);
 	private static final BasicScoreResult BASIC = new BasicScoreResult(700, ScoreBand.B, List.of(), "basic-v1");

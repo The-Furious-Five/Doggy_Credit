@@ -22,6 +22,8 @@ rules:
       - { max: 23, points: -40, reason: ACTIVIDAD_6_23_MESES }
       - { max: 2147483647, points: 0, reason: ACTIVIDAD_MAYOR_24_MESES }
   - variable: financialSystemSeniorityMonths
+    # Buró no disponible: la antigüedad es desconocida, NO "0 meses". Peor tramo (RN-15).
+    unknown: { points: -100, reason: HISTORIAL_DESCONOCIDO_BURO_NO_DISPONIBLE }
     buckets:
       - { max: 5, points: -100, reason: HISTORIAL_MENOR_6_MESES }
       - { max: 23, points: -30, reason: HISTORIAL_6_23_MESES }
@@ -37,6 +39,8 @@ rules:
       - { max: 36, points: -20, reason: PLAZO_13_36_MESES }
       - { max: 2147483647, points: -50, reason: PLAZO_MAYOR_36_MESES }
   - variable: bureauRecordFound
+    # Buró no disponible: no se sabe si hay registro, NO "sin registro". Peor tramo (RN-15).
+    unknown: { points: -60, reason: REGISTRO_DESCONOCIDO_BURO_NO_DISPONIBLE }
     buckets:
       - { max: 0, points: -60, reason: SIN_REGISTRO_BURO }
       - { max: 1, points: 0, reason: CON_REGISTRO_BURO }
