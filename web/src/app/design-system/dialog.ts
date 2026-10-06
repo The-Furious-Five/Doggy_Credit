@@ -25,19 +25,26 @@ export class DsDialog implements OnDestroy {
   private readonly native = viewChild.required<ElementRef<HTMLDialogElement>>('native');
   private readonly document = inject(DOCUMENT);
   private previousFocus: HTMLElement | null = null;
+  private isOpen = false;
   show(): void {
     if (this.native().nativeElement.open) return;
     this.previousFocus = this.document.activeElement as HTMLElement;
     this.native().nativeElement.showModal();
+    this.isOpen = true;
   }
   close(): void {
     this.native().nativeElement.close();
+    // El evento nativo `close` llega en una tarea posterior; se notifica ya.
+    this.onClose();
   }
   onClose(): void {
+    if (!this.isOpen) return;
+    this.isOpen = false;
     this.previousFocus?.focus();
     this.dismissed.emit();
   }
   ngOnDestroy(): void {
-    if (this.native().nativeElement.open) this.close();
+    this.isOpen = false;
+    if (this.native().nativeElement.open) this.native().nativeElement.close();
   }
 }
