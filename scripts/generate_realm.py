@@ -38,7 +38,8 @@ def user_profile():
                        "permissions": {"view": ["admin"], "edit": ["admin"]},
                        "validations": {"pattern": {
                            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"}}})
-    return {"attributes": attributes, "unmanagedAttributePolicy": "DISABLED",
+    # En Keycloak 26.4 la política Disabled es null/ausente; no existe en el enum.
+    return {"attributes": attributes,
             "groups": [{"name": "user-metadata", "displayHeader": "User metadata",
                         "displayDescription": "Attributes, which refer to user metadata"}]}
 
