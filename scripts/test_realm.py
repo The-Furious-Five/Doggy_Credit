@@ -1,3 +1,4 @@
+import json
 import unittest
 import yaml
 from generate_realm import generate, ROOT, API_ADMIN_CLIENT
@@ -28,6 +29,28 @@ class RealmTest(unittest.TestCase):
                 self.assertEqual(actual['realmRoles'], ['API_CLIENT'])
                 self.assertEqual(clients[client['client_id']]['secret'], '${' + client['secret_env'] + '}')
                 self.assertTrue(clients[client['client_id']]['serviceAccountsEnabled'])
+
+    def test_tenant_is_visible_to_admin_and_cannot_be_changed_by_users(self):
+        providers = self.realm.get('components', {}).get(
+            'org.keycloak.userprofile.UserProfileProvider', [])
+        self.assertEqual(len(providers), 1, 'El realm debe declarar el perfil de usuario')
+        self.assertEqual(providers[0]['providerId'], 'declarative-user-profile')
+        profile = json.loads(providers[0]['config']['kc.user.profile.config'][0])
+        attributes = {attribute['name']: attribute for attribute in profile['attributes']}
+        tenant = attributes['tenant_id']
+        self.assertEqual(tenant['permissions'], {'view': ['admin'], 'edit': ['admin']})
+        self.assertFalse(tenant['multivalued'])
+        self.assertNotIn('required', tenant, 'La cuenta administradora no tiene tenant')
+        self.assertEqual(profile['unmanagedAttributePolicy'], 'DISABLED')
+        self.assertEqual(set(attributes), {'username', 'email', 'firstName', 'lastName', 'tenant_id'})
+        for field in ('username', 'email', 'firstName', 'lastName'):
+            self.assertEqual(attributes[field]['permissions']['view'], ['admin', 'user'])
+            self.assertEqual(attributes[field]['permissions']['edit'], ['admin', 'user'])
+
+    def test_checked_in_realm_has_the_generated_profile(self):
+        checked_in = json.loads((ROOT / 'infra/keycloak/doggycredit-realm.json').read_text())
+        self.assertTrue('components' in self.realm, 'Falta el perfil en el generador')
+        self.assertEqual(checked_in.get('components'), self.realm['components'])
 
     def test_human_names_pass_keycloak_profile_validation(self):
         prohibited = set('<>&"$%!#?§;*~/\\|^=[]{}()')

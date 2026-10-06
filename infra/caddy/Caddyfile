@@ -30,12 +30,14 @@
 		root * /srv/web
 		try_files {path} /index.html
 		file_server
+		# Solo la SPA: Keycloak publica sus propias cabeceras de frame y necesita
+		# enmarcar su login-status-iframe en /auth/* desde el mismo origen.
+		header X-Frame-Options DENY
 	}
 
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
-		X-Frame-Options DENY
 	}
 }
 

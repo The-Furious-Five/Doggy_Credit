@@ -1,8 +1,8 @@
-import { Component, inject, linkedSignal } from '@angular/core';
+import { Component, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, of } from 'rxjs';
 import {
   DsAlert,
   DsBadge,
@@ -72,22 +72,28 @@ import { AuditLog } from './audit-log';
           <div class="card-head">
             <h2>Usuarios con acceso</h2>
           </div>
-          <div class="ds-table-scroll" tabindex="0" aria-label="Usuarios">
-            <table dsTable>
-              <caption class="ds-sr-only">Usuarios de la institución</caption>
-              <thead><tr><th scope="col">Nombre</th><th scope="col">Rol</th><th scope="col">Estado</th></tr></thead>
-              <tbody>
-                @for (member of team(); track member.nombre) {
-                  <tr>
-                    <th scope="row">{{ member.nombre }}@if (member.email) { <span class="ds-caption"> · {{ member.email }}</span> }</th>
-                    <td>{{ member.rol }}</td>
-                    <td><ds-badge [tone]="member.estado === 'ACTIVO' ? 'success' : 'warning'">{{ member.estado === 'ACTIVO' ? 'Activo/a' : 'Invitación enviada' }}</ds-badge></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <p class="ds-caption">Miembros activos incluidos en la sesión de identidad.</p>
+          @if (teamError()) {
+            <ds-alert heading="Equipo no disponible" tone="warning">
+              No se pudo consultar el directorio de identidad. Recarga la página o revisa la conexión de Keycloak.
+            </ds-alert>
+          } @else {
+            <div class="ds-table-scroll" tabindex="0" aria-label="Usuarios">
+              <table dsTable>
+                <caption class="ds-sr-only">Usuarios de la institución</caption>
+                <thead><tr><th scope="col">Nombre</th><th scope="col">Rol</th><th scope="col">Estado</th></tr></thead>
+                <tbody>
+                  @for (member of team(); track member.email ?? member.nombre) {
+                    <tr>
+                      <th scope="row">{{ member.nombre }}@if (member.email) { <span class="ds-caption"> · {{ member.email }}</span> }</th>
+                      <td>{{ member.rol }}</td>
+                      <td><ds-badge [tone]="member.estado === 'ACTIVO' ? 'success' : member.estado === 'INVITADO' ? 'warning' : 'neutral'">{{ member.estado === 'ACTIVO' ? 'Activo/a' : member.estado === 'INVITADO' ? 'Invitación enviada' : 'Desactivado/a' }}</ds-badge></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+          <p class="ds-caption">Usuarios, roles y estado sincronizados desde el directorio de identidad.</p>
         </ds-card>
       </ds-tab>
 
@@ -145,7 +151,11 @@ export class Settings {
 
   private readonly tenantService = inject(TenantService);
   readonly tenant = toSignal(this.tenantService.obtenerTenantActual());
-  readonly team = toSignal(this.tenantService.listarEquipo(), { initialValue: [] });
+  readonly teamError = signal(false);
+  readonly team = toSignal(this.tenantService.listarEquipo().pipe(catchError(() => {
+    this.teamError.set(true);
+    return of([]);
+  })), { initialValue: [] });
   readonly preferences = toSignal(this.tenantService.obtenerPreferenciasTenant());
   readonly maskData = linkedSignal(() => this.preferences()?.enmascararDatos ?? true);
 

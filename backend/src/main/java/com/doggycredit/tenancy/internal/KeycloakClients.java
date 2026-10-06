@@ -1,6 +1,7 @@
 package com.doggycredit.tenancy.internal;
 
 import java.util.UUID;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.ErrorResponseException;
@@ -21,6 +22,9 @@ interface KeycloakClients {
 	 */
 	UUID create(NewClient client);
 
+	/** Lista las cuentas humanas vinculadas al tenant y sus roles de realm. */
+	List<TeamMember> listTeamMembers(UUID tenantId);
+
 	/** Borra el cliente; si ya no existe, no hace nada. */
 	void delete(UUID keycloakId);
 
@@ -28,6 +32,9 @@ interface KeycloakClients {
 	String tokenUrl();
 
 	record NewClient(String clientId, String secret, UUID tenantId, ApiKey.Environment environment, String name) {
+	}
+
+	record TeamMember(String nombre, String email, String rol, boolean enabled) {
 	}
 
 	/** 502 PROVIDER_UNAVAILABLE: la clave no cambió y se puede reintentar. */

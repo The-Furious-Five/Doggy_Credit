@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   DsBadge,
@@ -7,8 +7,12 @@ import {
   DsIcon,
   DsIconName,
   DsLink,
+  DsMenu,
+  DsMenuItem,
   DsProgress,
   DsStat,
+  DsTheme,
+  DsThemeService,
 } from '../design-system';
 import { plans, productKinds, products } from '../data';
 
@@ -16,11 +20,20 @@ const item = (icon: DsIconName, title: string, text: string) => ({ icon, title, 
 
 @Component({
   selector: 'dc-landing',
-  imports: [RouterLink, DsBadge, DsBrand, DsCard, DsIcon, DsLink, DsProgress, DsStat],
+  imports: [RouterLink, DsBadge, DsBrand, DsCard, DsIcon, DsLink, DsMenu, DsProgress, DsStat],
   templateUrl: './landing.html',
   styleUrl: './landing.scss',
 })
 export class Landing {
+  private readonly theme = inject(DsThemeService);
+  readonly themes: DsMenuItem[] = [
+    { id: 'system', label: 'Según el sistema' },
+    { id: 'light', label: 'Claro', icon: 'sun' },
+    { id: 'dark', label: 'Oscuro', icon: 'moon' },
+  ];
+  setTheme(id: string): void {
+    this.theme.preference.set(id as DsTheme);
+  }
   readonly products = products;
   readonly productKinds = productKinds;
   readonly plans = plans;

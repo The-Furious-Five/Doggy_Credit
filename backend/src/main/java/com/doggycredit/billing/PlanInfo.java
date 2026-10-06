@@ -12,5 +12,6 @@ public record PlanInfo(
     int maxIntegraciones,
     boolean scoringAvanzado,
     boolean webhooks,
-    boolean analytics
+    boolean analytics,
+    boolean recomendaciones
 ) {}

@@ -25,6 +25,7 @@ class Plan {
     private boolean scoringAvanzado;
     private boolean webhooks;
     private boolean analytics;
+    private boolean recomendaciones;
     private boolean activo;
 
     protected Plan() {
@@ -38,5 +39,6 @@ class Plan {
     boolean isScoringAvanzado() { return scoringAvanzado; }
     boolean isWebhooks() { return webhooks; }
     boolean isAnalytics() { return analytics; }
+    boolean isRecomendaciones() { return recomendaciones; }
     boolean isActivo() { return activo; }
 }

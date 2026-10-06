@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.billing.PlanCatalog;
 import com.doggycredit.consent.Source;
 import com.doggycredit.integration.PlanLimitReachedException;
 import com.doggycredit.integration.TenantIntegrations;
@@ -48,11 +49,14 @@ class IntegrationService implements TenantIntegrations {
 
 	private final TenantIntegrationRepository integrations;
 	private final TenantRegistry tenants;
+	private final PlanCatalog plans;
 	private final AuditTrail audit;
 
-	IntegrationService(TenantIntegrationRepository integrations, TenantRegistry tenants, AuditTrail audit) {
+	IntegrationService(TenantIntegrationRepository integrations, TenantRegistry tenants, PlanCatalog plans,
+			AuditTrail audit) {
 		this.integrations = integrations;
 		this.tenants = tenants;
+		this.plans = plans;
 		this.audit = audit;
 	}
 
@@ -107,9 +111,8 @@ class IntegrationService implements TenantIntegrations {
 		return list(tenantId).get(entry.ordinal());
 	}
 
-	// ponytail: límite del plan leído del nombre del plan; cambiar por PlanCatalog.maxIntegraciones() de A-06 al fusionarlo.
 	private int maxActive(UUID tenantId) {
-		return "FREE".equals(plan(tenantId)) ? 1 : Integer.MAX_VALUE;
+		return plans.requireById(plan(tenantId)).maxIntegraciones();
 	}
 
 	/** Un tenant que no está en el registro se trata como FREE: falla hacia lo más restrictivo. */

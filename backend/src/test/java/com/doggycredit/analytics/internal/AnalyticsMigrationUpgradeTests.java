@@ -45,7 +45,9 @@ class AnalyticsMigrationUpgradeTests {
         String indexBefore = admin.queryForObject("SELECT pg_get_indexdef('assessment.assessments_tenant_created_idx'::regclass)", String.class);
 
         var upgraded = migration("latest");
-        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);
+        int pending = upgraded.info().pending().length;
+        assertThat(pending).isPositive();
+        assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(pending);
         upgraded.validate();
 
         var row = admin.queryForMap("""
