@@ -148,6 +148,11 @@ class AssessmentControllerTests {
 			// Demo, punto 6: PARCIAL y además nada inventado dentro del score (RN-15).
 			.andExpect(jsonPath("$.razones[0]").value("MORA_DESCONOCIDA_BURO_NO_DISPONIBLE"))
 			.andExpect(jsonPath("$.razones[?(@ == 'SIN_MORA_12M')]").isEmpty())
+			// Antigüedad y registro tampoco se inventan: desconocidos, no "0 meses" ni "sin registro".
+			.andExpect(jsonPath("$.razones[?(@ == 'HISTORIAL_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isNotEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'REGISTRO_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isNotEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'HISTORIAL_MENOR_6_MESES')]").isEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isEmpty())
 			.andExpect(jsonPath("$.banda").value(org.hamcrest.Matchers.not("A")));
 	}
 
@@ -161,7 +166,9 @@ class AssessmentControllerTests {
 			.andExpect(jsonPath("$.estado").value("REVISION_MANUAL"))
 			.andExpect(jsonPath("$.razones[?(@ == 'MORA_DESCONOCIDA_BURO_NO_DISPONIBLE')]").isEmpty())
 			.andExpect(jsonPath("$.razones[?(@ == 'SIN_MORA_12M')]").isNotEmpty())
-			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isNotEmpty());
+			.andExpect(jsonPath("$.razones[?(@ == 'SIN_REGISTRO_BURO')]").isNotEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'REGISTRO_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isEmpty())
+			.andExpect(jsonPath("$.razones[?(@ == 'HISTORIAL_DESCONOCIDO_BURO_NO_DISPONIBLE')]").isEmpty());
 	}
 
 	@Test

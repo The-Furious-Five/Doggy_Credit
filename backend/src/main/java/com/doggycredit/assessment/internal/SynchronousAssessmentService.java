@@ -103,19 +103,24 @@ class SynchronousAssessmentService implements AssessmentOperations {
 
 	private ScorecardInput toScorecardInput(AssessmentCommand command, ApplicantProfile applicant,
 			SourceCollection collection) {
-		Optional<BureauReport> bureau = bureauReport(collection);
-		// La mora es desconocida solo si el BURÓ falló (RN-15: nunca 0 inventado); que caiga
-		// otra fuente no la vuelve desconocida. Si el buró respondió "sin registro" (informe
-		// vacío), es una respuesta válida: sin deudas, mora 0.
-		OptionalInt maxDaysPastDue = collection.failed(Source.BURO) ? OptionalInt.empty()
-				: OptionalInt.of(bureau.stream()
-					.flatMap(report -> report.endeudamiento().stream())
-					.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
-					.max().orElse(0));
-		int financialSeniority = bureau.map(BureauReport::antiguedadSistemaFinancieroMeses).orElse(0);
 		BigDecimal requestedAmount = command.requestedAmount() == null ? BigDecimal.ZERO : command.requestedAmount();
-		return new ScorecardInput(maxDaysPastDue, applicant.activitySeniorityMonths(), financialSeniority,
-				requestedAmount, applicant.monthlyIncome().amount(), command.termMonths(), bureau.isPresent());
+		// Los datos del buró son desconocidos solo si el BURÓ falló (RN-15: nunca 0 ni "sin
+		// registro" inventados); que caiga otra fuente no los vuelve desconocidos.
+		if (collection.failed(Source.BURO)) {
+			return new ScorecardInput(OptionalInt.empty(), applicant.activitySeniorityMonths(), OptionalInt.empty(),
+					requestedAmount, applicant.monthlyIncome().amount(), command.termMonths(), Optional.empty());
+		}
+		// Si el buró respondió "sin registro" (informe vacío), es una respuesta válida: sin
+		// deudas (mora 0), sin historial (0 meses) y sin registro.
+		Optional<BureauReport> bureau = bureauReport(collection);
+		int maxDaysPastDue = bureau.stream()
+			.flatMap(report -> report.endeudamiento().stream())
+			.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
+			.max().orElse(0);
+		int financialSeniority = bureau.map(BureauReport::antiguedadSistemaFinancieroMeses).orElse(0);
+		return new ScorecardInput(OptionalInt.of(maxDaysPastDue), applicant.activitySeniorityMonths(),
+				OptionalInt.of(financialSeniority), requestedAmount, applicant.monthlyIncome().amount(),
+				command.termMonths(), Optional.of(bureau.isPresent()));
 	}
 
 	/**

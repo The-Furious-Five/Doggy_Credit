@@ -74,10 +74,12 @@ class DataDrivenBasicScorecard implements BasicScorecard {
 		return switch (variable) {
 			case "maxDaysPastDue12m" -> input.maxDaysPastDue12m();
 			case "activitySeniorityMonths" -> OptionalInt.of(input.activitySeniorityMonths());
-			case "financialSystemSeniorityMonths" -> OptionalInt.of(input.financialSystemSeniorityMonths());
+			case "financialSystemSeniorityMonths" -> input.financialSystemSeniorityMonths();
 			case "requestedAmountIncomeMonths" -> OptionalInt.of(requestedAmountIncomeMonths(input));
 			case "termMonths" -> OptionalInt.of(input.termMonths());
-			case "bureauRecordFound" -> OptionalInt.of(input.bureauRecordFound() ? 1 : 0);
+			case "bureauRecordFound" -> input.bureauRecordFound()
+				.map(found -> OptionalInt.of(found ? 1 : 0))
+				.orElse(OptionalInt.empty());
 			default -> throw new IllegalStateException("Variable desconocida en scorecard: " + variable);
 		};
 	}

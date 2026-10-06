@@ -3,6 +3,7 @@ package com.doggycredit.scoring.internal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,8 @@ class DataDrivenBasicScorecardTest {
 
 	@Test
 	void puntuaDeCeroAMilConBandasYRazonesOrdenadas() {
-		BasicScoreResult result = scorecard.score(new ScorecardInput(OptionalInt.of(120), 2, 2,
-				new BigDecimal("20000"), new BigDecimal("1000"), 60, false));
+		BasicScoreResult result = scorecard.score(new ScorecardInput(OptionalInt.of(120), 2, OptionalInt.of(2),
+				new BigDecimal("20000"), new BigDecimal("1000"), 60, Optional.of(false)));
 
 		assertThat(result.score()).isBetween(0, 1000).isZero();
 		assertThat(result.band()).isEqualTo(ScoreBand.E);
@@ -31,8 +32,8 @@ class DataDrivenBasicScorecardTest {
 
 	@Test
 	void funcionaSinConstruirNiInvocarElModeloOnnx() {
-		BasicScoreResult result = scorecard.score(new ScorecardInput(OptionalInt.of(0), 48, 60,
-				new BigDecimal("3000"), new BigDecimal("2000"), 12, true));
+		BasicScoreResult result = scorecard.score(new ScorecardInput(OptionalInt.of(0), 48, OptionalInt.of(60),
+				new BigDecimal("3000"), new BigDecimal("2000"), 12, Optional.of(true)));
 
 		assertThat(result.score()).isEqualTo(850);
 		assertThat(result.band()).isEqualTo(ScoreBand.A);
@@ -41,25 +42,26 @@ class DataDrivenBasicScorecardTest {
 	}
 
 	@Test
-	void conElBuroCaidoLaMoraEsDesconocidaYNuncaSeAsumeSinMora() {
+	void conElBuroCaidoLosDatosDelBuroSonDesconocidosYNuncaSeInventan() {
 		// Demo, punto 6 (guía §13.3): con el buró apagado nada se inventa.
 		// Mismo titular "perfecto", pero sin informe del buró.
-		BasicScoreResult result = scorecard.score(new ScorecardInput(OptionalInt.empty(), 48, 0,
-				new BigDecimal("3000"), new BigDecimal("2000"), 12, false));
+		BasicScoreResult result = scorecard.score(new ScorecardInput(OptionalInt.empty(), 48, OptionalInt.empty(),
+				new BigDecimal("3000"), new BigDecimal("2000"), 12, Optional.empty()));
 
 		assertThat(result.reasons()).extracting(ScoreReason::code)
-			.doesNotContain("SIN_MORA_12M")
-			.first().isEqualTo("MORA_DESCONOCIDA_BURO_NO_DISPONIBLE");
-		assertThat(result.reasons().get(0).pointImpact()).isEqualTo(-350);
-		// 850 − 350 (mora desconocida) − 100 (historial) − 60 (sin registro) = 340
+			.doesNotContain("SIN_MORA_12M", "HISTORIAL_MENOR_6_MESES", "SIN_REGISTRO_BURO")
+			.startsWith("MORA_DESCONOCIDA_BURO_NO_DISPONIBLE", "HISTORIAL_DESCONOCIDO_BURO_NO_DISPONIBLE",
+					"REGISTRO_DESCONOCIDO_BURO_NO_DISPONIBLE");
+		assertThat(result.reasons()).extracting(ScoreReason::pointImpact).startsWith(-350, -100, -60);
+		// Opción A (peor tramo): 850 − 350 (mora) − 100 (historial) − 60 (registro) = 340
 		assertThat(result.score()).isEqualTo(340);
 		assertThat(result.band()).isEqualTo(ScoreBand.D);
 	}
 
 	@Test
 	void aIgualImpactoLasRazonesSiguenElOrdenDelYamlYSonEstables() {
-		ScorecardInput perfecto = new ScorecardInput(OptionalInt.of(0), 48, 60,
-				new BigDecimal("3000"), new BigDecimal("2000"), 12, true);
+		ScorecardInput perfecto = new ScorecardInput(OptionalInt.of(0), 48, OptionalInt.of(60),
+				new BigDecimal("3000"), new BigDecimal("2000"), 12, Optional.of(true));
 
 		BasicScoreResult primera = scorecard.score(perfecto);
 		BasicScoreResult segunda = scorecard.score(perfecto);
