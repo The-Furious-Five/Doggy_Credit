@@ -85,6 +85,11 @@
 			<groupId>org.springframework.modulith</groupId>
 			<artifactId>spring-modulith-starter-jpa</artifactId>
 		</dependency>
+		<dependency>
+			<!-- E-08: filtra la recuperación del outbox por el identificador de su listener. -->
+			<groupId>org.springframework.modulith</groupId>
+			<artifactId>spring-modulith-events-core</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.postgresql</groupId>

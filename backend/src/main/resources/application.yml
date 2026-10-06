@@ -2,6 +2,14 @@ spring:
   application:
     name: doggycredit-api
 
+  modulith:
+    events:
+      republish-outstanding-events-on-restart: true
+      staleness:
+        published: 5m
+        processing: 5m
+        resubmitted: 5m
+
   datasource:
     url: jdbc:postgresql://${DC_DB_HOST:localhost}:${DC_DB_PORT:5432}/${DC_DB_NAME:doggycredit}
     username: ${DC_DB_USER:doggy_app}
@@ -113,6 +121,12 @@ doggycredit:
 
   encryption:
     master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
+
+  webhooks:
+    # HTTP/red privada solo para pruebas con WireMock; producción mantiene false.
+    allow-private-addresses: false
+    worker-enabled: true
+    poll-delay: 5000
 
   # D-09: administración de clientes de Keycloak para las claves de API.
   # base-url es la red interna; public-issuer-uri, lo que ve el integrador.
