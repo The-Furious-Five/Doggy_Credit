@@ -22,15 +22,24 @@ describe('Desarrolladores › Claves de API', () => {
     revocarClaveApi: vi.fn(),
   };
 
+  // jsdom no implementa <dialog>. Se asigna siempre (no ??=) y se restaura al final:
+  // los specs comparten el mismo jsdom y otro spec pudo dejar un close() que no
+  // dispara el evento 'close', con lo que el secreto nunca se borraba.
+  const { showModal, close } = HTMLDialogElement.prototype;
+
   beforeAll(() => {
-    // jsdom no implementa <dialog>.
-    HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
       this.open = true;
     };
-    HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+    HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
       this.open = false;
       this.dispatchEvent(new Event('close'));
     };
+  });
+
+  afterAll(() => {
+    HTMLDialogElement.prototype.showModal = showModal;
+    HTMLDialogElement.prototype.close = close;
   });
 
   beforeEach(() => {
