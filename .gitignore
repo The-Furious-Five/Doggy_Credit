@@ -1,5 +1,7 @@
 # --- Secretos, nunca al repositorio ---
 .env
+.env.*
+!.env.example
 *.env.local
 
 # --- Java / Maven ---
@@ -13,6 +15,8 @@ build/
 web/node_modules/
 web/dist/
 web/.angular/
+.angular/
+.pnpm-store/
 npm-debug.log*
 
 # --- IDE ---
@@ -39,3 +43,7 @@ ml/data/generated/   # reproducible desde generate_synthetic.py + la semilla fij
 web/out-tsc/
 
 tmp/
+
+# Herramientas de IA locales
+.claude/
+skills-lock.json
