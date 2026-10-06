@@ -19,10 +19,9 @@ for (const tenant of seed.tenants) {
     await page.getByRole('combobox', { name: 'Destino del crédito' }).click();
     await page.getByRole('option', { name: 'Capital de trabajo', exact: true }).click();
 
-    const applicantSaved = apiResponse(page, '/solicitantes', 'POST');
-    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    const applicantResponse = await apiResponse(page, '/solicitantes',
+      () => page.getByRole('button', { name: 'Continuar', exact: true }).click(), 'POST');
     // Un Compose nuevo debe ejecutar el alta real, no reutilizar datos de otra ejecución.
-    const applicantResponse = await applicantSaved;
     expect(applicantResponse.status()).toBe(201);
     const applicant = await applicantResponse.json();
     expect(applicant.documento).toBe(seed.document);
@@ -37,17 +36,15 @@ for (const tenant of seed.tenants) {
       await page.getByRole('checkbox', { name: 'Consultar cuentas y movimientos bancarios' }).check();
       await page.getByRole('checkbox', { name: 'Consultar billeteras digitales' }).check();
     }
-    const consentSaved = apiResponse(page, '/consentimientos', 'POST');
-    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-    const consentResponse = await consentSaved;
+    const consentResponse = await apiResponse(page, '/consentimientos',
+      () => page.getByRole('button', { name: 'Continuar', exact: true }).click(), 'POST');
     expect(consentResponse.status()).toBe(201);
     const consent = await consentResponse.json();
     expect(consent).toMatchObject({ titularDocumento: seed.document, estado: 'ACTIVO' });
     expect(consent.fuentes.sort()).toEqual(tenant.plan === 'PRO' ? ['BANCO', 'BURO', 'WALLET'] : ['BURO']);
 
-    const evaluated = apiResponse(page, '/credit-assessments', 'POST');
-    await page.getByRole('button', { name: 'Evaluar', exact: true }).click();
-    const evaluationResponse = await evaluated;
+    const evaluationResponse = await apiResponse(page, '/credit-assessments',
+      () => page.getByRole('button', { name: 'Evaluar', exact: true }).click(), 'POST');
     expect(evaluationResponse.status()).toBe(201);
     expect(await evaluationResponse.request().headerValue('idempotency-key')).toMatch(/^[0-9a-f-]{36}$/i);
     const evaluation = await evaluationResponse.json();
@@ -61,10 +58,9 @@ for (const tenant of seed.tenants) {
     await expect(page.locator('ds-stat').filter({ has: page.getByText('Score', { exact: true }) }))
       .toContainText(String(evaluation.score));
 
-    const profileLoaded = apiResponse(page, `/solicitantes/${applicant.id}`);
-    await page.getByRole('link', { name: 'Ver perfil completo' }).click();
+    const profileResponse = await apiResponse(page, `/solicitantes/${applicant.id}`,
+      () => page.getByRole('link', { name: 'Ver perfil completo' }).click());
     await expect(page).toHaveURL(new RegExp(`/app/clientes/${applicant.id}$`));
-    const profileResponse = await profileLoaded;
     expect(profileResponse.status()).toBe(200);
     const detail = await profileResponse.json();
     expect(detail.perfil.hash).toMatch(/^[a-f0-9]{64}$/i);
@@ -95,10 +91,9 @@ for (const tenant of seed.tenants) {
 
     await page.getByRole('button', { name: 'Más acciones' }).click();
     await page.getByRole('menuitem', { name: 'Revocar consentimiento' }).click();
-    const revoked = apiResponse(page, `/consentimientos/${consent.id}/revocar`, 'POST');
-    await page.getByRole('dialog', { name: 'Revocar consentimiento' })
-      .getByRole('button', { name: 'Revocar consentimiento', exact: true }).click();
-    const revokedResponse = await revoked;
+    const revokedResponse = await apiResponse(page, `/consentimientos/${consent.id}/revocar`,
+      () => page.getByRole('dialog', { name: 'Revocar consentimiento' })
+        .getByRole('button', { name: 'Revocar consentimiento', exact: true }).click(), 'POST');
     expect(revokedResponse.status()).toBe(200);
     expect(await revokedResponse.json()).toMatchObject({ id: consent.id, estado: 'REVOCADO' });
     const correlationId = revokedResponse.headers()['x-correlation-id'];
@@ -113,10 +108,10 @@ for (const tenant of seed.tenants) {
     expect(denied.status()).toBe(422);
     expect(await denied.json()).toMatchObject({ code: 'CONSENT_REQUIRED' });
 
-    const auditLoaded = apiResponse(page, '/auditoria');
-    await page.goto('/app/configuracion#seguridad');
-    await page.getByRole('tab', { name: 'Seguridad', exact: true }).click();
-    const auditResponse = await auditLoaded;
+    const auditResponse = await apiResponse(page, '/auditoria', async () => {
+      await page.goto('/app/configuracion#seguridad');
+      await page.getByRole('tab', { name: 'Seguridad', exact: true }).click();
+    });
     expect(auditResponse.status()).toBe(200);
     const entries = (await auditResponse.json()).items;
     expect(entries).toEqual(expect.arrayContaining([expect.objectContaining({

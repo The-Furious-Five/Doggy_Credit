@@ -28,9 +28,7 @@ export async function login(page: Page, tenant: Tenant): Promise<{ Authorization
   expect(authorizationUrl.searchParams.get('code_challenge')).toBeTruthy();
   await page.locator('#username').fill(tenant.username);
   await page.locator('#password').fill(password);
-  const currentTenant = apiResponse(page, '/tenant/actual');
-  await page.locator('#kc-login').click();
-  const response = await currentTenant;
+  const response = await apiResponse(page, '/tenant/actual', () => page.locator('#kc-login').click());
   expect(response.status(), 'La sesión debe cargar el tenant real').toBe(200);
   expect(await response.json()).toMatchObject({ id: tenant.id, plan: tenant.plan, nombre: tenant.name });
   await expect(page).toHaveURL(/\/app\/resumen(?:[?#]|$)/);
@@ -48,9 +46,8 @@ export async function connectProSources(page: Page): Promise<void> {
     // Suite repetible: una fuente ya conectada no necesita otra mutación.
     await expect(card.getByRole('button')).toBeVisible();
     if (await connect.count()) {
-      const saved = apiResponse(page, `/integraciones/${source}`, 'PUT');
-      await connect.click();
-      expect((await saved).status()).toBe(200);
+      const saved = await apiResponse(page, `/integraciones/${source}`, () => connect.click(), 'PUT');
+      expect(saved.status()).toBe(200);
     }
     await expect(card.getByRole('button', { name: `Desconectar: ${label}`, exact: true })).toBeEnabled();
   }

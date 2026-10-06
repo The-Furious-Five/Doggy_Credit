@@ -13,8 +13,9 @@ Playwright de **E-06 / LOS-105** agrega el recorrido real de la SPA en Chromium:
 - Aislamiento del mismo documento entre tenants en API y perfil; una cabecera
   `X-Tenant-Id` no permite sustituir el tenant del JWT.
 
-Las pruebas usan la API y las fuentes WireMock incluidas en Compose, sin
-interceptar peticiones ni sustituir respuestas. No modifican el cliente generado
+Las pruebas usan la API y las fuentes WireMock incluidas en Compose. El helper
+de captura reenvía una petición real y entrega su respuesta sin sustituir datos.
+No modifican el cliente generado
 en `web/src/app/api/`. Los IDs, usuarios y documento se derivan de
 `seed/tenants.yaml`; el fixture ignorado contiene nombres de variables de
 contraseña, nunca sus valores.
@@ -36,6 +37,7 @@ npm ci --prefix e2e
 .venv/bin/python scripts/generate_e2e_fixture.py
 npm run typecheck --prefix e2e
 npm run test:helpers --prefix e2e
+npm run test:regression --prefix e2e
 npm run test:list --prefix e2e
 
 export COMPOSE_PROJECT_NAME=doggycredit-e2e
@@ -55,12 +57,23 @@ coincidir. La suite permite la CA local en el navegador; el paso de salud verifi
 el certificado con la CA de Caddy. Un solo worker y cero reintentos mantienen
 deterministas las mutaciones. No se guardan trazas, videos ni estado autenticado.
 
-El helper de respuestas lee el cuerpo apenas llega el evento de red, antes de
-esperar a que termine el clic o la navegación. Así Chromium no pierde el recurso
-cuando luego se consulta `json()`. `test:helpers` reproduce esa pérdida del cuerpo
-y comprueba el filtrado por ruta/método y la propagación de errores, sin requerir
-Docker ni navegador. Estas pruebas del helper no sustituyen los cinco escenarios
-reales contra Compose.
+El helper registra una ruta antes de ejecutar la acción que genera la petición.
+Usa [route.fetch()](https://playwright.dev/docs/api/class-route#route-fetch) para
+obtener el status, las cabeceras y el cuerpo completos del servidor y luego
+entrega esa misma respuesta al navegador con `route.fulfill()`. La copia de los
+bytes vive en el proceso de pruebas: consultar `json()` después de navegar ya
+no depende de `Network.getResponseBody` de Chromium. Cada captura se elimina al
+terminar o fallar. No se repiten POST ni se siguen redirecciones en la captura;
+las respuestas HTTP de error se conservan y las aserciones siguen exigiendo el
+status y los datos reales.
+
+`test:helpers` verifica espera del registro antes de la acción, cuerpo parcial,
+filtrado por origen/ruta/método, cabeceras, errores, timeout y limpieza sin
+Docker ni navegador. `test:regression` agrega cinco casos en Chromium contra un
+servidor HTTP sintético: envía las cabeceras antes de terminar el cuerpo y la
+página navega inmediatamente al recibirlas. Incluye GET, POST y un 403, y exige
+que el servidor reciba una sola petición sin cambiar su método ni cuerpo.
+Estas regresiones no sustituyen los cinco escenarios reales contra Compose.
 
 Abrir `e2e/playwright-report/index.html` para revisar fallos. Al terminar, eliminar
 **solo los volúmenes de este proyecto de pruebas**, para repetir desde cero:
@@ -73,18 +86,25 @@ COMPOSE_PROJECT_NAME=doggycredit-e2e docker compose --env-file .env.example -f i
 
 El job `e2e` en `.github/workflows/ci-cd.yml` corre en PRs, pushes a `main` y
 ejecuciones manuales, después de backend, web y contratos. Instala Chromium con
-sus dependencias Linux, levanta un Compose propio con volúmenes nuevos, ejecuta
-la suite, conserva reportes y capturas de fallos por 7 días y siempre elimina
+sus dependencias Linux, ejecuta la regresión de navegación, levanta un Compose
+propio con volúmenes nuevos, ejecuta la suite, conserva reportes y capturas de
+fallos por 7 días y siempre elimina
 sus contenedores y volúmenes. El despliegue requiere también este job en verde.
 
-**Dependencias pendientes al preparar esta rama:** el usuario confirmó que E-08
-(Webhooks) y E-09 aún no están integradas. Además, el checkout disponible muestra
-la pestaña Recomendaciones estática y no publica `recomendaciones[]` de C-06 en
-la evaluación. Esas integraciones deben llegar a la base del PR antes de esperar
-el flujo completo en verde. Las comprobaciones siguen activas: un `404` de
-Webhooks, recomendaciones ausentes o el mensaje estático no cuentan como éxito.
-Las comprobaciones suaves de recomendaciones permiten terminar revocación y
-auditoría, pero hacen fallar el test igualmente.
+E-08 ya está implementada en `feature/LOS-103-webhooks`. La prueba de permisos
+ahora verifica la respuesta consumida por su tarjeta y el formulario vacío PRO
+o el aviso de restricción FREE. Ejecuta el PR con E-08 integrada en su base.
+E-07 conserva su job de carga independiente; estos cambios no alteran sus
+fixtures ni resultados.
+
+E-09 seguía en progreso en Linear al revisar este fallo. El main local
+`94804ea` aún muestra la pestaña Recomendaciones estática y no publica
+`recomendaciones[]` de C-06 en la evaluación; no se pudo actualizar el main
+remoto en esta sesión. Verifica esas integraciones en la base actual del PR.
+Las comprobaciones siguen activas: un `404` de Webhooks, recomendaciones
+ausentes o el mensaje estático no cuentan como éxito. Las comprobaciones suaves
+de recomendaciones permiten terminar revocación y auditoría, pero hacen fallar
+el test igualmente.
 
 E-06 se considera terminada cuando el job pasa **en `main`**. Typecheck, discovery
 y los tests del generador no sustituyen una ejecución contra Compose. Si no hay

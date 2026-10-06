@@ -5,6 +5,7 @@
   "scripts": {
     "test": "playwright test",
     "test:helpers": "tsc -p tsconfig.helpers.json && node --test .generated/helpers/unit/*.test.js",
+    "test:regression": "playwright test --config playwright.regression.config.ts",
     "test:list": "playwright test --list",
     "typecheck": "tsc --noEmit"
   },

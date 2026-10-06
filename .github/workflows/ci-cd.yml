@@ -249,6 +249,9 @@ jobs:
       - name: Verificar captura de respuestas antes de navegar
         run: npm run test:helpers --prefix e2e
 
+      - name: Reproducir navegación durante respuestas parciales en Chromium
+        run: npm run test:regression --prefix e2e
+
       - name: Levantar Compose completo con datos de demo y verificar salud
         run: |
           docker compose --env-file .env.example -f infra/compose.yaml up -d --build --wait --wait-timeout 300

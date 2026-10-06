@@ -5,9 +5,7 @@ for (const tenant of seed.tenants) {
   test(`${tenant.plan}: permisos reales de analytics, integraciones y Webhooks`, async ({ page }) => {
     const headers = await login(page, tenant);
     const advanced = tenant.plan === 'PRO';
-    const analyticsLoaded = apiResponse(page, '/analytics/resumen');
-    await page.goto('/app/analitica');
-    const analyticsResponse = await analyticsLoaded;
+    const analyticsResponse = await apiResponse(page, '/analytics/resumen', () => page.goto('/app/analitica'));
     // E-02 permite el resumen básico en FREE. Solo el bloque avanzado se restringe.
     expect(analyticsResponse.status()).toBe(200);
     const analytics = await analyticsResponse.json();
@@ -42,16 +40,20 @@ for (const tenant of seed.tenants) {
       })]));
     }
 
-    await page.goto('/app/desarrolladores');
+    const webhooks = await apiResponse(page, '/webhooks', () => page.goto('/app/desarrolladores'));
     await expect(page.getByRole('heading', { name: 'Webhooks', exact: true })).toBeVisible();
-    const webhooks = await page.request.get('/api/v1/webhooks', { headers });
-    // E-08 pendiente: un 404 falla aquí. No se omite la prueba ni se acepta como bloqueo de plan.
+    // Comprueba la respuesta que consume la tarjeta E-08 y su estado visible.
     expect(webhooks.status(), 'GET /webhooks debe estar integrado desde E-08').toBe(advanced ? 200 : 403);
     if (advanced) {
       expect(webhooks.headers()['content-type']).toContain('application/json');
-      await webhooks.json();
+      expect(await webhooks.json()).toMatchObject({ eventos: [], secretoConfigurado: false });
+      await expect(page.getByRole('heading', { name: 'Sin Webhooks configurados', exact: true })).toBeVisible();
+      await expect(page.getByRole('textbox', { name: 'URL del receptor' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Guardar Webhooks', exact: true })).toBeEnabled();
     } else {
       expect(await webhooks.json()).toMatchObject({ code: 'FEATURE_NOT_IN_PLAN' });
+      await expect(page.getByRole('heading', { name: 'Webhooks disponibles con Pro', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Guardar Webhooks', exact: true })).not.toBeVisible();
     }
   });
 }
