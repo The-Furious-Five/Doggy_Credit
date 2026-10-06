@@ -70,6 +70,17 @@ class AssessmentControllerTests {
 	void configureBureauAndData() throws Exception {
 		when(bureau.source()).thenReturn(Source.BURO);
 		TestTenants.register(postgres, TENANT, "FREE");
+		try (var admin = java.sql.DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+				var seed = admin.prepareStatement("""
+					INSERT INTO recommendation.products (id, tenant_id, product_type, min_amount, max_amount,
+					  min_term_months, max_term_months, annual_rate, min_band)
+					VALUES (?, ?::uuid, 'MICROCREDITO', 1000, 30000, 6, 36, 11.5, 'C')
+					ON CONFLICT (tenant_id, product_type) DO NOTHING
+					""")) {
+			seed.setObject(1, UUID.randomUUID());
+			seed.setString(2, TENANT);
+			seed.executeUpdate();
+		}
 		registerApplicant();
 		comoTenant(() -> jdbc.update("""
 				insert into consent.consents (id, tenant_id, titular_documento, fuentes, finalidad, vigencia_dias,
@@ -114,6 +125,21 @@ class AssessmentControllerTests {
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.id").value(id.toString()));
 		verify(bureau).fetch(UUID.fromString(TENANT), DOCUMENT);
+		assertThat(comoTenant(() -> jdbc.queryForObject(
+				"select need_category from assessment.credit_assessments where id = ?", String.class, id)))
+				.isEqualTo("CAPITAL_TRABAJO");
+		assertThat(comoTenant(() -> jdbc.queryForObject(
+				"select decision_time_ms from assessment.credit_assessments where id = ?", Long.class, id)))
+				.isNotNegative();
+		assertThat(comoTenant(() -> jdbc.queryForObject(
+				"select recommended_product_type from assessment.credit_assessments where id = ?", String.class, id)))
+				.isEqualTo("MICROCREDITO");
+		assertThat(comoTenant(() -> jdbc.queryForObject(
+				"select recommended_amount from assessment.credit_assessments where id = ?", BigDecimal.class, id)))
+				.isEqualByComparingTo("3000.00");
+		assertThat(comoTenant(() -> jdbc.queryForObject(
+				"select count(*) from assessment.credit_assessments where idempotency_key = ?", Integer.class, key)))
+				.isEqualTo(1);
 
 		mvc.perform(get("/credit-assessments/{id}", id)
 				.with(jwt().jwt(token -> token.subject("analista-3").claim("tenant_id", TENANT))))

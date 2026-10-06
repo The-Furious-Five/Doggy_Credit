@@ -46,10 +46,12 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final QuotaGuard quotaGuard;
 	private final TenantRegistry tenantRegistry;
 	private final ApplicationEventPublisher events;
+	private final AssessmentAnalyticsSnapshot analytics;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			SourceCollector sources, CreditScoring scoring, AuditTrail audit,
-			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events) {
+			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events,
+			AssessmentAnalyticsSnapshot analytics) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.sources = sources;
@@ -58,6 +60,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.quotaGuard = quotaGuard;
 		this.tenantRegistry = tenantRegistry;
 		this.events = events;
+		this.analytics = analytics;
 	}
 
 	@Override
@@ -73,6 +76,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			return replay.get().toResult();
 		}
 
+		long started = System.nanoTime();
 		TenantInfo tenant = tenantRegistry.requireById(TenantId.of(command.tenantId()));
 		quotaGuard.requireEvaluationQuota(command.tenantId(), tenant.plan());
 
@@ -86,6 +90,8 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
 				command.termMonths(), status, score, command.correlationId());
+		assessment.captureAnalytics(analytics.capture(command, applicant, collection, score.band(), tenant.moneda()),
+				java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
 		assessments.save(assessment);
 		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());
 		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
@@ -171,7 +177,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 
 	/** El conector del buró devuelve {@code Optional<BureauReport>}: vacío = "sin registro". */
 	@SuppressWarnings("unchecked")
-	private static Optional<BureauReport> bureauReport(SourceCollection collection) {
+	static Optional<BureauReport> bureauReport(SourceCollection collection) {
 		return collection.payload(Source.BURO)
 			.flatMap(payload -> (Optional<BureauReport>) payload);
 	}

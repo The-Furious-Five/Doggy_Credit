@@ -3,6 +3,7 @@ README.md
 api.base.service.ts
 api.module.ts
 api/admin.service.ts
+api/analytics.service.ts
 api/api.ts
 api/auditoria.service.ts
 api/clavesApi.service.ts
@@ -15,6 +16,11 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/analyticsModelo.ts
+model/analyticsNecesidad.ts
+model/analyticsPro.ts
+model/analyticsProducto.ts
+model/analyticsResumen.ts
 model/claveApi.ts
 model/claveApiCreada.ts
 model/claveApiNueva.ts
