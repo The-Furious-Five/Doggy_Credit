@@ -237,6 +237,38 @@ paths:
 
 
   /credit-assessments:
+    get:
+      tags: [evaluaciones]
+      operationId: listarEvaluaciones
+      summary: Evaluaciones del tenant, de la más reciente a la más antigua, paginadas
+      parameters:
+        - name: solicitanteId
+          in: query
+          required: false
+          description: Solo las evaluaciones de este solicitante (historial de la pestaña Score)
+          schema: { type: string, format: uuid }
+        - name: desde
+          in: query
+          required: false
+          description: Incluye evaluaciones creadas en o después de este instante
+          schema: { type: string, format: date-time }
+        - name: pagina
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Página de evaluaciones
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaEvaluaciones"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
     post:
       tags: [evaluaciones]
       operationId: crearEvaluacion
@@ -928,6 +960,35 @@ components:
             secreto: { type: string, description: "client_secret; solo aparece en la respuesta de creación" }
             tokenUrl: { type: string, format: uri, description: "Endpoint de token de Keycloak para el grant client_credentials" }
           required: [secreto, tokenUrl]
+
+    EvaluacionResumen:
+      type: object
+      description: Una evaluación en un listado. El estado es la decisión (nunca un rechazo automático).
+      properties:
+        id: { type: string, format: uuid }
+        solicitanteId: { type: string, format: uuid }
+        estado:
+          type: string
+          enum: [PENDIENTE, PARCIAL, PREAPROBADO, REVISION_MANUAL, FALLIDA]
+        score: { type: integer }
+        banda: { type: string, enum: [A, B, C, D, E] }
+        montoSolicitado: { type: string, description: "Decimal como string" }
+        plazoMeses: { type: integer }
+        creadoEn: { type: string, format: date-time }
+      required: [id, solicitanteId, estado, score, banda, creadoEn]
+
+    PaginaEvaluaciones:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvaluacionResumen"
+        total:
+          type: integer
+          format: int64
+          description: Total de evaluaciones que cumplen el filtro (para la paginación)
+      required: [items, total]
 
     Producto:
       type: object

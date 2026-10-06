@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
@@ -11,12 +12,14 @@ import java.util.OptionalInt;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.doggycredit.assessment.AssessmentCommand;
 import com.doggycredit.assessment.AssessmentNotFoundException;
 import com.doggycredit.assessment.AssessmentOperations;
+import com.doggycredit.assessment.AssessmentPage;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.IdempotencyKeyReusedException;
@@ -91,6 +94,15 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
 		events.publishEvent(assessment.completedEvent());
 		return assessment.toResult();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public AssessmentPage list(UUID tenantId, UUID applicantId, Instant from, int page, int size) {
+		// Sin "desde" se usa el inicio de los tiempos: así la consulta no compara con un null sin tipo.
+		var result = assessments.search(tenantId, applicantId, from == null ? Instant.EPOCH : from,
+				PageRequest.of(page - 1, size));
+		return new AssessmentPage(result.map(CreditAssessment::toSummary).getContent(), result.getTotalElements());
 	}
 
 	@Override

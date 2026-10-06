@@ -1,6 +1,8 @@
 package com.doggycredit.assessment.internal;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,10 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.doggycredit.assessment.AssessmentCommand;
 import com.doggycredit.assessment.AssessmentOperations;
+import com.doggycredit.assessment.AssessmentPage;
 import com.doggycredit.assessment.AssessmentResult;
+import com.doggycredit.assessment.AssessmentSummary;
 import com.doggycredit.shared.contract.api.EvaluacionesApi;
 import com.doggycredit.shared.contract.model.Evaluacion;
 import com.doggycredit.shared.contract.model.EvaluacionNueva;
+import com.doggycredit.shared.contract.model.EvaluacionResumen;
+import com.doggycredit.shared.contract.model.PaginaEvaluaciones;
 
 @RestController
 class AssessmentController implements EvaluacionesApi {
@@ -38,6 +44,16 @@ class AssessmentController implements EvaluacionesApi {
 		return ResponseEntity.status(HttpStatus.CREATED).header("X-Simulated", "true").body(toContract(result));
 	}
 
+	/** C-09. El tenant sale del JWT; nunca de los parámetros. */
+	@Override
+	public ResponseEntity<PaginaEvaluaciones> listarEvaluaciones(UUID solicitanteId, OffsetDateTime desde,
+			Integer pagina, Integer tamano) {
+		AssessmentPage page = assessments.list(currentTenantId(), solicitanteId,
+				desde == null ? null : desde.toInstant(), pagina, tamano);
+		return ResponseEntity.ok(new PaginaEvaluaciones(
+				page.items().stream().map(AssessmentController::toContract).toList(), page.total()));
+	}
+
 	@Override
 	public ResponseEntity<Evaluacion> obtenerEvaluacion(UUID id) {
 		return ResponseEntity.ok(toContract(assessments.get(currentTenantId(), id)));
@@ -46,6 +62,18 @@ class AssessmentController implements EvaluacionesApi {
 	private UUID currentTenantId() {
 		var jwt = ((JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication()).getToken();
 		return UUID.fromString(jwt.getClaimAsString("tenant_id"));
+	}
+
+	private static EvaluacionResumen toContract(AssessmentSummary summary) {
+		return new EvaluacionResumen()
+			.id(summary.id())
+			.solicitanteId(summary.applicantId())
+			.estado(EvaluacionResumen.EstadoEnum.fromValue(summary.status().name()))
+			.score(summary.score())
+			.banda(EvaluacionResumen.BandaEnum.fromValue(summary.band().name()))
+			.montoSolicitado(summary.requestedAmount() == null ? null : summary.requestedAmount().toPlainString())
+			.plazoMeses(summary.termMonths())
+			.creadoEn(summary.createdAt().atOffset(ZoneOffset.UTC));
 	}
 
 	private Evaluacion toContract(AssessmentResult result) {

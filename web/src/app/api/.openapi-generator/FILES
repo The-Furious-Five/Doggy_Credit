@@ -24,6 +24,7 @@ model/consentimientoNuevo.ts
 model/dinero.ts
 model/evaluacion.ts
 model/evaluacionNueva.ts
+model/evaluacionResumen.ts
 model/fuenteIntegracion.ts
 model/integracion.ts
 model/integracionCambio.ts
@@ -31,6 +32,7 @@ model/miembroEquipo.ts
 model/models.ts
 model/organizacionTenantPatch.ts
 model/paginaAuditoria.ts
+model/paginaEvaluaciones.ts
 model/paginaSolicitantes.ts
 model/perfilFinanciero360.ts
 model/perfilFinanciero360FuentesInner.ts
