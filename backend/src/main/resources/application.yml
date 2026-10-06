@@ -26,6 +26,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # Varias ramas se mergearon a main después de desplegarse V2026_10_05_1530,
+    # con migraciones de fecha anterior. Sin esto, Flyway rechaza el arranque en
+    # el VPS ("Validate failed"). En una base nueva el orden es el mismo de siempre.
+    # Aun así, las migraciones nuevas deben llevar fecha posterior a la última de main.
+    out-of-order: true
     placeholders:
       appDbPassword: ${DC_APP_DB_PASSWORD:dev_only_app_role}
 
