@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
@@ -108,6 +109,33 @@ class KeycloakApiKeyIntegrationTests {
 	}
 
 	@Test
+	void laApiDeUsuariosExponeElTenantDeCadaUsuarioHumano() {
+		Token admin = requestToken("doggycredit-api-admin", ADMIN_SECRET);
+		assertThat(admin.status()).isEqualTo(200);
+		JsonNode users = http.get()
+			.uri("/admin/realms/doggycredit/users?briefRepresentation=false")
+			.headers(headers -> headers.setBearerAuth(admin.accessToken()))
+			.retrieve()
+			.body(JsonNode.class);
+		assertThat(users).isNotNull();
+		var humans = users.valueStream()
+			.filter(user -> !user.path("username").asString().startsWith("service-account-"))
+			.toList();
+		Map<String, String> tenants = Map.of(
+				"admin.progreso", "9c7e7c1a-0000-4000-8000-000000000001",
+				"analista.progreso", "9c7e7c1a-0000-4000-8000-000000000001",
+				"admin.vecina", "9c7e7c1a-0000-4000-8000-000000000002");
+		assertThat(humans).extracting(user -> user.path("username").asString())
+			.containsExactlyInAnyOrderElementsOf(tenants.keySet());
+		for (JsonNode user : humans) {
+			String username = user.path("username").asString();
+			assertThat(user.path("attributes").path("tenant_id").valueStream().map(JsonNode::asString))
+				.as("La Admin REST API debe conservar tenant_id para %s", username)
+				.containsExactly(tenants.get(username));
+		}
+	}
+
+	@Test
 	void listaUsuariosHumanosYRolesSoloDelTenantSolicitado() {
 		UUID progreso = UUID.fromString("9c7e7c1a-0000-4000-8000-000000000001");
 		UUID fintech = UUID.fromString("9c7e7c1a-0000-4000-8000-000000000002");
@@ -144,9 +172,12 @@ class KeycloakApiKeyIntegrationTests {
 
 	private record Token(int status, String body) {
 
+		String accessToken() {
+			return JsonMapper.builder().build().readTree(body).get("access_token").asString();
+		}
+
 		JsonNode claims() {
-			String accessToken = JsonMapper.builder().build().readTree(body).get("access_token").asString();
-			String payload = accessToken.split("\\.")[1];
+			String payload = accessToken().split("\\.")[1];
 			return JsonMapper.builder().build().readTree(new String(Base64.getUrlDecoder().decode(payload),
 					StandardCharsets.UTF_8));
 		}
