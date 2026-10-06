@@ -23,6 +23,7 @@ tags:
   - name: tenant
   - name: admin
   - name: claves-api
+  - name: productos
 
 paths:
 
@@ -555,6 +556,57 @@ paths:
         "502":
           $ref: "#/components/responses/ErrorNegocio"
 
+  /productos:
+    get:
+      tags: [productos]
+      operationId: listarProductos
+      summary: Catálogo de productos de crédito del tenant (solo TENANT_ADMIN)
+      responses:
+        "200":
+          description: Productos del tenant, activos e inactivos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Producto"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /productos/{id}:
+    put:
+      tags: [productos]
+      operationId: actualizarProducto
+      summary: Activa o desactiva un producto y ajusta sus rangos (solo TENANT_ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductoCambios"
+      responses:
+        "200":
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Producto"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -877,3 +929,29 @@ components:
             tokenUrl: { type: string, format: uri, description: "Endpoint de token de Keycloak para el grant client_credentials" }
           required: [secreto, tokenUrl]
 
+    Producto:
+      type: object
+      description: Producto de crédito del catálogo del tenant.
+      properties:
+        id: { type: string, format: uuid }
+        tipo: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        moneda: { type: string, enum: [BOB, USD] }
+        montoMinimo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$", description: "Decimal como string" }
+        montoMaximo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$", description: "Decimal como string" }
+        plazoMinimoMeses: { type: integer, minimum: 1 }
+        plazoMaximoMeses: { type: integer, minimum: 1 }
+        tasaAnual: { type: string, description: "Porcentaje anual como string, p. ej. \"11.50\"" }
+        bandaMinima: { type: string, enum: [A, B, C, D, E] }
+        activo: { type: boolean }
+      required: [id, tipo, moneda, montoMinimo, montoMaximo, plazoMinimoMeses, plazoMaximoMeses, tasaAnual, bandaMinima, activo]
+
+    ProductoCambios:
+      type: object
+      description: Lo que el administrador del tenant puede cambiar de un producto (la tasa y la banda no).
+      properties:
+        activo: { type: boolean }
+        montoMinimo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$" }
+        montoMaximo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$" }
+        plazoMinimoMeses: { type: integer, minimum: 1, maximum: 360 }
+        plazoMaximoMeses: { type: integer, minimum: 1, maximum: 360 }
+      required: [activo, montoMinimo, montoMaximo, plazoMinimoMeses, plazoMaximoMeses]
