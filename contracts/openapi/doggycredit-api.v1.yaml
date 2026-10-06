@@ -24,6 +24,7 @@ tags:
   - name: admin
   - name: claves-api
   - name: politicas
+  - name: productos
 
 paths:
 
@@ -237,6 +238,38 @@ paths:
 
 
   /credit-assessments:
+    get:
+      tags: [evaluaciones]
+      operationId: listarEvaluaciones
+      summary: Evaluaciones del tenant, de la más reciente a la más antigua, paginadas
+      parameters:
+        - name: solicitanteId
+          in: query
+          required: false
+          description: Solo las evaluaciones de este solicitante (historial de la pestaña Score)
+          schema: { type: string, format: uuid }
+        - name: desde
+          in: query
+          required: false
+          description: Incluye evaluaciones creadas en o después de este instante
+          schema: { type: string, format: date-time }
+        - name: pagina
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Página de evaluaciones
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaEvaluaciones"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
     post:
       tags: [evaluaciones]
       operationId: crearEvaluacion
@@ -554,6 +587,57 @@ paths:
         "404":
           $ref: "#/components/responses/ErrorNegocio"
         "502":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /productos:
+    get:
+      tags: [productos]
+      operationId: listarProductos
+      summary: Catálogo de productos de crédito del tenant (solo TENANT_ADMIN)
+      responses:
+        "200":
+          description: Productos del tenant, activos e inactivos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Producto"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /productos/{id}:
+    put:
+      tags: [productos]
+      operationId: actualizarProducto
+      summary: Activa o desactiva un producto y ajusta sus rangos (solo TENANT_ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductoCambios"
+      responses:
+        "200":
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Producto"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
           $ref: "#/components/responses/ErrorNegocio"
 
   /politicas:
@@ -934,6 +1018,62 @@ components:
             secreto: { type: string, description: "client_secret; solo aparece en la respuesta de creación" }
             tokenUrl: { type: string, format: uri, description: "Endpoint de token de Keycloak para el grant client_credentials" }
           required: [secreto, tokenUrl]
+
+    EvaluacionResumen:
+      type: object
+      description: Una evaluación en un listado. El estado es la decisión (nunca un rechazo automático).
+      properties:
+        id: { type: string, format: uuid }
+        solicitanteId: { type: string, format: uuid }
+        estado:
+          type: string
+          enum: [PENDIENTE, PARCIAL, PREAPROBADO, REVISION_MANUAL, FALLIDA]
+        score: { type: integer }
+        banda: { type: string, enum: [A, B, C, D, E] }
+        montoSolicitado: { type: string, description: "Decimal como string" }
+        plazoMeses: { type: integer }
+        creadoEn: { type: string, format: date-time }
+      required: [id, solicitanteId, estado, score, banda, creadoEn]
+
+    PaginaEvaluaciones:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvaluacionResumen"
+        total:
+          type: integer
+          format: int64
+          description: Total de evaluaciones que cumplen el filtro (para la paginación)
+      required: [items, total]
+
+    Producto:
+      type: object
+      description: Producto de crédito del catálogo del tenant.
+      properties:
+        id: { type: string, format: uuid }
+        tipo: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        moneda: { type: string, enum: [BOB, USD] }
+        montoMinimo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$", description: "Decimal como string" }
+        montoMaximo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$", description: "Decimal como string" }
+        plazoMinimoMeses: { type: integer, minimum: 1 }
+        plazoMaximoMeses: { type: integer, minimum: 1 }
+        tasaAnual: { type: string, description: "Porcentaje anual como string, p. ej. \"11.50\"" }
+        bandaMinima: { type: string, enum: [A, B, C, D, E] }
+        activo: { type: boolean }
+      required: [id, tipo, moneda, montoMinimo, montoMaximo, plazoMinimoMeses, plazoMaximoMeses, tasaAnual, bandaMinima, activo]
+
+    ProductoCambios:
+      type: object
+      description: Lo que el administrador del tenant puede cambiar de un producto (la tasa y la banda no).
+      properties:
+        activo: { type: boolean }
+        montoMinimo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$" }
+        montoMaximo: { type: string, pattern: "^[0-9]+(\\.[0-9]{1,2})?$" }
+        plazoMinimoMeses: { type: integer, minimum: 1, maximum: 360 }
+        plazoMaximoMeses: { type: integer, minimum: 1, maximum: 360 }
+      required: [activo, montoMinimo, montoMaximo, plazoMinimoMeses, plazoMaximoMeses]
 
     Politica:
       type: object
