@@ -1,24 +1,28 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { OidcSecurityService } from 'angular-auth-oidc-client';
-import { catchError, map, of } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { TenantService } from '../api';
+import { AuthSessionService } from '../auth/session.service';
 
 @Injectable({ providedIn: 'root' })
 export class SensitiveDataService {
   private readonly tenantApi = inject(TenantService);
-  private readonly oidc = inject(OidcSecurityService);
-  private readonly preferences = toSignal(this.tenantApi.obtenerPreferenciasTenant().pipe(
-    catchError(() => of({ enmascararDatos: true })),
-  ), {
-    initialValue: { enmascararDatos: true },
-  });
-  private readonly roles = toSignal(
-    this.oidc.userData$.pipe(map(({ userData }) => userData?.realm_access?.roles ?? [] as string[])),
-    { initialValue: [] as string[] },
+  private readonly auth = inject(AuthSessionService);
+  private readonly preferences = toSignal(
+    this.tenantApi
+      .obtenerPreferenciasTenant()
+      .pipe(catchError(() => of({ enmascararDatos: true }))),
+    {
+      initialValue: { enmascararDatos: true },
+    },
   );
-  readonly shouldMask = computed(() => this.preferences().enmascararDatos
-    && !this.roles().some((role: string) => ['TENANT_ADMIN', 'PLATFORM_ADMIN'].includes(role)));
+  readonly shouldMask = computed(
+    () =>
+      this.preferences().enmascararDatos &&
+      !this.auth
+        .session()
+        .roles.some((role) => role === 'TENANT_ADMIN' || role === 'PLATFORM_ADMIN'),
+  );
 
   document(value: string): string {
     if (!this.shouldMask()) return value;
