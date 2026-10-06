@@ -7,6 +7,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Set;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.http.HttpStatusCode;
@@ -32,6 +36,7 @@ import org.springframework.web.client.RestClientException;
 class KeycloakAdminClients implements KeycloakClients {
 
 	private static final Duration TOKEN_MARGIN = Duration.ofSeconds(30);
+	private static final Set<String> TEAM_ROLES = Set.of("TENANT_ADMIN", "ANALYST", "PLATFORM_ADMIN");
 
 	private final Properties properties;
 	private final RestClient http;
@@ -98,6 +103,71 @@ class KeycloakAdminClients implements KeycloakClients {
 		catch (RestClientException e) {
 			throw new KeycloakUnavailableException("No se pudo borrar el cliente en Keycloak", e);
 		}
+	}
+
+	@Override
+	public List<TeamMember> listTeamMembers(UUID tenantId) {
+		try {
+			List<TeamMember> members = new ArrayList<>();
+			int first = 0;
+			while (true) {
+				int page = first;
+				List<?> users = http.get()
+					.uri(uri -> uri.path("/admin/realms/{realm}/users")
+						.queryParam("first", page)
+						.queryParam("max", 100)
+						.queryParam("briefRepresentation", false)
+						.build(properties.realm()))
+					.headers(h -> h.setBearerAuth(token()))
+					.retrieve()
+					.body(List.class);
+				if (users == null || users.isEmpty()) break;
+				for (Object value : users) {
+					if (value instanceof Map<?, ?> user && belongsToTenant(user, tenantId) && !isServiceAccount(user)) {
+						members.add(toTeamMember(user));
+					}
+				}
+				first += users.size();
+				if (users.size() < 100) break;
+			}
+			return members.stream().sorted(Comparator.comparing(TeamMember::nombre, String.CASE_INSENSITIVE_ORDER))
+				.toList();
+		}
+		catch (RestClientException e) {
+			throw new KeycloakUnavailableException("No se pudo consultar el equipo en Keycloak", e);
+		}
+	}
+
+	private TeamMember toTeamMember(Map<?, ?> user) {
+		String userId = String.valueOf(user.get("id"));
+		String name = (stringValue(user.get("firstName")) + " " + stringValue(user.get("lastName"))).strip();
+		if (name.isBlank()) name = stringValue(user.get("username"));
+		List<?> mappings = http.get()
+			.uri("/admin/realms/{realm}/users/{user}/role-mappings/realm", properties.realm(), userId)
+			.headers(h -> h.setBearerAuth(token()))
+			.retrieve().body(List.class);
+		String roles = mappings == null ? "" : mappings.stream().filter(Map.class::isInstance).map(Map.class::cast)
+			.map(role -> role.get("name")).filter(String.class::isInstance).map(String.class::cast)
+			.filter(TEAM_ROLES::contains).sorted().collect(java.util.stream.Collectors.joining(", "));
+		return new TeamMember(name, stringValue(user.get("email")), roles.isBlank() ? "SIN_ROL" : roles,
+			Boolean.TRUE.equals(user.get("enabled")));
+	}
+
+	private static boolean belongsToTenant(Map<?, ?> user, UUID tenantId) {
+		Object attributes = user.get("attributes");
+		if (!(attributes instanceof Map<?, ?> values)) return false;
+		Object raw = values.get("tenant_id");
+		if (raw instanceof Collection<?> collection) return collection.stream().anyMatch(tenantId.toString()::equals);
+		return tenantId.toString().equals(raw);
+	}
+
+	private static boolean isServiceAccount(Map<?, ?> user) {
+		return stringValue(user.get("username")).startsWith("service-account-")
+				|| user.containsKey("serviceAccountClientId");
+	}
+
+	private static String stringValue(Object value) {
+		return value instanceof String string ? string : "";
 	}
 
 	@Override

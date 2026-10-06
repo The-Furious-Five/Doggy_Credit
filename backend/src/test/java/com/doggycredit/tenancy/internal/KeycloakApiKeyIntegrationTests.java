@@ -107,6 +107,19 @@ class KeycloakApiKeyIntegrationTests {
 		assertThat(audiences(token.claims())).doesNotContain("doggycredit-api");
 	}
 
+	@Test
+	void listaUsuariosHumanosYRolesSoloDelTenantSolicitado() {
+		UUID progreso = UUID.fromString("9c7e7c1a-0000-4000-8000-000000000001");
+		UUID fintech = UUID.fromString("9c7e7c1a-0000-4000-8000-000000000002");
+
+		var members = keycloak.listTeamMembers(progreso);
+		assertThat(members).extracting(KeycloakClients.TeamMember::email)
+			.containsExactlyInAnyOrder("admin.progreso@doggycredit.invalid", "analista.progreso@doggycredit.invalid");
+		assertThat(members).extracting(KeycloakClients.TeamMember::rol).contains("TENANT_ADMIN", "ANALYST");
+		assertThat(keycloak.listTeamMembers(fintech)).extracting(KeycloakClients.TeamMember::email)
+			.containsExactly("admin.vecina@doggycredit.invalid");
+	}
+
 	private static Token requestToken(String clientId, String secret) {
 		LinkedMultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 		form.add("grant_type", "client_credentials");

@@ -7,14 +7,12 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.doggycredit.shared.ErrorCode;
+import com.doggycredit.shared.RoleGuard;
 import com.doggycredit.shared.contract.api.ClavesApiApi;
 import com.doggycredit.shared.contract.model.ClaveApi;
 import com.doggycredit.shared.contract.model.ClaveApiCreada;
@@ -89,15 +87,7 @@ class ApiKeyController implements ClavesApiApi {
 	 * seguridad responde siempre INVALID_TENANT_CLAIM.
 	 */
 	private static JwtAuthenticationToken requireRole(String role) {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		boolean granted = authentication != null && authentication.getAuthorities().stream()
-			.map(GrantedAuthority::getAuthority)
-			.anyMatch(("ROLE_" + role)::equals);
-		if (!granted || !(authentication instanceof JwtAuthenticationToken jwt)) {
-			throw new ErrorResponseException(HttpStatus.FORBIDDEN,
-					ErrorCode.INSUFFICIENT_ROLE.toProblemDetail("La operación requiere el rol " + role + "."), null);
-		}
-		return jwt;
+		return RoleGuard.requireJwt(role);
 	}
 
 }

@@ -15,6 +15,8 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import com.doggycredit.billing.Feature;
+import com.doggycredit.billing.PlanGate;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.BasicScorecard;
 import com.doggycredit.scoring.ScoreBand;
@@ -35,9 +37,10 @@ class PlanAwareCreditScoringTest {
 	private static final BasicScoreResult ADVANCED = new BasicScoreResult(640, ScoreBand.B, List.of(), "scoring-v2");
 
 	private final TenantRegistry tenants = mock(TenantRegistry.class);
+	private final PlanGate planGate = mock(PlanGate.class);
 	private final BasicScorecard basic = mock(BasicScorecard.class);
 	private final AdvancedScorer advanced = mock(AdvancedScorer.class);
-	private final PlanAwareCreditScoring scoring = new PlanAwareCreditScoring(tenants, basic, advanced);
+	private final PlanAwareCreditScoring scoring = new PlanAwareCreditScoring(tenants, planGate, basic, advanced);
 
 	@Test
 	void freeUsaElScorecardBasico() {
@@ -75,6 +78,7 @@ class PlanAwareCreditScoringTest {
 		UUID tenant = UUID.randomUUID();
 		when(tenants.findById(TenantId.of(tenant))).thenReturn(Optional.of(
 				new TenantInfo(tenant, "Demo", "1", "IMF", plan, "BO", "BOB", true)));
+		when(planGate.isAvailable(plan, Feature.SCORING_AVANZADO)).thenReturn("PRO".equals(plan) || "ENTERPRISE".equals(plan));
 		return tenant;
 	}
 

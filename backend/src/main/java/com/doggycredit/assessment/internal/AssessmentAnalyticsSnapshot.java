@@ -7,6 +7,8 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import com.doggycredit.billing.Feature;
+import com.doggycredit.billing.PlanGate;
 import com.doggycredit.assessment.AssessmentCommand;
 import com.doggycredit.consent.Source;
 import com.doggycredit.customer.ApplicantProfile;
@@ -25,14 +27,16 @@ class AssessmentAnalyticsSnapshot {
 
     private final CreditNeeds needs;
     private final ProductRecommendations recommendations;
+    private final PlanGate planGate;
 
-    AssessmentAnalyticsSnapshot(CreditNeeds needs, ProductRecommendations recommendations) {
+    AssessmentAnalyticsSnapshot(CreditNeeds needs, ProductRecommendations recommendations, PlanGate planGate) {
         this.needs = needs;
         this.recommendations = recommendations;
+        this.planGate = planGate;
     }
 
     Snapshot capture(AssessmentCommand command, ApplicantProfile applicant, SourceCollection collection,
-            ScoreBand band, String currency) {
+            ScoreBand band, String currency, String planId) {
         var bureau = SynchronousAssessmentService.bureauReport(collection);
         HolderType type = applicant.segment() == ApplicantSegment.PYME
                 || bureau.map(report -> report.tipo() == BureauReport.TipoTitular.PYME).orElse(false)
@@ -47,6 +51,7 @@ class AssessmentAnalyticsSnapshot {
                 command.requestedAmount(), command.termMonths()));
         // No mezclar monedas ni emitir una recomendación con fuentes fallidas.
         var recommendation = collection.partial() || !currency.equals(applicant.monthlyIncome().currency().getCurrencyCode())
+                || !planGate.isAvailable(planId, Feature.RECOMENDACIONES)
                 ? Optional.<ProductRecommendations.Recommendation>empty()
                 : recommendations.first(command.tenantId(), currency, band, type, need);
         return new Snapshot(need.category().name(), recommendation.map(ProductRecommendations.Recommendation::productType).orElse(null),

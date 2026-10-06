@@ -95,7 +95,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
 				command.termMonths(), status, score, command.correlationId());
-		assessment.captureAnalytics(analytics.capture(command, applicant, collection, score.band(), tenant.moneda()),
+		assessment.captureAnalytics(analytics.capture(command, applicant, collection, score.band(), tenant.moneda(), tenant.plan()),
 				java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
 		assessments.save(assessment);
 		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());

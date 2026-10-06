@@ -57,6 +57,9 @@ class TenantControllerTests {
     @MockitoBean
     UsageMeter usageMeter;
 
+    @MockitoBean
+    KeycloakClients keycloak;
+
     @TestConfiguration(proxyBeanMethods = false)
     static class DecoderFixture {
         @Bean
@@ -79,8 +82,8 @@ class TenantControllerTests {
     static class ControllerFixture {
         @Bean
         TenantController tenantController(TenantRegistry registry, TenantPreferencesService preferences,
-                PlanCatalog plans, UsageMeter usage) {
-            return new TenantController(registry, preferences, plans, usage);
+                PlanCatalog plans, UsageMeter usage, KeycloakClients keycloak) {
+            return new TenantController(registry, preferences, plans, usage, keycloak);
         }
     }
 
@@ -139,7 +142,8 @@ class TenantControllerTests {
         var body = new PreferenciasTenant().enmascararDatos(false);
         mvc.perform(patch("/tenant/actual/preferencias").contentType(MediaType.APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(body)).header("Authorization", "Bearer valid"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INSUFFICIENT_ROLE"));
     }
 
     @Test
@@ -159,11 +163,28 @@ class TenantControllerTests {
         UUID id = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         when(tenantRegistry.requireById(TenantId.of(id)))
                 .thenReturn(new TenantInfo(id, "Mi Fintech", "1234567", "FINTECH", "FREE", "BO", "BOB", true));
-        when(planCatalog.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false));
+        when(planCatalog.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false, false));
         when(usageMeter.currentMonthEvaluations(id)).thenReturn(81);
 
         mvc.perform(get("/tenant/actual/uso").header("Authorization", "Bearer valid"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.evaluacionesMes").value(81))
                 .andExpect(jsonPath("$.limiteMensual").value(500));
+    }
+
+    @Test
+    void listaElEquipoCompletoDelTenantDesdeKeycloak() throws Exception {
+        UUID id = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        when(keycloak.listTeamMembers(id)).thenReturn(List.of(
+                new KeycloakClients.TeamMember("Rosa Mamani", "rosa@example.test", "TENANT_ADMIN", true),
+                new KeycloakClients.TeamMember("Luis Paredes", "luis@example.test", "ANALYST", false)));
+
+        mvc.perform(get("/tenant/actual/equipo").header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Rosa Mamani"))
+                .andExpect(jsonPath("$[0].rol").value("TENANT_ADMIN"))
+                .andExpect(jsonPath("$[0].estado").value("ACTIVO"))
+                .andExpect(jsonPath("$[1].rol").value("ANALYST"))
+                .andExpect(jsonPath("$[1].estado").value("DESACTIVADO"));
+        verify(keycloak).listTeamMembers(id);
     }
 }

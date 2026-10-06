@@ -1,8 +1,8 @@
-import { Component, inject, linkedSignal } from '@angular/core';
+import { Component, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, of } from 'rxjs';
 import {
   DsAlert,
   DsBadge,
@@ -11,6 +11,7 @@ import {
   DsField,
   DsIcon,
   DsInput,
+  DsProgress,
   DsSwitch,
   DsTab,
   DsTable,
@@ -33,6 +34,7 @@ import { AuditLog } from './audit-log';
     DsField,
     DsIcon,
     DsInput,
+    DsProgress,
     DsSwitch,
     DsTab,
     DsTable,
@@ -81,17 +83,33 @@ import { AuditLog } from './audit-log';
                   <tr>
                     <th scope="row">{{ member.nombre }}@if (member.email) { <span class="ds-caption"> · {{ member.email }}</span> }</th>
                     <td>{{ member.rol }}</td>
-                    <td><ds-badge [tone]="member.estado === 'ACTIVO' ? 'success' : 'warning'">{{ member.estado === 'ACTIVO' ? 'Activo/a' : 'Invitación enviada' }}</ds-badge></td>
+                    <td><ds-badge [tone]="member.estado === 'ACTIVO' ? 'success' : 'warning'">{{ member.estado === 'ACTIVO' ? 'Activo/a' : member.estado === 'DESACTIVADO' ? 'Desactivado/a' : 'Invitación enviada' }}</ds-badge></td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-          <p class="ds-caption">Miembros activos incluidos en la sesión de identidad.</p>
+          @if (team().length === 0) { <p class="ds-muted">No hay miembros registrados para esta institución.</p> }
+          <p class="ds-caption">Usuarios y roles sincronizados desde el directorio de identidad de esta institución.</p>
         </ds-card>
       </ds-tab>
 
       <ds-tab value="plan" label="Plan">
+        @if (usage(); as quota) {
+          <ds-card>
+            <div class="ds-stack-sm">
+              <h2>Uso de evaluaciones este mes</h2>
+              @if (quota.limiteMensual > 0) {
+                <p>{{ quota.evaluacionesMes }} de {{ quota.limiteMensual }} evaluaciones utilizadas</p>
+                <ds-progress label="Evaluaciones mensuales" [value]="quota.evaluacionesMes" [max]="quota.limiteMensual" />
+              } @else {
+                <p>{{ quota.evaluacionesMes }} evaluaciones utilizadas. El plan actual no tiene límite mensual.</p>
+              }
+            </div>
+          </ds-card>
+        } @else if (usageUnavailable()) {
+          <ds-alert heading="No se pudo consultar el uso" tone="warning">Comprueba la conexión e inténtalo de nuevo más tarde.</ds-alert>
+        }
         <div class="ds-grid">
           @for (plan of plans; track plan.id) {
             <ds-card>
@@ -144,6 +162,11 @@ export class Settings {
   readonly tab = linkedSignal(() => this.fragment() ?? 'organizacion');
 
   private readonly tenantService = inject(TenantService);
+  readonly usageUnavailable = signal(false);
+  readonly usage = toSignal(this.tenantService.obtenerUsoTenant().pipe(catchError(() => {
+    this.usageUnavailable.set(true);
+    return of(null);
+  })), { initialValue: null });
   readonly tenant = toSignal(this.tenantService.obtenerTenantActual());
   readonly team = toSignal(this.tenantService.listarEquipo(), { initialValue: [] });
   readonly preferences = toSignal(this.tenantService.obtenerPreferenciasTenant());
