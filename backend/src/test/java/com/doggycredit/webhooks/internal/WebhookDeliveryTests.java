@@ -1,5 +1,6 @@
 package com.doggycredit.webhooks.internal;
 
+import static com.doggycredit.webhooks.internal.WireMockRequestHeaders.header;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -284,9 +285,5 @@ class WebhookDeliveryTests {
         mac.init(new SecretKeySpec(SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
         String expected = "sha256=" + HexFormat.of().formatHex(mac.doFinal((timestamp + "." + body).getBytes(StandardCharsets.UTF_8)));
         assertThat(header(request, "X-DoggyCredit-Signature")).isEqualTo(expected);
-    }
-    private static String header(JsonNode request, String name) {
-        return request.get("headers").properties().stream().filter(entry -> entry.getKey().equalsIgnoreCase(name))
-                .findFirst().orElseThrow().getValue().get(0).asString();
     }
 }
