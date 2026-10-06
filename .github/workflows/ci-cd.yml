@@ -122,8 +122,16 @@ jobs:
       - name: Instalar dependencias de los scripts
         run: pip install -r scripts/requirements.txt
 
-      - name: Tests de los scripts generadores
+      - name: Tests de generadores y despliegue
         run: python -m unittest discover -s scripts -p 'test_*.py'
+
+      - name: Validar Compose de producción con imágenes por etiqueta
+        env:
+          DC_API_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-api:${{ github.sha }}
+          DC_WEB_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-web:${{ github.sha }}
+          # Sólo validar configuración; no arrancar prod con esta clave ficticia.
+          DC_MASTER_KEY: ci_configuration_validation_only
+        run: docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.prod.yaml config --quiet
 
       - name: Verificar que realm y cliente API generados están al día
         run: |
@@ -170,9 +178,12 @@ jobs:
           set +a
           python e2e/identity_smoke.py --ca "$RUNNER_TEMP/doggycredit-root.crt"
 
-      - name: Mostrar logs de API, Keycloak y PostgreSQL (si falló)
+      - name: Comprobar salud y datos de banco y billetera
+        run: bash scripts/check_simulators.sh --env-file .env.example -f infra/compose.yaml
+
+      - name: Mostrar logs de API, identidad y simuladores (si falló)
         if: failure()
-        run: docker compose --env-file .env.example -f infra/compose.yaml logs --no-color --timestamps --tail=250 doggycredit-api keycloak postgres
+        run: docker compose --env-file .env.example -f infra/compose.yaml logs --no-color --timestamps --tail=250 doggycredit-api keycloak postgres wiremock-bank wiremock-wallet
 
       - name: Apagar contenedores
         if: always()
@@ -284,7 +295,7 @@ jobs:
           EOF
           tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
             infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/themes infra/grafana \
-            simulators/wiremock scripts/deploy.sh
+            simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh
 
       - name: Copiar release al VPS y arrancarla (con rollback si falla)
         env:

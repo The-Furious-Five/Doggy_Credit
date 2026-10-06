@@ -3,23 +3,28 @@
 # ci-cd.yml). No compila ni crea secretos: descarga las imágenes de GHCR,
 # arranca y valida salud; si algo falla, vuelve a la release anterior.
 set -euo pipefail
-base=/srv/doggycredit
+base=${DC_DEPLOY_BASE:-/srv/doggycredit}
 release=$(pwd)
 test -f "$base/.env"
 compose() {
   docker compose --env-file "$base/.env" --env-file infra/release.env \
     -f infra/compose.yaml -f infra/compose.prod.yaml "$@"
 }
+compose config --quiet
 compose pull --quiet
 previous=$(readlink "$base/current" || true)
 rollback() {
   if [ -n "$previous" ] && [ "$previous" != "$release" ]; then
     echo "Despliegue fallido: restaurando $previous" >&2
-    cd "$previous" && compose up -d --remove-orphans
+    cd "$previous" && compose up -d --no-build --remove-orphans --wait --wait-timeout 300
   fi
 }
 trap rollback ERR
-compose up -d --remove-orphans --wait --wait-timeout 300
+compose up -d --no-build --remove-orphans --wait --wait-timeout 300
+# La salud de la API no demuestra que se hayan montado los datos de banco/billetera.
+# Si alguno falla, el trap restaura la release anterior antes de cambiar current.
+bash scripts/check_simulators.sh --env-file "$base/.env" --env-file infra/release.env \
+  -f infra/compose.yaml -f infra/compose.prod.yaml
 # --import-realm no actualiza un realm existente: aplicar el tema de acceso en cada despliegue.
 compose exec -T keycloak bash -c \
   '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master \

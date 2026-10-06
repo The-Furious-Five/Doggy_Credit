@@ -19,10 +19,25 @@ services:
   wiremock-bank:
     <<: *restart
     ports: !reset []
+    # Datos del mismo SHA que la release. Fallar si faltan, sin crear un directorio vacío.
+    volumes:
+      - type: bind
+        source: ../simulators/wiremock/bank
+        target: /home/wiremock
+        read_only: true
+        bind:
+          create_host_path: false
 
   wiremock-wallet:
     <<: *restart
     ports: !reset []
+    volumes:
+      - type: bind
+        source: ../simulators/wiremock/wallet
+        target: /home/wiremock
+        read_only: true
+        bind:
+          create_host_path: false
 
   otel-lgtm:
     <<: *restart
@@ -34,6 +49,11 @@ services:
     <<: *restart
     build: !reset null
     image: ${DC_API_IMAGE:?falta DC_API_IMAGE en release.env}
+    depends_on:
+      wiremock-bank:
+        condition: service_healthy
+      wiremock-wallet:
+        condition: service_healthy
     environment:
       # Con el perfil prod la API se niega a arrancar con la clave maestra de demo.
       SPRING_PROFILES_ACTIVE: prod
