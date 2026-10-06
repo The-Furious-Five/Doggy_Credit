@@ -17,6 +17,11 @@ export interface Consentimiento {
     id?: string;
     estado?: ConsentimientoEstadoEnum;
     creadoEn?: string;
+    expiraEn?: string;
+    /**
+     * Solo si estado es REVOCADO
+     */
+    revocadoEn?: string;
 }
 export enum ConsentimientoFuentesEnum {
     Buro = 'BURO',

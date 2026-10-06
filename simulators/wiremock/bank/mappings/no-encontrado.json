@@ -1,0 +1,14 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/bank/v1/clientes/.*"
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"codigo\": \"CLIENTE_NO_ENCONTRADO\", \"numeroDocumento\": \"{{request.path.[3]}}\"}\n"
+  }
+}

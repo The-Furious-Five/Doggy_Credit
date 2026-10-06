@@ -1,0 +1,47 @@
+{
+  "titular": {
+    "documento": "CI-DEMO-0001006",
+    "fechaAlta": "2026-03-01"
+  },
+  "moneda": "BOB",
+  "fechaCorte": "2026-09-01",
+  "saldoPromedio": "150.00",
+  "resumenMensual": [
+    {
+      "mes": "2026-03",
+      "cantidadTransacciones": 12,
+      "montoRecibido": "770.00",
+      "montoEnviado": "690.00"
+    },
+    {
+      "mes": "2026-04",
+      "cantidadTransacciones": 14,
+      "montoRecibido": "940.00",
+      "montoEnviado": "690.00"
+    },
+    {
+      "mes": "2026-05",
+      "cantidadTransacciones": 8,
+      "montoRecibido": "980.00",
+      "montoEnviado": "770.00"
+    },
+    {
+      "mes": "2026-06",
+      "cantidadTransacciones": 12,
+      "montoRecibido": "890.00",
+      "montoEnviado": "700.00"
+    },
+    {
+      "mes": "2026-07",
+      "cantidadTransacciones": 8,
+      "montoRecibido": "910.00",
+      "montoEnviado": "670.00"
+    },
+    {
+      "mes": "2026-08",
+      "cantidadTransacciones": 35,
+      "montoRecibido": "990.00",
+      "montoEnviado": "740.00"
+    }
+  ]
+}

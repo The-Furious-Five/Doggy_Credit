@@ -8,6 +8,9 @@ bands:
   - { letter: E, min: 0 }
 rules:
   - variable: maxDaysPastDue12m
+    # Buró no disponible: la mora es desconocida, NO "sin mora". Se aplica el
+    # peor tramo para no favorecer nunca a quien no tiene datos (RN-15).
+    unknown: { points: -350, reason: MORA_DESCONOCIDA_BURO_NO_DISPONIBLE }
     buckets:
       - { max: 0, points: 0, reason: SIN_MORA_12M }
       - { max: 30, points: -80, reason: MORA_1_30_DIAS }

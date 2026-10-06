@@ -11,7 +11,12 @@
       "ingreso_volatilidad_6m": 0.3186396658420563,
       "actividad_wallet_90d": 26.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 0.0,
+      "ratio_egreso_ingreso_6m": 0.765992283821106,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 554.4600219726562,
+      "antiguedad_wallet_meses": 33.0
     },
     "featuresOrdered": [
       0.37247005105018616,
@@ -23,9 +28,14 @@
       0.3186396658420563,
       26.0,
       0.0,
-      0.0
+      0.0,
+      0.0,
+      0.765992283821106,
+      1.0,
+      554.4600219726562,
+      33.0
     ],
-    "expectedPd": 0.2802106440067291
+    "expectedPd": 0.238879002668
   },
   {
     "id": 1,
@@ -39,7 +49,12 @@
       "ingreso_volatilidad_6m": 0.19270765781402588,
       "actividad_wallet_90d": 25.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 986.1099853515625,
+      "ratio_egreso_ingreso_6m": 0.6777385473251343,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 158.47999572753906,
+      "antiguedad_wallet_meses": 8.0
     },
     "featuresOrdered": [
       0.3410417437553406,
@@ -51,9 +66,14 @@
       0.19270765781402588,
       25.0,
       0.0,
-      0.0
+      0.0,
+      986.1099853515625,
+      0.6777385473251343,
+      1.0,
+      158.47999572753906,
+      8.0
     ],
-    "expectedPd": 0.18058063089847565
+    "expectedPd": 0.199715814846
   },
   {
     "id": 2,
@@ -67,7 +87,12 @@
       "ingreso_volatilidad_6m": 0.21885503828525543,
       "actividad_wallet_90d": 24.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 256.7699890136719,
+      "ratio_egreso_ingreso_6m": 0.8628276586532593,
+      "meses_flujo_negativo_6m": 2.0,
+      "saldo_promedio_wallet_bob": 521.22998046875,
+      "antiguedad_wallet_meses": 6.0
     },
     "featuresOrdered": [
       0.24254456162452698,
@@ -79,9 +104,14 @@
       0.21885503828525543,
       24.0,
       0.0,
-      0.0
+      0.0,
+      256.7699890136719,
+      0.8628276586532593,
+      2.0,
+      521.22998046875,
+      6.0
     ],
-    "expectedPd": 0.16872648894786835
+    "expectedPd": 0.366347628886
   },
   {
     "id": 3,
@@ -95,7 +125,12 @@
       "ingreso_volatilidad_6m": 0.18700990080833435,
       "actividad_wallet_90d": 7.0,
       "es_pyme": 1.0,
-      "ventas_pyme_promedio_bob": 8458.7001953125
+      "ventas_pyme_promedio_bob": 8458.7001953125,
+      "saldo_promedio_cuentas_3m_bob": 10661.73046875,
+      "ratio_egreso_ingreso_6m": 0.8087377548217773,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 939.5,
+      "antiguedad_wallet_meses": 2.0
     },
     "featuresOrdered": [
       0.2240406572818756,
@@ -107,9 +142,14 @@
       0.18700990080833435,
       7.0,
       1.0,
-      8458.7001953125
+      8458.7001953125,
+      10661.73046875,
+      0.8087377548217773,
+      1.0,
+      939.5,
+      2.0
     ],
-    "expectedPd": 0.015368652530014515
+    "expectedPd": 0.008529047452
   },
   {
     "id": 4,
@@ -123,7 +163,12 @@
       "ingreso_volatilidad_6m": 0.10549803823232651,
       "actividad_wallet_90d": 22.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 479.1499938964844,
+      "ratio_egreso_ingreso_6m": 0.900136411190033,
+      "meses_flujo_negativo_6m": 2.0,
+      "saldo_promedio_wallet_bob": 417.55999755859375,
+      "antiguedad_wallet_meses": 40.0
     },
     "featuresOrdered": [
       0.46725818514823914,
@@ -135,9 +180,14 @@
       0.10549803823232651,
       22.0,
       0.0,
-      0.0
+      0.0,
+      479.1499938964844,
+      0.900136411190033,
+      2.0,
+      417.55999755859375,
+      40.0
     ],
-    "expectedPd": 0.25024157762527466
+    "expectedPd": 0.370449100693
   },
   {
     "id": 5,
@@ -151,7 +201,12 @@
       "ingreso_volatilidad_6m": 0.1257346123456955,
       "actividad_wallet_90d": 16.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 191.3699951171875,
+      "ratio_egreso_ingreso_6m": 0.9475970268249512,
+      "meses_flujo_negativo_6m": 3.0,
+      "saldo_promedio_wallet_bob": 226.4499969482422,
+      "antiguedad_wallet_meses": 46.0
     },
     "featuresOrdered": [
       0.33347368240356445,
@@ -163,9 +218,14 @@
       0.1257346123456955,
       16.0,
       0.0,
-      0.0
+      0.0,
+      191.3699951171875,
+      0.9475970268249512,
+      3.0,
+      226.4499969482422,
+      46.0
     ],
-    "expectedPd": 0.3420953154563904
+    "expectedPd": 0.545364870859
   },
   {
     "id": 6,
@@ -179,7 +239,12 @@
       "ingreso_volatilidad_6m": 0.28082412481307983,
       "actividad_wallet_90d": 10.0,
       "es_pyme": 1.0,
-      "ventas_pyme_promedio_bob": 7741.91015625
+      "ventas_pyme_promedio_bob": 7741.91015625,
+      "saldo_promedio_cuentas_3m_bob": 1027.18994140625,
+      "ratio_egreso_ingreso_6m": 0.8473792672157288,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 106.30000305175781,
+      "antiguedad_wallet_meses": 8.0
     },
     "featuresOrdered": [
       0.29837000370025635,
@@ -191,9 +256,14 @@
       0.28082412481307983,
       10.0,
       1.0,
-      7741.91015625
+      7741.91015625,
+      1027.18994140625,
+      0.8473792672157288,
+      1.0,
+      106.30000305175781,
+      8.0
     ],
-    "expectedPd": 0.16367821395397186
+    "expectedPd": 0.301855576187
   },
   {
     "id": 7,
@@ -207,7 +277,12 @@
       "ingreso_volatilidad_6m": 0.7628968954086304,
       "actividad_wallet_90d": 23.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 1122.5999755859375,
+      "ratio_egreso_ingreso_6m": 1.0499452352523804,
+      "meses_flujo_negativo_6m": 5.0,
+      "saldo_promedio_wallet_bob": 796.47998046875,
+      "antiguedad_wallet_meses": 0.0
     },
     "featuresOrdered": [
       0.39914971590042114,
@@ -219,9 +294,14 @@
       0.7628968954086304,
       23.0,
       0.0,
+      0.0,
+      1122.5999755859375,
+      1.0499452352523804,
+      5.0,
+      796.47998046875,
       0.0
     ],
-    "expectedPd": 0.7272094488143921
+    "expectedPd": 0.915580814592
   },
   {
     "id": 8,
@@ -235,7 +315,12 @@
       "ingreso_volatilidad_6m": 0.2640397548675537,
       "actividad_wallet_90d": 23.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 2236.06005859375,
+      "ratio_egreso_ingreso_6m": 0.8635700345039368,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 307.1300048828125,
+      "antiguedad_wallet_meses": 49.0
     },
     "featuresOrdered": [
       0.3758595883846283,
@@ -247,9 +332,14 @@
       0.2640397548675537,
       23.0,
       0.0,
-      0.0
+      0.0,
+      2236.06005859375,
+      0.8635700345039368,
+      1.0,
+      307.1300048828125,
+      49.0
     ],
-    "expectedPd": 0.2555200457572937
+    "expectedPd": 0.309204397761
   },
   {
     "id": 9,
@@ -263,7 +353,12 @@
       "ingreso_volatilidad_6m": 0.4135138988494873,
       "actividad_wallet_90d": 23.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 101.23999786376953,
+      "ratio_egreso_ingreso_6m": 0.7421240210533142,
+      "meses_flujo_negativo_6m": 0.0,
+      "saldo_promedio_wallet_bob": 241.6300048828125,
+      "antiguedad_wallet_meses": 12.0
     },
     "featuresOrdered": [
       0.2622995376586914,
@@ -275,9 +370,14 @@
       0.4135138988494873,
       23.0,
       0.0,
-      0.0
+      0.0,
+      101.23999786376953,
+      0.7421240210533142,
+      0.0,
+      241.6300048828125,
+      12.0
     ],
-    "expectedPd": 0.09447012096643448
+    "expectedPd": 0.114229826222
   },
   {
     "id": 10,
@@ -291,7 +391,12 @@
       "ingreso_volatilidad_6m": 0.47353968024253845,
       "actividad_wallet_90d": 28.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 1978.1600341796875,
+      "ratio_egreso_ingreso_6m": 0.7601593136787415,
+      "meses_flujo_negativo_6m": 3.0,
+      "saldo_promedio_wallet_bob": 164.1199951171875,
+      "antiguedad_wallet_meses": 24.0
     },
     "featuresOrdered": [
       0.4266909658908844,
@@ -303,9 +408,14 @@
       0.47353968024253845,
       28.0,
       0.0,
-      0.0
+      0.0,
+      1978.1600341796875,
+      0.7601593136787415,
+      3.0,
+      164.1199951171875,
+      24.0
     ],
-    "expectedPd": 0.7009962797164917
+    "expectedPd": 0.761456541499
   },
   {
     "id": 11,
@@ -319,7 +429,12 @@
       "ingreso_volatilidad_6m": 0.39453062415122986,
       "actividad_wallet_90d": 18.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 0.0,
+      "ratio_egreso_ingreso_6m": 0.7276981472969055,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 134.86000061035156,
+      "antiguedad_wallet_meses": 30.0
     },
     "featuresOrdered": [
       0.2869136929512024,
@@ -331,9 +446,14 @@
       0.39453062415122986,
       18.0,
       0.0,
-      0.0
+      0.0,
+      0.0,
+      0.7276981472969055,
+      1.0,
+      134.86000061035156,
+      30.0
     ],
-    "expectedPd": 0.27489662170410156
+    "expectedPd": 0.245566504987
   },
   {
     "id": 12,
@@ -347,7 +467,12 @@
       "ingreso_volatilidad_6m": 0.2251165807247162,
       "actividad_wallet_90d": 16.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 444.6099853515625,
+      "ratio_egreso_ingreso_6m": 0.8883044719696045,
+      "meses_flujo_negativo_6m": 2.0,
+      "saldo_promedio_wallet_bob": 302.80999755859375,
+      "antiguedad_wallet_meses": 3.0
     },
     "featuresOrdered": [
       0.5349627137184143,
@@ -359,9 +484,14 @@
       0.2251165807247162,
       16.0,
       0.0,
-      0.0
+      0.0,
+      444.6099853515625,
+      0.8883044719696045,
+      2.0,
+      302.80999755859375,
+      3.0
     ],
-    "expectedPd": 0.36088529229164124
+    "expectedPd": 0.582906006433
   },
   {
     "id": 13,
@@ -375,7 +505,12 @@
       "ingreso_volatilidad_6m": 0.3053281307220459,
       "actividad_wallet_90d": 16.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 740.3800048828125,
+      "ratio_egreso_ingreso_6m": 0.8128772974014282,
+      "meses_flujo_negativo_6m": 2.0,
+      "saldo_promedio_wallet_bob": 382.4200134277344,
+      "antiguedad_wallet_meses": 40.0
     },
     "featuresOrdered": [
       0.713777482509613,
@@ -387,9 +522,14 @@
       0.3053281307220459,
       16.0,
       0.0,
-      0.0
+      0.0,
+      740.3800048828125,
+      0.8128772974014282,
+      2.0,
+      382.4200134277344,
+      40.0
     ],
-    "expectedPd": 0.5255464911460876
+    "expectedPd": 0.534186010539
   },
   {
     "id": 14,
@@ -403,7 +543,12 @@
       "ingreso_volatilidad_6m": 0.23622280359268188,
       "actividad_wallet_90d": 7.0,
       "es_pyme": 1.0,
-      "ventas_pyme_promedio_bob": 19714.779296875
+      "ventas_pyme_promedio_bob": 19714.779296875,
+      "saldo_promedio_cuentas_3m_bob": 5016.68994140625,
+      "ratio_egreso_ingreso_6m": 0.7944497466087341,
+      "meses_flujo_negativo_6m": 2.0,
+      "saldo_promedio_wallet_bob": 560.22998046875,
+      "antiguedad_wallet_meses": 54.0
     },
     "featuresOrdered": [
       0.3702325224876404,
@@ -415,9 +560,14 @@
       0.23622280359268188,
       7.0,
       1.0,
-      19714.779296875
+      19714.779296875,
+      5016.68994140625,
+      0.7944497466087341,
+      2.0,
+      560.22998046875,
+      54.0
     ],
-    "expectedPd": 0.017056049779057503
+    "expectedPd": 0.006616430949
   },
   {
     "id": 15,
@@ -431,7 +581,12 @@
       "ingreso_volatilidad_6m": 0.3049871623516083,
       "actividad_wallet_90d": 22.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 1747.6500244140625,
+      "ratio_egreso_ingreso_6m": 0.7991505265235901,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 110.8499984741211,
+      "antiguedad_wallet_meses": 12.0
     },
     "featuresOrdered": [
       0.3857823312282562,
@@ -443,9 +598,14 @@
       0.3049871623516083,
       22.0,
       0.0,
-      0.0
+      0.0,
+      1747.6500244140625,
+      0.7991505265235901,
+      1.0,
+      110.8499984741211,
+      12.0
     ],
-    "expectedPd": 0.26870012283325195
+    "expectedPd": 0.397570467077
   },
   {
     "id": 16,
@@ -459,7 +619,12 @@
       "ingreso_volatilidad_6m": 0.34786370396614075,
       "actividad_wallet_90d": 20.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 814.77001953125,
+      "ratio_egreso_ingreso_6m": 0.7665094137191772,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 235.08999633789062,
+      "antiguedad_wallet_meses": 32.0
     },
     "featuresOrdered": [
       0.42220810055732727,
@@ -471,9 +636,14 @@
       0.34786370396614075,
       20.0,
       0.0,
-      0.0
+      0.0,
+      814.77001953125,
+      0.7665094137191772,
+      1.0,
+      235.08999633789062,
+      32.0
     ],
-    "expectedPd": 0.2909054458141327
+    "expectedPd": 0.294692230031
   },
   {
     "id": 17,
@@ -487,7 +657,12 @@
       "ingreso_volatilidad_6m": 0.12476375699043274,
       "actividad_wallet_90d": 21.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 3498.97998046875,
+      "ratio_egreso_ingreso_6m": 0.6472615599632263,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 1129.5999755859375,
+      "antiguedad_wallet_meses": 13.0
     },
     "featuresOrdered": [
       0.4340461790561676,
@@ -499,9 +674,14 @@
       0.12476375699043274,
       21.0,
       0.0,
-      0.0
+      0.0,
+      3498.97998046875,
+      0.6472615599632263,
+      1.0,
+      1129.5999755859375,
+      13.0
     ],
-    "expectedPd": 0.15195932984352112
+    "expectedPd": 0.096199173048
   },
   {
     "id": 18,
@@ -515,7 +695,12 @@
       "ingreso_volatilidad_6m": 0.280656635761261,
       "actividad_wallet_90d": 21.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 2541.31005859375,
+      "ratio_egreso_ingreso_6m": 0.9835325479507446,
+      "meses_flujo_negativo_6m": 1.0,
+      "saldo_promedio_wallet_bob": 850.6699829101562,
+      "antiguedad_wallet_meses": 27.0
     },
     "featuresOrdered": [
       0.24301396310329437,
@@ -527,9 +712,14 @@
       0.280656635761261,
       21.0,
       0.0,
-      0.0
+      0.0,
+      2541.31005859375,
+      0.9835325479507446,
+      1.0,
+      850.6699829101562,
+      27.0
     ],
-    "expectedPd": 0.08023515343666077
+    "expectedPd": 0.120614465103
   },
   {
     "id": 19,
@@ -543,7 +733,12 @@
       "ingreso_volatilidad_6m": 0.11259128153324127,
       "actividad_wallet_90d": 21.0,
       "es_pyme": 0.0,
-      "ventas_pyme_promedio_bob": 0.0
+      "ventas_pyme_promedio_bob": 0.0,
+      "saldo_promedio_cuentas_3m_bob": 1528.81005859375,
+      "ratio_egreso_ingreso_6m": 0.7877013087272644,
+      "meses_flujo_negativo_6m": 0.0,
+      "saldo_promedio_wallet_bob": 397.7099914550781,
+      "antiguedad_wallet_meses": 32.0
     },
     "featuresOrdered": [
       0.11036552488803864,
@@ -555,8 +750,13 @@
       0.11259128153324127,
       21.0,
       0.0,
-      0.0
+      0.0,
+      1528.81005859375,
+      0.7877013087272644,
+      0.0,
+      397.7099914550781,
+      32.0
     ],
-    "expectedPd": 0.06952941417694092
+    "expectedPd": 0.072212955195
   }
 ]

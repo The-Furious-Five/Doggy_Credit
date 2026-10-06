@@ -1,0 +1,47 @@
+{
+  "titular": {
+    "documento": "NIT-DEMO-9001008",
+    "fechaAlta": "2025-07-01"
+  },
+  "moneda": "BOB",
+  "fechaCorte": "2026-09-01",
+  "saldoPromedio": "270.00",
+  "resumenMensual": [
+    {
+      "mes": "2026-03",
+      "cantidadTransacciones": 20,
+      "montoRecibido": "1990.00",
+      "montoEnviado": "1780.00"
+    },
+    {
+      "mes": "2026-04",
+      "cantidadTransacciones": 6,
+      "montoRecibido": "1910.00",
+      "montoEnviado": "1880.00"
+    },
+    {
+      "mes": "2026-05",
+      "cantidadTransacciones": 20,
+      "montoRecibido": "2080.00",
+      "montoEnviado": "1470.00"
+    },
+    {
+      "mes": "2026-06",
+      "cantidadTransacciones": 23,
+      "montoRecibido": "2220.00",
+      "montoEnviado": "1990.00"
+    },
+    {
+      "mes": "2026-07",
+      "cantidadTransacciones": 19,
+      "montoRecibido": "1780.00",
+      "montoEnviado": "1460.00"
+    },
+    {
+      "mes": "2026-08",
+      "cantidadTransacciones": 7,
+      "montoRecibido": "1700.00",
+      "montoEnviado": "1510.00"
+    }
+  ]
+}

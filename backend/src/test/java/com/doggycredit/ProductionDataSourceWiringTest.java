@@ -36,6 +36,9 @@ class ProductionDataSourceWiringTest {
 		registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
 		registry.add("spring.datasource.username", POSTGRES::getUsername);
 		registry.add("spring.datasource.password", POSTGRES::getPassword);
+		registry.add("doggycredit.datasource.url", POSTGRES::getJdbcUrl);
+		registry.add("doggycredit.datasource.username", () -> "doggycredit_app");
+		registry.add("doggycredit.datasource.password", () -> "dev_only_app_role");
 	}
 
 	@Autowired

@@ -101,6 +101,25 @@ class TenantRegistryTest {
         throw new IllegalStateException("No se encontró " + relative);
     }
 
+    /** La app escribe nombre, plan y activo con su rol restringido (no solo lectura). */
+    @Test
+    void laAppActualizaNombrePlanYActivo() {
+        TenantId id = TenantId.of(PROGRESO_ANDINO);
+        TenantInfo original = registry.requireById(id);
+        try {
+            registry.updateName(id, "  Progreso Andino Renombrada ");
+            TenantInfo t = registry.update(id, "PRO", false);
+            assertThat(t.nombre()).isEqualTo("Progreso Andino Renombrada");
+            assertThat(t.plan()).isEqualTo("PRO");
+            assertThat(t.activo()).isFalse();
+        }
+        finally {
+            registry.updateName(id, original.nombre());
+            registry.update(id, original.plan(), original.activo());
+        }
+        assertThat(registry.requireById(id)).isEqualTo(original);
+    }
+
     @Test
     void tenantInexistenteRetornaVacio() {
         UUID desconocido = UUID.fromString("00000000-0000-0000-0000-000000000099");

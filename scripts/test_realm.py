@@ -1,6 +1,6 @@
 import unittest
 import yaml
-from generate_realm import generate, ROOT
+from generate_realm import generate, ROOT, API_ADMIN_CLIENT
 
 class RealmTest(unittest.TestCase):
     def setUp(self):
@@ -58,8 +58,25 @@ class RealmTest(unittest.TestCase):
 
     def test_all_clients_issue_audience_and_tenant_claim(self):
         for client in self.realm['clients']:
+            if client['clientId'] == API_ADMIN_CLIENT:
+                continue
             mappers = {m['name']: m for m in client['protocolMappers']}
             self.assertEqual(mappers['tenant_id']['config']['claim.name'], 'tenant_id')
             self.assertEqual(mappers['api-audience']['config']['included.custom.audience'], 'doggycredit-api')
+
+    def test_api_admin_client_cannot_call_the_api(self):
+        clients = {c['clientId']: c for c in self.realm['clients']}
+        admin = clients[API_ADMIN_CLIENT]
+        self.assertEqual(admin['secret'], '${DC_KEYCLOAK_API_ADMIN_SECRET}')
+        self.assertTrue(admin['serviceAccountsEnabled'])
+        self.assertFalse(admin['standardFlowEnabled'])
+        # Sin audiencia ni tenant_id: un token de administración nunca entra a la API.
+        self.assertEqual(admin['protocolMappers'], [])
+        users = {u['username']: u for u in self.realm['users']}
+        account = users['service-account-' + API_ADMIN_CLIENT]
+        self.assertNotIn('realmRoles', account)
+        self.assertNotIn('tenant_id', account.get('attributes', {}))
+        self.assertIn('manage-clients', account['clientRoles']['realm-management'])
+        self.assertNotIn('realm-admin', account['clientRoles']['realm-management'])
 
 if __name__ == '__main__': unittest.main()

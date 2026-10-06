@@ -1,7 +1,7 @@
 """
-SPIKE-3 — entrenamiento del modelo de scoring v1.
+Entrenamiento del modelo de scoring (SPIKE-3; v2 en D-01, Sprint 2).
 
-Pipeline: dataset sintético (feature_set v1) -> StandardScaler + regresión
+Pipeline: dataset sintético (feature_set v2) -> StandardScaler + regresión
 logística (scikit-learn) -> exportado a ONNX -> golden set para la prueba
 de paridad Python <-> Java (backend/.../scoring, ONNX Runtime).
 
@@ -9,7 +9,8 @@ Uso:
     ml/.venv/bin/python ml/training/train.py
 
 Escribe en ml/model/:
-    scoring-v1.onnx     — el artefacto servido por la JVM
+    scoring-v2.onnx     — el artefacto servido por la JVM
+    scoring-v2.params.json — media, escala y coeficientes por variable (imputación y explicabilidad)
     model_card.json     — versión, hash del dataset, métricas, gates
     golden_set.json     — 20 perfiles fijos con la probabilidad esperada
 """
@@ -34,10 +35,23 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "data" / "generator"))
-from generate_synthetic import FEATURE_COLUMNS, SEED, generate, dataset_hash  # noqa: E402
+from generate_synthetic import (  # noqa: E402
+    FEATURE_COLUMNS,
+    FEATURE_SET_VERSION,
+    SEED,
+    dataset_hash,
+    generate,
+)
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "model"
-MODEL_VERSION = "v1"
+MODEL_VERSION = "v2"
+
+# Decimales con los que se guardan los parámetros del modelo. Cada plataforma
+# acumula en su propio BLAS y los coeficientes difieren en los últimos bits
+# entre macOS y Linux; ajustando en float64 con Newton (converge al óptimo
+# hasta ~1e-12) y redondeando, el .onnx sale idéntico byte a byte en ambas,
+# que es lo que el CI compara por hash (DEBT-016).
+PARAM_DECIMALS = 6
 
 # Signo esperado del coeficiente en el espacio estandarizado (monotonía,
 # §11.5 del informe): + significa "sube el riesgo", - "lo baja". Se
@@ -52,6 +66,11 @@ EXPECTED_SIGN = {
     "ingreso_promedio_6m_bob": -1,
     "ingreso_volatilidad_6m": 1,
     "actividad_wallet_90d": -1,
+    "saldo_promedio_cuentas_3m_bob": -1,
+    "ratio_egreso_ingreso_6m": 1,
+    "meses_flujo_negativo_6m": 1,
+    "saldo_promedio_wallet_bob": -1,
+    "antiguedad_wallet_meses": -1,
 }
 
 
@@ -77,9 +96,25 @@ def ks_statistic(y_true: np.ndarray, p_default: np.ndarray) -> float:
     return float(np.max(np.abs(cum_bad - cum_good)))
 
 
+def _as_model_input(df):
+    """Valores representables en float32 (lo que recibe el .onnx en la JVM),
+    pero en float64 para que scikit-learn ajuste en doble precisión: en
+    float32 la convergencia se queda en ~1e-7 y depende del BLAS."""
+    return df[FEATURE_COLUMNS].astype(np.float32).astype(np.float64)
+
+
+def _round_params(pipeline: Pipeline) -> None:
+    scaler = pipeline.named_steps["scaler"]
+    logreg = pipeline.named_steps["logreg"]
+    scaler.mean_ = np.round(scaler.mean_, PARAM_DECIMALS)
+    scaler.scale_ = np.round(scaler.scale_, PARAM_DECIMALS)
+    logreg.coef_ = np.round(logreg.coef_, PARAM_DECIMALS)
+    logreg.intercept_ = np.round(logreg.intercept_, PARAM_DECIMALS)
+
+
 def train_once(seed: int = SEED) -> tuple[Pipeline, dict]:
     df = generate(seed=seed)
-    X = df[FEATURE_COLUMNS].astype(np.float32)
+    X = _as_model_input(df)
     y = df["default"].to_numpy()
     protected = df[["genero_declarado", "zona"]]
 
@@ -90,10 +125,13 @@ def train_once(seed: int = SEED) -> tuple[Pipeline, dict]:
     pipeline = Pipeline(
         steps=[
             ("scaler", StandardScaler()),
-            ("logreg", LogisticRegression(C=1.0, max_iter=2000, random_state=seed)),
+            ("logreg", LogisticRegression(
+                C=1.0, solver="newton-cholesky", tol=1e-8, max_iter=1000, random_state=seed
+            )),
         ]
     )
     pipeline.fit(X_train, y_train)
+    _round_params(pipeline)
 
     p_test = pipeline.predict_proba(X_test)[:, 1]
     auc = roc_auc_score(y_test, p_test)
@@ -142,7 +180,32 @@ def export_onnx(pipeline: Pipeline, path: Path) -> None:
         options={id(pipeline): {"zipmap": False}},
         target_opset=18,
     )
+    # skl2onnx nombra el grafo con un UUID aleatorio: se fija para que el
+    # artefacto sea idéntico byte a byte en cada corrida y el CI pueda
+    # compararlo por hash con el de backend/ (DEBT-016).
+    onx.graph.name = f"scoring-{MODEL_VERSION}"
     path.write_bytes(onx.SerializeToString())
+
+
+def export_params(pipeline: Pipeline) -> dict:
+    """Parámetros del modelo para la JVM (D-02/D-05): media y escala para
+    imputar de forma neutra una variable que falta (z = 0) y coeficientes
+    estandarizados para explicar el score (c_i = beta_i * z_i). Son los mismos
+    valores redondeados que van dentro del .onnx, así que salen idénticos en
+    cualquier plataforma y el CI los compara por hash con los de backend/."""
+    scaler = pipeline.named_steps["scaler"]
+    logreg = pipeline.named_steps["logreg"]
+    return {
+        "modelVersion": MODEL_VERSION,
+        "featureSetVersion": FEATURE_SET_VERSION,
+        "features": [
+            {"name": name, "mean": float(mean), "scale": float(scale), "coefficient": float(coef)}
+            for name, mean, scale, coef in zip(
+                FEATURE_COLUMNS, scaler.mean_, scaler.scale_, logreg.coef_[0]
+            )
+        ],
+        "intercept": float(logreg.intercept_[0]),
+    }
 
 
 def build_golden_set(pipeline: Pipeline, seed: int, n: int = 20) -> list[dict]:
@@ -150,7 +213,7 @@ def build_golden_set(pipeline: Pipeline, seed: int, n: int = 20) -> list[dict]:
     probabilidad que predice el pipeline de scikit-learn. El test de
     paridad en Java compara esto contra el .onnx corrido con ONNX Runtime."""
     df = generate(seed=seed + 999, n=n)
-    X = df[FEATURE_COLUMNS].astype(np.float32)
+    X = _as_model_input(df)
     proba = pipeline.predict_proba(X)[:, 1]
 
     golden = []
@@ -160,7 +223,10 @@ def build_golden_set(pipeline: Pipeline, seed: int, n: int = 20) -> list[dict]:
                 "id": i,
                 "features": {col: float(X.iloc[i][col]) for col in FEATURE_COLUMNS},
                 "featuresOrdered": [float(v) for v in X.iloc[i].tolist()],
-                "expectedPd": float(proba[i]),
+                # predict_proba pasa por el BLAS: se redondea para que el
+                # golden set también salga idéntico en cualquier plataforma
+                # (la tolerancia de paridad es 1e-6).
+                "expectedPd": round(float(proba[i]), 12),
             }
         )
     return golden
@@ -189,9 +255,13 @@ def main() -> None:
     golden_path = MODEL_DIR / "golden_set.json"
     golden_path.write_text(json.dumps(golden, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    params_path = MODEL_DIR / f"scoring-{MODEL_VERSION}.params.json"
+    params_path.write_text(json.dumps(export_params(pipeline), indent=2, ensure_ascii=False) + "\n",
+                           encoding="utf-8")
+
     model_card = {
         "modelVersion": MODEL_VERSION,
-        "featureSetVersion": "v1",
+        "featureSetVersion": FEATURE_SET_VERSION,
         "featureOrder": FEATURE_COLUMNS,
         "trainedAt": datetime.now(timezone.utc).isoformat(),
         "datasetSeed": SEED,
@@ -221,6 +291,7 @@ def main() -> None:
     print(json.dumps({"metrics": model_card["metrics"], "gates": gates}, indent=2))
     print(f"\nONNX: {onnx_path}")
     print(f"Golden set: {golden_path}")
+    print(f"Parámetros: {params_path}")
     print(f"Model card: {MODEL_DIR / 'model_card.json'}")
 
     if not model_card["gatesPass"]:

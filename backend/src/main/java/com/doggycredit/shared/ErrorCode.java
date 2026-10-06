@@ -23,7 +23,10 @@ public enum ErrorCode {
     APPLICANT_ALREADY_EXISTS("applicant-already-exists", 409, "Solicitante ya registrado"),
     APPLICANT_NOT_FOUND("applicant-not-found", 422, "Solicitante no registrado"),
     ASSESSMENT_NOT_FOUND("assessment-not-found", 404, "Evaluación no encontrada"),
+    CONSENT_NOT_FOUND("consent-not-found", 404, "Consentimiento no encontrado"),
+    UNKNOWN_APPLICANT("unknown-applicant", 404, "Solicitante no encontrado"),
     INSUFFICIENT_ROLE("insufficient-role", 403, "Rol insuficiente"),
+    API_KEY_NOT_FOUND("api-key-not-found", 404, "Clave de API no encontrada"),
     PRODUCT_NOT_FOUND("product-not-found", 404, "Producto no encontrado");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";

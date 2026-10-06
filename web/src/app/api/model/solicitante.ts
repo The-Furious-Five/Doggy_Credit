@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { Segmento } from './segmento';
 
 
 export interface Solicitante { 
@@ -19,6 +20,7 @@ export interface Solicitante {
     ingresosMensuales: string;
     moneda: SolicitanteMonedaEnum;
     destinoCredito: string;
+    segmento?: Segmento;
     id: string;
     creadoEn: string;
 }

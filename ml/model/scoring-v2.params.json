@@ -1,0 +1,97 @@
+{
+  "modelVersion": "v2",
+  "featureSetVersion": "v2",
+  "features": [
+    {
+      "name": "dti",
+      "mean": 0.337755,
+      "scale": 0.190642,
+      "coefficient": 0.865145
+    },
+    {
+      "name": "mora_max_12m_dias",
+      "mean": 19.945312,
+      "scale": 30.58398,
+      "coefficient": 0.495836
+    },
+    {
+      "name": "num_acreedores",
+      "mean": 1.636875,
+      "scale": 1.280631,
+      "coefficient": 0.268208
+    },
+    {
+      "name": "peor_calificacion_24m",
+      "mean": 1.22875,
+      "scale": 1.197987,
+      "coefficient": 0.482606
+    },
+    {
+      "name": "antiguedad_sistema_financiero_meses",
+      "mean": 61.08625,
+      "scale": 35.582844,
+      "coefficient": -0.33046
+    },
+    {
+      "name": "ingreso_promedio_6m_bob",
+      "mean": 2751.300365,
+      "scale": 2621.211793,
+      "coefficient": -0.422413
+    },
+    {
+      "name": "ingreso_volatilidad_6m",
+      "mean": 0.303861,
+      "scale": 0.183837,
+      "coefficient": 0.395369
+    },
+    {
+      "name": "actividad_wallet_90d",
+      "mean": 18.702812,
+      "scale": 7.342223,
+      "coefficient": -0.14228
+    },
+    {
+      "name": "es_pyme",
+      "mean": 0.236875,
+      "scale": 0.425165,
+      "coefficient": 0.044762
+    },
+    {
+      "name": "ventas_pyme_promedio_bob",
+      "mean": 3217.68783,
+      "scale": 7401.369042,
+      "coefficient": -0.098721
+    },
+    {
+      "name": "saldo_promedio_cuentas_3m_bob",
+      "mean": 2146.62048,
+      "scale": 3488.320481,
+      "coefficient": -0.281589
+    },
+    {
+      "name": "ratio_egreso_ingreso_6m",
+      "mean": 0.78485,
+      "scale": 0.127808,
+      "coefficient": 0.433373
+    },
+    {
+      "name": "meses_flujo_negativo_6m",
+      "mean": 1.291562,
+      "scale": 1.448164,
+      "coefficient": 0.159729
+    },
+    {
+      "name": "saldo_promedio_wallet_bob",
+      "mean": 585.704925,
+      "scale": 676.393027,
+      "coefficient": -0.272242
+    },
+    {
+      "name": "antiguedad_wallet_meses",
+      "mean": 23.716875,
+      "scale": 16.404834,
+      "coefficient": -0.263002
+    }
+  ],
+  "intercept": -1.873871
+}

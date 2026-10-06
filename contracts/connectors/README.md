@@ -2,8 +2,18 @@
 
 Contrato publicado de cada fuente simulada (WireMock), en el formato real
 que expone ese proveedor (el buró responde XML, a propósito — capítulo 4.5
-de la guía de inducción). Alvaro y el equipo suman `bank.v1.yaml` y
-`wallet.v1.yaml` en el Sprint 2.
+de la guía de inducción; banco y billetera, JSON). Los tres simuladores los
+genera `seed/generate_synthetic.py` a partir de las mismas 50 personas de
+`seed/personas-sinteticas.json`, así que los datos son coherentes entre fuentes.
+
+| Fuente | Contrato | Simulador (Compose) | Puerto host | Conector |
+|---|---|---|---|---|
+| Buró | `bureau.v1.yaml` | `wiremock-bureau` | 8089 | `integration.BureauConnector` |
+| Core bancario | `bank.v1.yaml` | `wiremock-bank` | 8090 | `integration.BankConnector` |
+| Billetera móvil | `wallet.v1.yaml` | `wiremock-wallet` | 8091 | `integration.WalletConnector` |
+
+Las tres comparten los documentos de falla: `CI-DEMO-0009503` → 503 y
+`CI-DEMO-0009504` → 200 recién a los 15 s. Cualquier documento no sembrado → 404.
 
 ## `bureau.v1.yaml` (RF-INT-02.1)
 
@@ -32,3 +42,49 @@ queda PARCIAL). Nunca un mapeo a medias.
 
 Pruebas de contrato contra el simulador real:
 `backend/src/test/java/com/doggycredit/integration/BureauConnectorContractTests.java`.
+
+## `bank.v1.yaml` (B-01, B-03)
+
+Core bancario: `GET /bank/v1/clientes/{documento}` → JSON con las cuentas,
+su saldo promedio de 90 días y los abonos y cargos de los últimos 6 meses
+cerrados. La capa anticorrupción (`integration.internal.BankJson`) lo traduce
+al Perfil Financiero 360 v1:
+
+| JSON del banco | Canónico v1 (`BankReport`) |
+|---|---|
+| `cuentas[].producto` (`CAJA_AHORRO`/`CUENTA_CORRIENTE`) | `cuentas[].tipo` |
+| `cuentas[].moneda` | `cuentas[].moneda` |
+| `cuentas[].saldoPromedio90d` | `cuentas[].saldoPromedio3m` (`Dinero`) |
+| `fechaCorte` − `cuentas[].fechaApertura` | `cuentas[].antiguedadMeses` (meses completos) |
+| `movimientosMensuales[].totalAbonos` | `flujos.ingresosMensuales[]`, `origen` = `BANCO` |
+| `movimientosMensuales[].totalCargos` | `flujos.egresosMensuales[]` |
+| cuerpo crudo | `linaje.sha256Crudo` (el crudo no se guarda, ADR-016) |
+| `numeroDocumento` | se verifica igual al pedido; no sale del conector |
+
+Resultados: resumen → `Optional.of(report)`; 404 `CLIENTE_NO_ENCONTRADO`
+→ `Optional.empty()` (sin cuenta en el banco); 5xx, timeout, red o JSON que no
+cumple el contrato → `SourceUnavailableException(BANCO)`.
+
+Pruebas de contrato: `backend/src/test/java/com/doggycredit/integration/BankConnectorContractTests.java`.
+
+## `wallet.v1.yaml` (B-02, B-05)
+
+Billetera móvil: `GET /wallet/v1/titulares/{documento}` → JSON con la cantidad
+de transacciones y los montos recibidos y enviados de los últimos 6 meses
+cerrados. Capa anticorrupción: `integration.internal.WalletJson`.
+
+| JSON de la billetera | Canónico v1 (`WalletReport`) |
+|---|---|
+| `fechaCorte` − `titular.fechaAlta` | `wallet.antiguedadMeses` |
+| `saldoPromedio` + `moneda` | `wallet.saldoPromedio` (`Dinero`) |
+| promedio de `resumenMensual[].cantidadTransacciones` | `wallet.transaccionesMensuales` |
+| `resumenMensual[]` | `meses[]` (periodo, transacciones, recibido, enviado) |
+| `resumenMensual[].montoRecibido` | `flujos.ingresosMensuales[]` cuando no hay banco, `origen` = `WALLET` |
+| cuerpo crudo | `linaje.sha256Crudo` |
+| `titular.documento` | se verifica igual al pedido; no sale del conector |
+
+Resultados: movimientos → `Optional.of(report)`; 404 `TITULAR_NO_REGISTRADO`
+→ `Optional.empty()` (sin billetera); 5xx, timeout, red o JSON inválido →
+`SourceUnavailableException(WALLET)`.
+
+Pruebas de contrato: `backend/src/test/java/com/doggycredit/integration/WalletConnectorContractTests.java`.

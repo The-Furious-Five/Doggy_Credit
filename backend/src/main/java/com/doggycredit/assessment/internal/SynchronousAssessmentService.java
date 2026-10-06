@@ -4,14 +4,13 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,15 +21,18 @@ import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.IdempotencyKeyReusedException;
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.billing.QuotaGuard;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistry;
+import com.doggycredit.consent.Source;
+import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.tenancy.TenantInfo;
+import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.integration.BureauReport;
-import com.doggycredit.integration.ConnectorGateway;
-import com.doggycredit.integration.SourceConnector;
-import com.doggycredit.integration.SourceUnavailableException;
 import com.doggycredit.scoring.BasicScoreResult;
-import com.doggycredit.scoring.BasicScorecard;
+import com.doggycredit.scoring.CreditScoring;
 import com.doggycredit.scoring.ScorecardInput;
+import com.doggycredit.scoring.ScoringFeatures;
 import com.doggycredit.shared.DocumentNumber;
 
 @Service
@@ -38,27 +40,24 @@ class SynchronousAssessmentService implements AssessmentOperations {
 
 	private final CreditAssessmentRepository assessments;
 	private final ApplicantRegistry applicants;
-	private final ConnectorGateway connectorGateway;
-	private final SourceConnector<Optional<BureauReport>> bureauConnector;
-	private final BasicScorecard scorecard;
+	private final SourceCollector sources;
+	private final CreditScoring scoring;
 	private final AuditTrail audit;
-	private final ExecutorService executor;
-	private final Duration collectionBudget;
+	private final QuotaGuard quotaGuard;
+	private final TenantRegistry tenantRegistry;
+	private final ApplicationEventPublisher events;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
-			ConnectorGateway connectorGateway,
-			@Qualifier("bureauConnector") SourceConnector<Optional<BureauReport>> bureauConnector,
-			BasicScorecard scorecard, AuditTrail audit,
-			@Qualifier("assessmentCollectionExecutor") ExecutorService executor,
-			@Value("${doggycredit.assessment.collection-budget:2s}") Duration collectionBudget) {
+			SourceCollector sources, CreditScoring scoring, AuditTrail audit,
+			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events) {
 		this.assessments = assessments;
 		this.applicants = applicants;
-		this.connectorGateway = connectorGateway;
-		this.bureauConnector = bureauConnector;
-		this.scorecard = scorecard;
+		this.sources = sources;
+		this.scoring = scoring;
 		this.audit = audit;
-		this.executor = executor;
-		this.collectionBudget = collectionBudget;
+		this.quotaGuard = quotaGuard;
+		this.tenantRegistry = tenantRegistry;
+		this.events = events;
 	}
 
 	@Override
@@ -74,16 +73,23 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			return replay.get().toResult();
 		}
 
+		TenantInfo tenant = tenantRegistry.requireById(TenantId.of(command.tenantId()));
+		quotaGuard.requireEvaluationQuota(command.tenantId(), tenant.plan());
+
 		String normalizedDocument = DocumentNumber.normalize(command.document());
 		ApplicantProfile applicant = applicants.findRequired(command.tenantId(), normalizedDocument);
-		BureauCollection collection = collectBureau(command.tenantId(), command.consentId(), normalizedDocument);
-		BasicScoreResult score = scorecard.score(toScorecardInput(command, applicant, collection.report()));
+		SourceCollection collection = sources.collect(command.tenantId(), command.consentId(), normalizedDocument);
+		BasicScoreResult score = scoring.score(command.tenantId(),
+				toScorecardInput(command, applicant, collection),
+				toScoringFeatures(applicant, bureauReport(collection)));
 		AssessmentStatus status = collection.partial() ? AssessmentStatus.PARCIAL : AssessmentStatus.REVISION_MANUAL;
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
 				command.termMonths(), status, score, command.correlationId());
 		assessments.save(assessment);
 		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());
+		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
+		events.publishEvent(assessment.completedEvent());
 		return assessment.toResult();
 	}
 
@@ -95,26 +101,59 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			.orElseThrow(AssessmentNotFoundException::new);
 	}
 
-	private BureauCollection collectBureau(UUID tenantId, UUID consentId, String document) {
-		try {
-			return new BureauCollection(connectorGateway.fetchWithin(
-					bureauConnector, tenantId, consentId, document, collectionBudget, executor), false);
-		}
-		catch (SourceUnavailableException exception) {
-			return new BureauCollection(Optional.empty(), true);
-		}
-	}
-
 	private ScorecardInput toScorecardInput(AssessmentCommand command, ApplicantProfile applicant,
-			Optional<BureauReport> bureau) {
-		int maxDaysPastDue = bureau.stream()
-			.flatMap(report -> report.endeudamiento().stream())
-			.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
-			.max().orElse(0);
+			SourceCollection collection) {
+		Optional<BureauReport> bureau = bureauReport(collection);
+		// La mora es desconocida solo si el BURÓ falló (RN-15: nunca 0 inventado); que caiga
+		// otra fuente no la vuelve desconocida. Si el buró respondió "sin registro" (informe
+		// vacío), es una respuesta válida: sin deudas, mora 0.
+		OptionalInt maxDaysPastDue = collection.failed(Source.BURO) ? OptionalInt.empty()
+				: OptionalInt.of(bureau.stream()
+					.flatMap(report -> report.endeudamiento().stream())
+					.mapToInt(BureauReport.Endeudamiento::diasMoraMax12m)
+					.max().orElse(0));
 		int financialSeniority = bureau.map(BureauReport::antiguedadSistemaFinancieroMeses).orElse(0);
 		BigDecimal requestedAmount = command.requestedAmount() == null ? BigDecimal.ZERO : command.requestedAmount();
 		return new ScorecardInput(maxDaysPastDue, applicant.activitySeniorityMonths(), financialSeniority,
 				requestedAmount, applicant.monthlyIncome().amount(), command.termMonths(), bureau.isPresent());
+	}
+
+	/**
+	 * D-02: variables del modelo avanzado con lo que la evaluación tiene hoy
+	 * (buró y datos declarados). Banco y billetera llegan con B-03/B-05 (Perfil
+	 * 360, B-04); mientras tanto van en null y el modelo las imputa con la media.
+	 */
+	static ScoringFeatures toScoringFeatures(ApplicantProfile applicant, Optional<BureauReport> bureau) {
+		double income = applicant.monthlyIncome().amount().doubleValue();
+		Double dti = null;
+		Double maxDaysPastDue = null;
+		Double creditors = null;
+		Double worstRating = null;
+		Double seniority = null;
+		Double sme = null;
+		Double smeSales = null;
+		if (bureau.isPresent()) {
+			List<BureauReport.Endeudamiento> debts = bureau.get().endeudamiento();
+			double installments = debts.stream().mapToDouble(debt -> debt.cuota().amount().doubleValue()).sum();
+			dti = income > 0 ? installments / income : null;
+			maxDaysPastDue = (double) debts.stream().mapToInt(BureauReport.Endeudamiento::diasMoraMax12m).max().orElse(0);
+			creditors = (double) debts.size();
+			worstRating = (double) debts.stream().mapToInt(debt -> ratingIndex(debt.calificacion())).max().orElse(0);
+			seniority = (double) bureau.get().antiguedadSistemaFinancieroMeses();
+			sme = bureau.get().tipo() == BureauReport.TipoTitular.PYME ? 1.0 : 0.0;
+			// Sin ventas declaradas todavía: una persona no tiene, una PYME queda imputada.
+			smeSales = sme == 0.0 ? 0.0 : null;
+		}
+		return new ScoringFeatures(dti, maxDaysPastDue, creditors, worstRating, seniority, income, null, null, sme,
+				smeSales, null, null, null, null, null);
+	}
+
+	/** Escala ASFI A–F del buró a la 0–4 (A–E) del entrenamiento; F se trata como E. */
+	private static int ratingIndex(String rating) {
+		if (rating == null || rating.isBlank()) {
+			return 0;
+		}
+		return Math.min(4, Math.max(0, Character.toUpperCase(rating.strip().charAt(0)) - 'A'));
 	}
 
 	private String requestHash(AssessmentCommand command) {
@@ -130,7 +169,11 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		}
 	}
 
-	private record BureauCollection(Optional<BureauReport> report, boolean partial) {
+	/** El conector del buró devuelve {@code Optional<BureauReport>}: vacío = "sin registro". */
+	@SuppressWarnings("unchecked")
+	private static Optional<BureauReport> bureauReport(SourceCollection collection) {
+		return collection.payload(Source.BURO)
+			.flatMap(payload -> (Optional<BureauReport>) payload);
 	}
 
 }

@@ -25,6 +25,7 @@ export const routes: Routes = [
       { path: 'integraciones', title: page('Integraciones'), loadComponent: () => import('./console/integrations').then((m) => m.Integrations) },
       { path: 'desarrolladores', title: page('Desarrolladores'), loadComponent: () => import('./console/developers').then((m) => m.Developers) },
       { path: 'configuracion', title: page('Configuración'), loadComponent: () => import('./console/settings').then((m) => m.Settings) },
+      { path: 'admin/tenants', title: page('Administración de tenants'), loadComponent: () => import('./console/platform-tenants').then((m) => m.PlatformTenants) },
     ],
   },
   {

@@ -13,21 +13,25 @@ import org.springframework.stereotype.Component;
 import com.doggycredit.consent.ConsentPolicy;
 
 /**
- * Único punto de enforcement de la política de consentimiento (RF-CON-01.1):
- * sin consentimiento vigente para la fuente del conector, lanza
- * {@link com.doggycredit.consent.ConsentRequiredException} y el conector no
- * se llama.
+ * Único punto de enforcement antes de llamar a una fuente: el tenant la tiene
+ * activa (B-06, si no {@link SourceDisabledException}) y hay consentimiento
+ * vigente (RF-CON-01.1, si no
+ * {@link com.doggycredit.consent.ConsentRequiredException}). En ambos casos el
+ * conector no se llama.
  */
 @Component
 public class ConnectorGateway {
 
 	private final ConsentPolicy consentPolicy;
+	private final TenantIntegrations integrations;
 
-	ConnectorGateway(ConsentPolicy consentPolicy) {
+	ConnectorGateway(ConsentPolicy consentPolicy, TenantIntegrations integrations) {
 		this.consentPolicy = consentPolicy;
+		this.integrations = integrations;
 	}
 
 	public <T> T fetch(SourceConnector<T> connector, UUID tenantId, String documento) {
+		requireEnabled(connector, tenantId);
 		consentPolicy.requireActive(tenantId, documento, connector.source());
 		return connector.fetch(tenantId, documento);
 	}
@@ -38,6 +42,7 @@ public class ConnectorGateway {
 	 */
 	public <T> T fetchWithin(SourceConnector<T> connector, UUID tenantId, String documento,
 			Duration budget, ExecutorService executor) {
+		requireEnabled(connector, tenantId);
 		consentPolicy.requireActive(tenantId, documento, connector.source());
 		return fetchExternalWithin(connector, tenantId, documento, budget, executor);
 	}
@@ -45,8 +50,29 @@ public class ConnectorGateway {
 	/** Presupuesto externo y enforcement del consentimiento concreto referenciado por la solicitud. */
 	public <T> T fetchWithin(SourceConnector<T> connector, UUID tenantId, UUID consentId, String documento,
 			Duration budget, ExecutorService executor) {
+		requireEnabled(connector, tenantId);
 		consentPolicy.requireActive(tenantId, consentId, documento, connector.source());
 		return fetchExternalWithin(connector, tenantId, documento, budget, executor);
+	}
+
+	/**
+	 * C-01: para recolectar varias fuentes en paralelo. La fuente activa (B-06) y el
+	 * consentimiento se validan aquí, en el hilo que llama —donde vive el tenant de
+	 * la petición, que la RLS necesita—, y solo la E/S externa se lanza en el
+	 * executor. Quien llama espera el {@link Future} con su propio presupuesto (y lo
+	 * cancela si se agota).
+	 */
+	public <T> Future<T> submit(SourceConnector<T> connector, UUID tenantId, UUID consentId, String documento,
+			ExecutorService executor) {
+		requireEnabled(connector, tenantId);
+		consentPolicy.requireActive(tenantId, consentId, documento, connector.source());
+		return executor.submit(() -> connector.fetch(tenantId, documento));
+	}
+
+	private void requireEnabled(SourceConnector<?> connector, UUID tenantId) {
+		if (!integrations.isActive(tenantId, connector.source())) {
+			throw new SourceDisabledException(connector.source());
+		}
 	}
 
 	private <T> T fetchExternalWithin(SourceConnector<T> connector, UUID tenantId, String documento,

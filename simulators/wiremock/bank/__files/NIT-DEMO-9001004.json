@@ -1,0 +1,44 @@
+{
+  "numeroDocumento": "NIT-DEMO-9001004",
+  "fechaCorte": "2026-09-01",
+  "cuentas": [
+    {
+      "producto": "CUENTA_CORRIENTE",
+      "moneda": "BOB",
+      "fechaApertura": "2022-09-01",
+      "saldoPromedio90d": "20780.00"
+    }
+  ],
+  "movimientosMensuales": [
+    {
+      "periodo": "2026-03",
+      "totalAbonos": "51540.00",
+      "totalCargos": "50420.00"
+    },
+    {
+      "periodo": "2026-04",
+      "totalAbonos": "48100.00",
+      "totalCargos": "44880.00"
+    },
+    {
+      "periodo": "2026-05",
+      "totalAbonos": "50850.00",
+      "totalCargos": "49330.00"
+    },
+    {
+      "periodo": "2026-06",
+      "totalAbonos": "53800.00",
+      "totalCargos": "47280.00"
+    },
+    {
+      "periodo": "2026-07",
+      "totalAbonos": "49700.00",
+      "totalCargos": "42810.00"
+    },
+    {
+      "periodo": "2026-08",
+      "totalAbonos": "54220.00",
+      "totalCargos": "45570.00"
+    }
+  ]
+}

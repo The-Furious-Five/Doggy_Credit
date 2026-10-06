@@ -6,8 +6,6 @@ spring:
     url: jdbc:postgresql://${DC_DB_HOST:localhost}:${DC_DB_PORT:5432}/${DC_DB_NAME:doggycredit}
     username: ${DC_DB_USER:doggy_app}
     password: ${DC_DB_PASSWORD:doggy_app}
-    hikari:
-      maximum-pool-size: 10
 
   jpa:
     open-in-view: false
@@ -28,6 +26,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    placeholders:
+      appDbPassword: ${DC_APP_DB_PASSWORD:dev_only_app_role}
 
   # SPIKE-2 (Franco, con Nicole) fija el issuer real cuando el realm exista.
   # Sin esta propiedad configurada, el resource server no arranca: es
@@ -42,6 +42,12 @@ server:
   port: 8080
 
 doggycredit:
+  datasource:
+    url: jdbc:postgresql://${DC_DB_HOST:localhost}:${DC_DB_PORT:5432}/${DC_DB_NAME:doggycredit}
+    username: ${DC_APP_DB_USER:doggycredit_app}
+    password: ${DC_APP_DB_PASSWORD:dev_only_app_role}
+    hikari:
+      maximum-pool-size: 10
   correlation:
     header: ${DC_CORRELATION_HEADER:X-Correlation-Id}
   integration:
@@ -51,14 +57,78 @@ doggycredit:
       url: ${DC_INTEGRATION_BUREAU_URL:http://localhost:8089}
       connect-timeout: ${DC_INTEGRATION_BUREAU_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_BUREAU_READ_TIMEOUT:1500ms}
+    # Core bancario (B-03, bank.v1.yaml) y billetera móvil (B-05, wallet.v1.yaml): mismos plazos.
+    bank:
+      url: ${DC_INTEGRATION_BANK_URL:http://localhost:8090}
+      connect-timeout: ${DC_INTEGRATION_BANK_CONNECT_TIMEOUT:500ms}
+      read-timeout: ${DC_INTEGRATION_BANK_READ_TIMEOUT:1500ms}
+    wallet:
+      url: ${DC_INTEGRATION_WALLET_URL:http://localhost:8091}
+      connect-timeout: ${DC_INTEGRATION_WALLET_CONNECT_TIMEOUT:500ms}
+      read-timeout: ${DC_INTEGRATION_WALLET_READ_TIMEOUT:1500ms}
 
   assessment:
     collection-budget: ${DC_ASSESSMENT_COLLECTION_BUDGET:2s}
 
+  # D-02: versión del modelo avanzado (plan PRO). Carga models/scoring-<versión>.onnx
+  # y su .params.json, que el CI verifica contra ml/model/ (D-07).
+  scoring:
+    model-version: ${DC_SCORING_MODEL_VERSION:v2}
+
+  # A-07: solicitudes por minuto por tenant según su plan (informe, PL-05).
+  # En memoria (DEBT-003): con una segunda réplica pasa a Redis.
+  rate-limit:
+    requests-per-minute:
+      FREE: 30
+      PRO: 300
+      ENTERPRISE: 1000
+
+  # D-06: tasa anual de referencia y plazo sugerido por necesidad, solo para
+  # el monto sugerido (CA-04). El máximo y la tasa de cada producto los aplica
+  # la recomendación (C-03). Productivas: tope del D.S. 2055/5403 para micro
+  # (11,5 %, RN-17, por validar); consumo: tasa de referencia de mercado.
+  needs:
+    reference-annual-rate:
+      CAPITAL_TRABAJO: 0.115
+      INVERSION_PRODUCTIVA: 0.115
+      EFICIENCIA_ENERGETICA: 0.115
+      CONSUMO_CONSOLIDACION: 0.18
+    default-term-months:
+      CAPITAL_TRABAJO: 12
+      INVERSION_PRODUCTIVA: 36
+      EFICIENCIA_ENERGETICA: 36
+      CONSUMO_CONSOLIDACION: 24
+
+  # D-08: deriva semanal del score (PSI). Sin al menos min-sample evaluaciones
+  # en la semana y en la línea base, el resultado es INSUFICIENTE.
+  analytics:
+    drift:
+      cron: ${DC_ANALYTICS_DRIFT_CRON:0 0 3 * * MON}
+      min-sample: 30
+
   encryption:
     master-key: ${DC_MASTER_KEY:dev-only-insecure-master-key-do-not-use-in-prod}
 
+  # D-09: administración de clientes de Keycloak para las claves de API.
+  # base-url es la red interna; public-issuer-uri, lo que ve el integrador.
+  keycloak:
+    admin:
+      base-url: ${DC_KEYCLOAK_ADMIN_URL:http://localhost:8081/auth}
+      realm: doggycredit
+      client-id: doggycredit-api-admin
+      client-secret: ${DC_KEYCLOAK_API_ADMIN_SECRET:}
+      public-issuer-uri: ${DC_KEYCLOAK_ISSUER_URI:https://localhost/auth/realms/doggycredit}
+      timeout: 3s
+
 management:
+  # D-08: métricas por OTLP al colector de otel-lgtm. Apagado por defecto (pruebas,
+  # mvn spring-boot:run); Compose lo enciende con DC_OTLP_METRICS_ENABLED.
+  otlp:
+    metrics:
+      export:
+        enabled: ${DC_OTLP_METRICS_ENABLED:false}
+        url: ${DC_OTLP_METRICS_URL:http://localhost:4318/v1/metrics}
+        step: 1m
   endpoints:
     web:
       exposure:

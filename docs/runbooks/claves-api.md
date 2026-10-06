@@ -1,0 +1,59 @@
+# Claves de API (D-09)
+
+Cada clave de API de un tenant es un cliente OAuth 2.0 `client_credentials`
+de Keycloak. La API lo crea y lo borra con la cuenta de servicio
+`doggycredit-api-admin` (roles de `realm-management`: `manage-clients`,
+`view-clients`, `manage-users`, `view-users`, `view-realm`).
+
+- El token de una clave lleva `tenant_id` fijo (mapper de claim constante), el
+  rol `API_CLIENT`, la audiencia `doggycredit-api` y `dc_entorno`
+  (`sandbox` | `produccion`).
+- El secreto se muestra una sola vez. En la base (`tenancy.api_keys`) solo
+  quedan sus últimos 4 caracteres.
+- Revocar borra el cliente de Keycloak: deja de obtener tokens nuevos, y los
+  ya emitidos vencen solos (5 min, igual que DEBT-012).
+- `produccion` exige plan PRO o ENTERPRISE (`FEATURE_NOT_IN_PLAN` en FREE).
+- El token de `doggycredit-api-admin` no sirve contra la API: no tiene
+  audiencia ni `tenant_id` (lo prueba `KeycloakApiKeyIntegrationTests`).
+
+## Variable nueva
+
+`DC_KEYCLOAK_API_ADMIN_SECRET` (— SOLO NICOLE —). Keycloak la usa al importar
+el realm y la API, para autenticarse. Tiene que ser la misma en los dos.
+Compose no arranca sin ella.
+
+## Realm ya importado (Docker local con volumen viejo, VPS)
+
+La importación solo crea realms que no existen, así que en un realm ya
+importado el cliente no aparece solo. Hay que crearlo una vez, con el mismo
+secreto que `DC_KEYCLOAK_API_ADMIN_SECRET`:
+
+```bash
+docker compose -p doggycredit -f infra/compose.yaml --env-file .env exec \
+  -e SECRET="$DC_KEYCLOAK_API_ADMIN_SECRET" keycloak bash -c '
+  kc=/opt/keycloak/bin/kcadm.sh
+  $kc config credentials --server http://localhost:8080/auth --realm master \
+    --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" &&
+  $kc create clients -r doggycredit -s clientId=doggycredit-api-admin -s publicClient=false \
+    -s standardFlowEnabled=false -s directAccessGrantsEnabled=false \
+    -s serviceAccountsEnabled=true -s "secret=$SECRET" &&
+  $kc add-roles -r doggycredit --uusername service-account-doggycredit-api-admin \
+    --cclientid realm-management --rolename manage-clients --rolename view-clients \
+    --rolename manage-users --rolename view-users --rolename view-realm'
+```
+
+En el VPS: primero agregar `DC_KEYCLOAK_API_ADMIN_SECRET` a
+`/srv/doggycredit/.env`, después correr lo anterior (con
+`-f infra/compose.prod.yaml` y el `.env` del VPS) y recién entonces desplegar.
+Si falta la variable, el deploy falla y `deploy.sh` vuelve a la release
+anterior.
+
+## Cómo se prueba
+
+- `KeycloakApiKeyIntegrationTests`: Keycloak real (Testcontainers, mismo realm
+  generado). La clave obtiene un token del tenant correcto y, revocada, ya no
+  obtiene tokens.
+- `ApiKeyControllerTests`: rol, plan, aislamiento por tenant, revocación y
+  falla de Keycloak, con Keycloak simulado.
+- `e2e/identity_smoke.py`: con Compose completo, un TENANT_ADMIN crea una
+  clave, la usa contra la API y la revoca.

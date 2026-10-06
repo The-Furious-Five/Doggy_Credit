@@ -18,11 +18,50 @@ tags:
   - name: consentimientos
   - name: solicitantes
   - name: evaluaciones
+  - name: integraciones
   - name: auditoria
+  - name: tenant
+  - name: admin
+  - name: claves-api
   - name: productos
 
 paths:
+
   /solicitantes:
+    get:
+      tags: [solicitantes]
+      operationId: listarSolicitantes
+      summary: Solicitantes del tenant, del más reciente al más antiguo, paginados
+      parameters:
+        - name: pagina
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        - name: segmento
+          in: query
+          required: false
+          schema: { $ref: "#/components/schemas/Segmento" }
+        - name: X-Documento
+          in: header
+          required: false
+          description: >
+            Búsqueda exacta por documento. Va en una cabecera y no en la URL para
+            que el documento no quede en logs de acceso ni trazas; el servidor lo
+            normaliza y busca por su HMAC, nunca por el valor en claro.
+          schema: { type: string, minLength: 3, maxLength: 64 }
+      responses:
+        "200":
+          description: Página de solicitantes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaSolicitantes"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
     post:
       tags: [solicitantes]
       operationId: crearSolicitante
@@ -47,7 +86,53 @@ paths:
         "422":
           $ref: "#/components/responses/ErrorNegocio"
 
+
+  /solicitantes/{id}:
+    get:
+      tags: [solicitantes]
+      operationId: obtenerSolicitante
+      summary: Un solicitante con su Perfil Financiero 360 más reciente (404 si es de otro tenant)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Solicitante encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolicitanteDetalle"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
+
+
   /consentimientos:
+    get:
+      tags: [consentimientos]
+      operationId: listarConsentimientos
+      summary: Consentimientos de un solicitante (vigentes, revocados y expirados), del más reciente al más antiguo
+      parameters:
+        - name: solicitanteId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Consentimientos del titular
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Consentimiento"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
     post:
       tags: [consentimientos]
       operationId: crearConsentimiento
@@ -69,6 +154,87 @@ paths:
           $ref: "#/components/responses/NoAutenticado"
         "422":
           $ref: "#/components/responses/ErrorNegocio"
+
+
+  /consentimientos/{id}/revocar:
+    post:
+      tags: [consentimientos]
+      operationId: revocarConsentimiento
+      summary: >
+        Revoca un consentimiento. Desde ese momento ninguna fuente que cubría se
+        consulta con él y una evaluación que lo referencie responde CONSENT_REQUIRED.
+        Idempotente: revocar uno ya revocado o expirado lo devuelve sin cambios.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Consentimiento revocado (o su estado actual si ya no estaba vigente)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consentimiento"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
+
+
+  /integraciones:
+    get:
+      tags: [integraciones]
+      operationId: listarIntegraciones
+      summary: Los 6 conectores del catálogo y su estado para el tenant
+      description: >
+        CONECTADO = activo, la evaluación lo consulta. DISPONIBLE = se puede
+        activar. REQUIERE_PRO = el plan del tenant llegó a su máximo de
+        integraciones activas. PROXIMAMENTE = sin implementación (DEBT-004).
+        El buró es obligatorio: siempre CONECTADO.
+      responses:
+        "200":
+          description: Catálogo con estado por tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Integracion"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+
+  /integraciones/{fuente}:
+    put:
+      tags: [integraciones]
+      operationId: actualizarIntegracion
+      summary: Activa o desactiva un conector para el tenant
+      parameters:
+        - name: fuente
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/FuenteIntegracion" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegracionCambio"
+      responses:
+        "200":
+          description: Estado resultante del conector
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integracion"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "409":
+          $ref: "#/components/responses/ErrorNegocio"
+
 
   /credit-assessments:
     post:
@@ -97,6 +263,7 @@ paths:
         "429":
           $ref: "#/components/responses/ErrorNegocio"
 
+
   /credit-assessments/{id}:
     get:
       tags: [evaluaciones]
@@ -118,6 +285,7 @@ paths:
           $ref: "#/components/responses/NoAutenticado"
         "404":
           description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
+
 
   /auditoria:
     get:
@@ -158,6 +326,234 @@ paths:
         "401":
           $ref: "#/components/responses/NoAutenticado"
         "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /tenant/actual:
+    get:
+      tags: [tenant]
+      operationId: obtenerTenantActual
+      summary: Devuelve los datos del tenant autenticado (extraídos del JWT)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantActual'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+
+
+  /tenant/actual/equipo:
+    get:
+      tags: [tenant]
+      operationId: listarEquipo
+      summary: Lista los miembros del equipo del tenant actual
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MiembroEquipo'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+
+
+  /tenant/actual/preferencias:
+    get:
+      tags: [tenant]
+      operationId: obtenerPreferenciasTenant
+      summary: Consulta las preferencias de seguridad del tenant actual
+      responses:
+        "200":
+          description: Preferencias actuales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenciasTenant'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+    patch:
+      tags: [tenant]
+      operationId: actualizarPreferenciasTenant
+      summary: Actualiza las preferencias de seguridad (solo TENANT_ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferenciasTenant'
+      responses:
+        "200":
+          description: Preferencias actualizadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenciasTenant'
+        "403":
+          description: Sin permisos
+
+
+  /tenant/actual/uso:
+    get:
+      tags: [tenant]
+      operationId: obtenerUsoTenant
+      summary: Consulta uso de evaluaciones del mes y límite del plan actual
+      responses:
+        "200":
+          description: Uso mensual actual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsoTenant'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+
+
+  /tenant/actual/organizacion:
+    patch:
+      tags: [tenant]
+      operationId: actualizarOrganizacionTenant
+      summary: Actualiza el nombre visible de la institución (solo TENANT_ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizacionTenantPatch'
+      responses:
+        "200":
+          description: Organización actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantActual'
+        "403":
+          description: Sin permisos
+
+
+  /admin/tenants:
+    get:
+      tags: [admin]
+      operationId: listarTenants
+      summary: Lista todos los tenants (solo PLATFORM_ADMIN)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TenantActual'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+        "403":
+          description: Sin permisos de administración
+
+
+  /admin/tenants/{id}:
+    patch:
+      tags: [admin]
+      operationId: actualizarTenant
+      summary: Activa o desactiva un tenant (solo PLATFORM_ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantPatch'
+      responses:
+        "200":
+          description: Tenant actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantActual'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+        "403":
+          description: Sin permisos
+        "404":
+          description: Tenant no encontrado
+
+  /api-keys:
+    get:
+      tags: [claves-api]
+      operationId: listarClavesApi
+      summary: Claves de API vigentes del tenant, de la más reciente a la más antigua (solo TENANT_ADMIN)
+      responses:
+        "200":
+          description: Claves vigentes (las revocadas no se listan)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClaveApi"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+    post:
+      tags: [claves-api]
+      operationId: crearClaveApi
+      summary: Crea una clave de API (client credentials de Keycloak) para el tenant (solo TENANT_ADMIN)
+      description: >
+        La clave es un cliente OAuth 2.0 `client_credentials` cuyo token lleva el
+        `tenant_id` de quien la crea y el rol `API_CLIENT`. El secreto se devuelve
+        una sola vez, en esta respuesta; después solo se conservan sus últimos 4
+        caracteres. `produccion` requiere el plan PRO (FEATURE_NOT_IN_PLAN en FREE).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaveApiNueva"
+      responses:
+        "201":
+          description: Clave creada; `secreto` no vuelve a mostrarse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaveApiCreada"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "502":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /api-keys/{id}:
+    delete:
+      tags: [claves-api]
+      operationId: revocarClaveApi
+      summary: Revoca una clave de API; desde ese momento no obtiene tokens nuevos (solo TENANT_ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Clave revocada
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
+          $ref: "#/components/responses/ErrorNegocio"
+        "502":
           $ref: "#/components/responses/ErrorNegocio"
 
   /productos:
@@ -240,6 +636,7 @@ components:
             $ref: "#/components/schemas/ProblemDetail"
 
   schemas:
+
     ProblemDetail:
       type: object
       description: RFC 9457. El `code` sale siempre de contracts/errors/catalog.yaml.
@@ -253,6 +650,31 @@ components:
         correlationId: { type: string }
         timestamp: { type: string, format: date-time }
       required: [type, title, status, code, correlationId]
+
+
+    TenantActual:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        nit: { type: string }
+        tipo: { type: string, enum: [IMF, FINTECH, BANCO, COOPERATIVA] }
+        plan: { type: string, enum: [FREE, PRO, ENTERPRISE] }
+        pais: { type: string }
+        moneda: { type: string }
+        activo: { type: boolean }
+      required: [id, nombre, nit, tipo, plan, pais, moneda, activo]
+
+
+    MiembroEquipo:
+      type: object
+      properties:
+        nombre: { type: string }
+        email: { type: string }
+        rol: { type: string }
+        estado: { type: string, enum: [ACTIVO, INVITADO, DESACTIVADO] }
+      required: [nombre, rol, estado]
+
 
     ConsentimientoNuevo:
       type: object
@@ -273,6 +695,9 @@ components:
             id: { type: string, format: uuid }
             estado: { type: string, enum: [ACTIVO, REVOCADO, EXPIRADO] }
             creadoEn: { type: string, format: date-time }
+            expiraEn: { type: string, format: date-time }
+            revocadoEn: { type: string, format: date-time, description: Solo si estado es REVOCADO }
+
 
     SolicitanteNuevo:
       type: object
@@ -286,7 +711,15 @@ components:
           description: "Decimal positivo como string"
         moneda: { type: string, enum: [BOB, USD], default: BOB }
         destinoCredito: { type: string, minLength: 2, maxLength: 250 }
+        segmento:
+          $ref: "#/components/schemas/Segmento"
       required: [documento, actividad, antiguedadActividadMeses, ingresosMensuales, moneda, destinoCredito]
+
+
+    Segmento:
+      type: string
+      enum: [PERSONA, EMPRENDEDOR, PYME]
+      description: En el alta, PERSONA si no se indica. Sin valor por defecto aquí para que el filtro del listado sea opcional.
 
     Solicitante:
       allOf:
@@ -296,6 +729,90 @@ components:
             id: { type: string, format: uuid }
             creadoEn: { type: string, format: date-time }
           required: [id, creadoEn]
+
+
+    PaginaSolicitantes:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Solicitante"
+        total:
+          type: integer
+          format: int64
+          description: Total de solicitantes que cumplen el filtro (para la paginación)
+      required: [items, total]
+
+    SolicitanteDetalle:
+      allOf:
+        - $ref: "#/components/schemas/Solicitante"
+        - type: object
+          properties:
+            perfil:
+              $ref: "#/components/schemas/PerfilFinanciero360"
+
+
+    Dinero:
+      type: object
+      properties:
+        amount: { type: string, description: "Decimal como string, nunca float" }
+        currency: { type: string, enum: [BOB, USD] }
+      required: [amount, currency]
+
+
+    PerfilFinanciero360:
+      type: object
+      description: >
+        Resumen del Perfil Financiero 360 (B-04) para las pestañas Resumen y
+        Fuentes. Un campo ausente significa desconocido (la fuente que lo aporta
+        no respondió o no se consultó), nunca cero.
+      properties:
+        id: { type: string, format: uuid }
+        hash: { type: string, description: SHA-256 del snapshot canónico v1 }
+        creadoEn: { type: string, format: date-time }
+        ingresoMensual: { $ref: "#/components/schemas/Dinero" }
+        origenIngreso: { type: string, enum: [BANCO, WALLET, DECLARADO] }
+        deudaVigente: { $ref: "#/components/schemas/Dinero" }
+        obligaciones: { type: integer, minimum: 0 }
+        cuotaMensual: { $ref: "#/components/schemas/Dinero" }
+        endeudamientoPorcentaje:
+          type: string
+          description: Cuota sobre ingreso, en %, decimal como string (p. ej. "20.3")
+        capacidadPago: { $ref: "#/components/schemas/Dinero" }
+        antiguedadSistemaFinancieroMeses: { type: integer, minimum: 0 }
+        fuentes:
+          type: array
+          items:
+            type: object
+            properties:
+              fuente: { type: string, enum: [BURO, BANCO, WALLET] }
+              estado: { type: string, enum: [COMPLETA, SIN_REGISTRO, NO_DISPONIBLE, NO_CONSULTADA] }
+              consultadaEn: { type: string, format: date-time }
+              sha256: { type: string }
+            required: [fuente, estado]
+      required: [id, hash, creadoEn, ingresoMensual, origenIngreso, fuentes]
+
+
+    FuenteIntegracion:
+      type: string
+      enum: [BURO, BANCO, WALLET, OPEN_BANKING, FACTURACION, GARANTIAS]
+
+
+    Integracion:
+      type: object
+      properties:
+        fuente: { $ref: "#/components/schemas/FuenteIntegracion" }
+        estado: { type: string, enum: [CONECTADO, DISPONIBLE, REQUIERE_PRO, PROXIMAMENTE] }
+      required: [fuente, estado]
+
+
+    IntegracionCambio:
+      type: object
+      properties:
+        activa: { type: boolean }
+      required: [activa]
+
 
     EvaluacionNueva:
       type: object
@@ -309,6 +826,7 @@ components:
           description: "Decimal positivo como string"
         plazoMeses: { type: integer, minimum: 1, maximum: 360 }
       required: [titularDocumento, consentId]
+
 
     Evaluacion:
       type: object
@@ -326,6 +844,7 @@ components:
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
 
+
     RegistroAuditoria:
       type: object
       description: Un registro de la bitácora append-only, con su eslabón de la cadena de hash.
@@ -341,6 +860,7 @@ components:
         hash: { type: string, description: "SHA-256 (hex) del registro, que incluye el hash del anterior" }
       required: [id, secuencia, actor, accion, tipoRecurso, correlationId, creadoEn, hash]
 
+
     PaginaAuditoria:
       type: object
       properties:
@@ -353,6 +873,61 @@ components:
           format: int64
           description: Ausente si no hay más páginas
       required: [items]
+
+    TenantPatch:
+      type: object
+      properties:
+        activo: { type: boolean }
+        plan: { type: string, enum: [FREE, PRO, ENTERPRISE] }
+
+
+    PreferenciasTenant:
+      type: object
+      properties:
+        enmascararDatos: { type: boolean }
+      required: [enmascararDatos]
+
+
+    UsoTenant:
+      type: object
+      properties:
+        evaluacionesMes: { type: integer, minimum: 0 }
+        limiteMensual: { type: integer, minimum: 0, description: 0 means unlimited }
+      required: [evaluacionesMes, limiteMensual]
+
+
+    OrganizacionTenantPatch:
+      type: object
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 100 }
+      required: [nombre]
+
+    ClaveApiNueva:
+      type: object
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 80, description: "Para reconocerla después, p. ej. App móvil" }
+        entorno: { type: string, enum: [sandbox, produccion], default: sandbox }
+      required: [nombre]
+
+    ClaveApi:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        clientId: { type: string, description: "client_id para el grant client_credentials" }
+        sufijoSecreto: { type: string, minLength: 4, maxLength: 4, description: "Últimos 4 caracteres del secreto, para reconocerla" }
+        entorno: { type: string, enum: [sandbox, produccion] }
+        creadaEn: { type: string, format: date-time }
+      required: [id, nombre, clientId, sufijoSecreto, entorno, creadaEn]
+
+    ClaveApiCreada:
+      allOf:
+        - $ref: "#/components/schemas/ClaveApi"
+        - type: object
+          properties:
+            secreto: { type: string, description: "client_secret; solo aparece en la respuesta de creación" }
+            tokenUrl: { type: string, format: uri, description: "Endpoint de token de Keycloak para el grant client_credentials" }
+          required: [secreto, tokenUrl]
 
     Producto:
       type: object

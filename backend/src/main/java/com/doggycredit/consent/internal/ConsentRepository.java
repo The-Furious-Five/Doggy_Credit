@@ -1,11 +1,17 @@
 package com.doggycredit.consent.internal;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface ConsentRepository extends JpaRepository<Consent, UUID> {
+
+	List<Consent> findByTenantIdAndTitularDocumentoOrderByOtorgadoEnDesc(UUID tenantId, String titularDocumento);
+
+	Optional<Consent> findByIdAndTenantId(UUID id, UUID tenantId);
 
 	/** Vigente = ACTIVO, no expirado y con la fuente entre sus fuentes; siempre filtrado por tenant. */
 	@Query(value = """

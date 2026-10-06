@@ -21,6 +21,9 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(schema = "consent", name = "consents")
+// B-07: el UPDATE de la revocación lleva solo las columnas cambiadas; la app
+// tiene GRANT UPDATE únicamente sobre estado, revocado_en y revocado_por.
+@org.hibernate.annotations.DynamicUpdate
 public class Consent {
 
 	@Id
@@ -55,9 +58,16 @@ public class Consent {
 	@Column(name = "expira_en", nullable = false)
 	private Instant expiraEn;
 
-	/** ACTIVO o REVOCADO (la revocación es otra historia). */
+	/** ACTIVO o REVOCADO. */
 	@Column(nullable = false, length = 16)
 	private String estado;
+
+	/** B-07: evidencia de la revocación; null mientras no se revoque. */
+	@Column(name = "revocado_en")
+	private Instant revocadoEn;
+
+	@Column(name = "revocado_por")
+	private String revocadoPor;
 
 	@Column(name = "otorgado_por", nullable = false)
 	private String otorgadoPor;
@@ -85,6 +95,23 @@ public class Consent {
 
 	String estadoAt(Instant now) {
 		return "ACTIVO".equals(estado) && !now.isBefore(expiraEn) ? "EXPIRADO" : estado;
+	}
+
+	/** Solo un consentimiento vigente se revoca; uno revocado o expirado queda igual. */
+	void revoke(Instant now, String by) {
+		if ("ACTIVO".equals(estadoAt(now))) {
+			this.estado = "REVOCADO";
+			this.revocadoEn = now;
+			this.revocadoPor = by;
+		}
+	}
+
+	Instant getExpiraEn() {
+		return expiraEn;
+	}
+
+	Instant getRevocadoEn() {
+		return revocadoEn;
 	}
 
 	UUID getId() {

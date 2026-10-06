@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
+import com.doggycredit.assessment.CreditAssessmentCompleted;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.ScoreBand;
 
@@ -107,6 +108,12 @@ class CreditAssessment {
 
 	String requestHash() {
 		return requestHash;
+	}
+
+	CreditAssessmentCompleted completedEvent() {
+		return new CreditAssessmentCompleted(UUID.randomUUID(), Instant.now(), tenantId, id, applicantId,
+				AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band), List.of(reasons), modelVersion,
+				simulated, correlationId);
 	}
 
 	AssessmentResult toResult() {
