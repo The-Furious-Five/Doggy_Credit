@@ -19,11 +19,13 @@ import {
 } from '../design-system';
 import { plans } from '../data';
 import { TenantService } from '../api';
+import { AuditLog } from './audit-log';
 
 @Component({
   selector: 'dc-settings',
   imports: [
     FormsModule,
+    AuditLog,
     DsAlert,
     DsBadge,
     DsButton,
@@ -129,6 +131,7 @@ import { TenantService } from '../api';
             <ds-alert heading="Registro de auditoría activo">
               Cada consulta, cambio de permisos y exportación queda registrada con usuario y finalidad.
             </ds-alert>
+            <dc-audit-log />
           </div>
         </ds-card>
       </ds-tab>
