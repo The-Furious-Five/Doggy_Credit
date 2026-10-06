@@ -30,9 +30,9 @@ class PlanGateImplTest {
             @Override
             public PlanInfo requireById(String planId) {
                 if ("FREE".equals(planId)) {
-                    return new PlanInfo("FREE", "Free", 100, 1, 0, false, false, false);
+                    return new PlanInfo("FREE", "Free", 100, 1, 0, false, false, false, false);
                 } else if ("PRO".equals(planId)) {
-                    return new PlanInfo("PRO", "Pro", 1000, 10, 5, true, true, true);
+                    return new PlanInfo("PRO", "Pro", 1000, 10, 5, true, true, true, true);
                 }
                 throw new IllegalArgumentException("Unknown plan: " + planId);
             }
