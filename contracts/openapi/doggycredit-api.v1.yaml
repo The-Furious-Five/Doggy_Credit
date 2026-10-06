@@ -1028,6 +1028,10 @@ components:
         estado:
           type: string
           enum: [PENDIENTE, PARCIAL, PREAPROBADO, REVISION_MANUAL, FALLIDA]
+        decision:
+          type: string
+          enum: [PREAPROBADO, REVISION_MANUAL, SOLICITAR_DATOS]
+          description: "Decisión de las políticas (C-05), igual que en Evaluacion. Nunca un rechazo."
         score: { type: integer }
         banda: { type: string, enum: [A, B, C, D, E] }
         montoSolicitado: { type: string, description: "Decimal como string" }

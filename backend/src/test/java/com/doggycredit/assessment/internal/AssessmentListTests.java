@@ -121,7 +121,19 @@ class AssessmentListTests {
 
 		list(tenant, "")
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.items[0].estado").value("REVISION_MANUAL"));
+			.andExpect(jsonPath("$.items[0].estado").value("REVISION_MANUAL"))
+			.andExpect(jsonPath("$.items[0].decision").value("SOLICITAR_DATOS"));
+	}
+
+	@Test
+	void cadaEvaluacionTraeSuDecisionYUnParcialNuncaEsPreaprobado() throws Exception {
+		insert(tenant, applicant, NOW.minus(1, ChronoUnit.DAYS), "PARCIAL", 820, "A");
+		insert(tenant, applicant, NOW, "PREAPROBADO", 820, "A");
+
+		list(tenant, "")
+			.andExpect(jsonPath("$.items[0].decision").value("PREAPROBADO"))
+			.andExpect(jsonPath("$.items[1].estado").value("PARCIAL"))
+			.andExpect(jsonPath("$.items[1].decision").value("REVISION_MANUAL"));
 	}
 
 	@Test
