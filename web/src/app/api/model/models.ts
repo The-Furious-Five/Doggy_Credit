@@ -19,6 +19,8 @@ export * from './perfilFinanciero360';
 export * from './perfilFinanciero360FuentesInner';
 export * from './preferenciasTenant';
 export * from './problemDetail';
+export * from './producto';
+export * from './productoCambios';
 export * from './registroAuditoria';
 export * from './segmento';
 export * from './solicitante';
