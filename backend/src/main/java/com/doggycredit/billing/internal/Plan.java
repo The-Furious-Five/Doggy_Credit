@@ -23,6 +23,8 @@ class Plan {
     private int maxIntegraciones;
     @Column(name = "scoring_avanzado")
     private boolean scoringAvanzado;
+    @Column(name = "api_produccion")
+    private boolean apiProduccion;
     private boolean webhooks;
     private boolean analytics;
     private boolean recomendaciones;
@@ -37,6 +39,7 @@ class Plan {
     int getMaxUsuarios() { return maxUsuarios; }
     int getMaxIntegraciones() { return maxIntegraciones; }
     boolean isScoringAvanzado() { return scoringAvanzado; }
+    boolean isApiProduccion() { return apiProduccion; }
     boolean isWebhooks() { return webhooks; }
     boolean isAnalytics() { return analytics; }
     boolean isRecomendaciones() { return recomendaciones; }

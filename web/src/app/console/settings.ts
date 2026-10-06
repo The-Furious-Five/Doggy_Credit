@@ -11,6 +11,7 @@ import {
   DsField,
   DsIcon,
   DsInput,
+  DsProgress,
   DsSwitch,
   DsTab,
   DsTable,
@@ -33,6 +34,7 @@ import { AuditLog } from './audit-log';
     DsField,
     DsIcon,
     DsInput,
+    DsProgress,
     DsSwitch,
     DsTab,
     DsTable,
@@ -98,6 +100,23 @@ import { AuditLog } from './audit-log';
       </ds-tab>
 
       <ds-tab value="plan" label="Plan">
+        @if (usage(); as quota) {
+          <ds-card>
+            <div class="ds-stack-sm">
+              <h2>Uso de evaluaciones este mes</h2>
+              @if (quota.limiteMensual > 0) {
+                <p>{{ quota.evaluacionesMes }} de {{ quota.limiteMensual }} evaluaciones utilizadas</p>
+                <ds-progress label="Evaluaciones mensuales" [value]="quota.evaluacionesMes" [max]="quota.limiteMensual" />
+              } @else {
+                <p>{{ quota.evaluacionesMes }} evaluaciones utilizadas. El plan actual no tiene límite mensual.</p>
+              }
+            </div>
+          </ds-card>
+        } @else if (usageUnavailable()) {
+          <ds-alert heading="No se pudo consultar el uso" tone="warning">
+            Comprueba la conexión e inténtalo de nuevo más tarde.
+          </ds-alert>
+        }
         <div class="ds-grid">
           @for (plan of plans; track plan.id) {
             <ds-card>
@@ -150,6 +169,11 @@ export class Settings {
   readonly tab = linkedSignal(() => this.fragment() ?? 'organizacion');
 
   private readonly tenantService = inject(TenantService);
+  readonly usageUnavailable = signal(false);
+  readonly usage = toSignal(this.tenantService.obtenerUsoTenant().pipe(catchError(() => {
+    this.usageUnavailable.set(true);
+    return of(null);
+  })), { initialValue: null });
   readonly tenant = toSignal(this.tenantService.obtenerTenantActual());
   readonly teamError = signal(false);
   readonly team = toSignal(this.tenantService.listarEquipo().pipe(catchError(() => {

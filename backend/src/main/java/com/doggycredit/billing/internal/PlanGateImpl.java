@@ -18,12 +18,13 @@ class PlanGateImpl implements PlanGate {
 
     @Override
     public boolean isAvailable(String planId, Feature feature) {
-        return isAvailable(plans.requireById(planId), feature);
+        return plans.findById(planId).map(plan -> isAvailable(plan, feature)).orElse(false);
     }
 
     private static boolean isAvailable(PlanInfo plan, Feature feature) {
         return switch (feature) {
             case SCORING_AVANZADO -> plan.scoringAvanzado();
+            case API_PRODUCCION -> plan.apiProduccion();
             case WEBHOOKS -> plan.webhooks();
             case ANALYTICS -> plan.analytics();
             case RECOMENDACIONES -> plan.recomendaciones();

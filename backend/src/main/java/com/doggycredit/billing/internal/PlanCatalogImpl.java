@@ -38,6 +38,7 @@ class PlanCatalogImpl implements PlanCatalog {
             plan.getMaxUsuarios(),
             plan.getMaxIntegraciones(),
             plan.isScoringAvanzado(),
+            plan.isApiProduccion(),
             plan.isWebhooks(),
             plan.isAnalytics(),
             plan.isRecomendaciones()
