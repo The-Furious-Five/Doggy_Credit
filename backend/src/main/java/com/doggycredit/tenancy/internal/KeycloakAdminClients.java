@@ -112,7 +112,6 @@ class KeycloakAdminClients implements KeycloakClients {
 				int page = first;
 				List<?> users = http.get()
 					.uri(uri -> uri.path("/admin/realms/{realm}/users")
-						.queryParam("q", "tenant_id:" + tenantId)
 						.queryParam("first", page)
 						.queryParam("max", 100)
 						.build(properties.realm()))
