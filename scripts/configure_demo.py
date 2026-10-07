@@ -27,6 +27,8 @@ def caddyfile_for(text, url, origin):
     if url.hostname != "localhost":
         # La CA interna solo sirve en local; en la VM el certificado debe ser de confianza pública.
         text = re.sub(r"^[ \t]*tls internal[ \t]*\n", "", text, flags=re.MULTILINE)
+        # En el dominio público se conserva el HSTS de Keycloak; la anulación es solo para localhost.
+        text = re.sub(r"^(?:[ \t]*#.*\n)*[ \t]*header >Strict-Transport-Security .*\n", "", text, flags=re.MULTILINE)
     return text
 
 

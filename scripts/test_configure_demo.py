@@ -11,10 +11,16 @@ class ConfigureDemoTest(unittest.TestCase):
         self.assertIn('https://demo.doggycredit.example {', result)
         self.assertNotIn('https://localhost {', result)
         self.assertNotIn('tls internal', result)
+        self.assertNotIn('Strict-Transport-Security', result)
+        self.assertNotIn('localhost', result)
 
     def test_localhost_keeps_internal_ca(self):
         url, origin = public_origin('https://localhost/auth/realms/doggycredit')
         self.assertIn('tls internal', caddyfile_for(self.caddyfile, url, origin))
+
+    def test_localhost_disables_hsts(self):
+        url, origin = public_origin('https://localhost/auth/realms/doggycredit')
+        self.assertIn('header >Strict-Transport-Security "max-age=0"', caddyfile_for(self.caddyfile, url, origin))
 
     def test_rejects_plain_http_issuer(self):
         with self.assertRaises(SystemExit):
