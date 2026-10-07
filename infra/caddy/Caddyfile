@@ -43,5 +43,9 @@
 
 https://localhost {
 	tls internal
+	# Solo local (configure_demo.py lo quita en la VM): el HSTS de Keycloak haría
+	# que el navegador forzara HTTPS en cualquier http://localhost:PUERTO de otros
+	# proyectos. max-age=0 lo anula y además borra el que ya estuviera guardado.
+	header >Strict-Transport-Security "max-age=0"
 	import routes
 }
