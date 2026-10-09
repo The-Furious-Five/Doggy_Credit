@@ -128,6 +128,15 @@ describe('Consola y barra A-01', () => {
     expect(page.textContent).not.toContain('Persona de prueba');
   });
 
+  it('muestra el aviso de cuota (E-11) encima de la vista al llegar al 80 %', () => {
+    api.obtenerUsoTenant.mockReturnValue(of({ evaluacionesMes: 45, limiteMensual: 50 }));
+    const { page } = render();
+    const notice = page.querySelector('main#contenido > dc-quota-notice');
+    expect(notice?.textContent).toContain('Usaste el 90 % de las evaluaciones del mes');
+    // La barra lateral y el aviso leen el mismo uso: una sola consulta.
+    expect(api.obtenerUsoTenant).toHaveBeenCalledOnce();
+  });
+
   it('distingue la carga de tenant de un plan gratuito', () => {
     api.obtenerTenantActual.mockReturnValue(new Subject());
     const { page } = render();

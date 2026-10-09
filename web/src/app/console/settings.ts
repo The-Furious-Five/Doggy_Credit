@@ -1,4 +1,4 @@
-import { Component, inject, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -21,6 +21,7 @@ import {
 } from '../design-system';
 import { TenantActualPlanEnum, TenantService } from '../api';
 import { AuditLog } from './audit-log';
+import { TenantUsageService } from './tenant-usage.service';
 
 const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
   [TenantActualPlanEnum.Free]: 'Gratis',
@@ -176,11 +177,9 @@ export class Settings {
   readonly tab = linkedSignal(() => this.fragment() ?? 'organizacion');
 
   private readonly tenantService = inject(TenantService);
-  readonly usageUnavailable = signal(false);
-  readonly usage = toSignal(this.tenantService.obtenerUsoTenant().pipe(catchError(() => {
-    this.usageUnavailable.set(true);
-    return of(null);
-  })), { initialValue: null });
+  private readonly usageService = inject(TenantUsageService);
+  readonly usage = this.usageService.usage;
+  readonly usageUnavailable = computed(() => this.usage() === null);
   readonly tenantUnavailable = signal(false);
   readonly tenant = toSignal(this.tenantService.obtenerTenantActual().pipe(catchError(() => {
     this.tenantUnavailable.set(true);
@@ -202,6 +201,11 @@ export class Settings {
   readonly org = linkedSignal(() => this.tenant()?.nombre ?? '');
   savingOrganization = false;
   savingPreferences = false;
+
+  constructor() {
+    // Si la consola ya lo había consultado, la pestaña Plan muestra el uso al día.
+    if (this.usage() !== undefined) this.usageService.refresh();
+  }
 
   tenantStatus(): string {
     return this.tenantUnavailable() ? 'No disponible' : 'Cargando…';

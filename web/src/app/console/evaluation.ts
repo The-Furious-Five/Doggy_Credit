@@ -40,6 +40,7 @@ import {
   DsTone,
 } from '../design-system';
 import { money } from './client-format';
+import { TenantUsageService } from './tenant-usage.service';
 
 const SEGMENTS: DsOption<Segmento>[] = [
   { value: Segmento.Persona, label: 'Persona' },
@@ -272,6 +273,7 @@ export class Evaluation {
   private readonly integrations = inject(IntegracionesService);
   private readonly assessments = inject(EvaluacionesService);
   private readonly auth = inject(AuthSessionService);
+  private readonly quota = inject(TenantUsageService);
   private readonly injector = inject(Injector);
   private readonly stepHeading = viewChild<ElementRef<HTMLElement>>('stepHeading');
 
@@ -470,10 +472,13 @@ export class Evaluation {
       this.result.set(result);
       this.goTo(3);
       this.loadCapacity();
+      // La evaluación consumió cuota: la barra y los avisos del 80 % y 100 % se actualizan (E-11).
+      this.quota.refresh();
     } catch (error) {
       const errorCode = code(error);
       if (errorCode === 'QUOTA_EXCEEDED') {
         this.problem.set('quota');
+        this.quota.refresh();
       } else if (errorCode === 'CONSENT_REQUIRED') {
         // El consentimiento venció o fue revocado: hay que registrar uno nuevo.
         this.problem.set('consent');
