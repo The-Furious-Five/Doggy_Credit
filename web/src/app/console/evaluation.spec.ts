@@ -17,6 +17,7 @@ import {
 } from '../api';
 import { AuthSession, AuthSessionService } from '../auth/session.service';
 import { Evaluation } from './evaluation';
+import { TenantUsageService } from './tenant-usage.service';
 
 const APPLICANT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONSENT_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -40,6 +41,7 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
   const consents = { crearConsentimiento: vi.fn() };
   const integrations = { listarIntegraciones: vi.fn() };
   const assessments = { crearEvaluacion: vi.fn() };
+  const usage = { refresh: vi.fn() };
   const session = signal<AuthSession>({ isAuthenticated: true, name: 'Analista', tenantId: 't', roles: ['ANALYST'] });
 
   beforeEach(() => {
@@ -67,6 +69,7 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
         { provide: IntegracionesService, useValue: integrations },
         { provide: EvaluacionesService, useValue: assessments },
         { provide: AuthSessionService, useValue: { session } },
+        { provide: TenantUsageService, useValue: usage },
       ],
     });
   });
@@ -201,6 +204,8 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
     expect(text(f)).toContain('Bs 3.100');
     expect(f.nativeElement.querySelectorAll('.ds-mono').length).toBe(3);
     expect(text(f)).not.toContain('PLAZO_HASTA_12_MESES');
+    // La evaluación consumió cuota: se actualizan la barra y los avisos del 80 % y 100 % (E-11).
+    expect(usage.refresh).toHaveBeenCalledOnce();
     expect(text(f)).toContain('Recomendación, no aprobación');
     // Sin promesas de funciones que la API todavía no expone (E-09).
     expect(text(f)).not.toMatch(/aparecerán aquí|próximamente/i);
@@ -229,6 +234,7 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
 
     expect(f.componentInstance.step()).toBe(2);
     expect(text(f)).toContain('Llegaste al límite de evaluaciones de tu plan');
+    expect(usage.refresh).toHaveBeenCalledOnce();
     // Un analista no puede abrir Configuración: no se le ofrece un enlace que el guard rechazaría.
     expect(f.nativeElement.querySelector('a[href="/app/configuracion#plan"]')).toBeNull();
     expect(text(f)).toContain('Pide a quien administra tu institución que revise el plan.');

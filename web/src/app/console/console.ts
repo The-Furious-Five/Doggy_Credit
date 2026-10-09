@@ -16,6 +16,8 @@ import {
   DsThemeToggle,
   DsToastService,
 } from '../design-system';
+import { QuotaNotice } from './quota-notice';
+import { TenantUsageService } from './tenant-usage.service';
 
 interface NavigationGroup {
   readonly title: string;
@@ -34,6 +36,7 @@ interface NavigationGroup {
     DsMenu,
     DsThemeToggle,
     DsProgress,
+    QuotaNotice,
   ],
   styleUrl: './console.scss',
   template: `
@@ -124,6 +127,7 @@ interface NavigationGroup {
           </div>
         </header>
         <main id="contenido" class="console-main" tabindex="-1">
+          <dc-quota-notice />
           <router-outlet />
         </main>
       </div>
@@ -139,7 +143,7 @@ export class Console {
   readonly tenant = toSignal(
     this.tenantService.obtenerTenantActual().pipe(catchError(() => of(null))),
   );
-  readonly usage = toSignal(this.tenantService.obtenerUsoTenant().pipe(catchError(() => of(null))));
+  readonly usage = inject(TenantUsageService).usage;
   readonly user = this.auth.session;
   readonly loggingOut = signal(false);
   readonly path = () => this.router.url.split('#')[0];
