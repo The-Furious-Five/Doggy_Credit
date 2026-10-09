@@ -70,6 +70,8 @@ describe('Consola y barra A-01', () => {
     expect(top.textContent).not.toContain(tenant.id);
     expect(page.querySelector('[aria-label="Cuenta de Persona de prueba"]')).not.toBeNull();
     expect(page.textContent).toContain('12 de 50 este mes');
+    // «Datos simulados» solo acompaña respuestas marcadas por la API (simulado=true), nunca la barra fija (E-09).
+    expect(top.textContent).not.toMatch(/simulad/i);
   });
 
   it.each(['ANALYST', 'API_CLIENT', 'PLATFORM_ADMIN'] as AppRole[])(

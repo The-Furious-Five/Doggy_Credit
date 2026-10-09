@@ -134,10 +134,6 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
           </ds-card>
         </ds-tab>
 
-        <ds-tab value="recomendaciones" label="Recomendaciones">
-          <ds-empty-state heading="Sin recomendaciones" description="Las recomendaciones de productos aparecerán aquí después de evaluar al cliente." />
-        </ds-tab>
-
         <ds-tab value="fuentes" label="Fuentes">
           @if (c.perfil; as p) {
             <ds-card>

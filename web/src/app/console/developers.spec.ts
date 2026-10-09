@@ -66,6 +66,17 @@ describe('Desarrolladores › Claves de API', () => {
     expect(page.querySelector('[aria-label="Cargando claves de API"]')).not.toBeNull();
   });
 
+  it('no inventa el consumo de la API: sin barra fija ni límites de otro plan (E-09)', () => {
+    api.listarClavesApi.mockReturnValue(of([]));
+    const { page } = render();
+    expect(page.querySelector('[role="progressbar"]')).toBeNull();
+    expect(page.textContent).not.toMatch(/Solicitudes por minuto|60 por minuto|plan Gratis/);
+    // El ejemplo desplazable se alcanza con el teclado (WCAG 2.1.1).
+    const sample = page.querySelector('pre.code')!;
+    expect(sample.getAttribute('tabindex')).toBe('0');
+    expect(sample.getAttribute('aria-label')).toBe('Ejemplo con curl: token y evaluación');
+  });
+
   it('muestra las claves con el secreto enmascarado', () => {
     api.listarClavesApi.mockReturnValue(of([key]));
     const { page } = render();

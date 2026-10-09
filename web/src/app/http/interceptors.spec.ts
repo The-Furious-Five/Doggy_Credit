@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
@@ -17,6 +17,7 @@ import {
 } from '../api';
 import { appConfig } from '../app.config';
 import { DsToastOutlet, DsToastService } from '../design-system';
+import { HANDLED_PROBLEMS } from './api-error.interceptor';
 
 describe('Interceptores HTTP registrados en la aplicación', () => {
   let http: HttpClient;
@@ -192,6 +193,25 @@ describe('Interceptores HTTP registrados en la aplicación', () => {
     expect(message).toContain(problem.detail);
     expect(message).toContain('correlationId: correlacion-prueba');
     expect(message).not.toContain('otro-id');
+  });
+
+  it('no repite en un toast los códigos que la vista presenta, pero sí los demás errores', () => {
+    const context = new HttpContext().set(HANDLED_PROBLEMS, ['FEATURE_NOT_IN_PLAN']);
+    let received: HttpErrorResponse | undefined;
+    http.get(`${api}/webhooks`, { context }).subscribe({ error: (error) => (received = error) });
+    requests.expectOne(`${api}/webhooks`).flush(
+      { title: 'Función no disponible en el plan actual', code: 'FEATURE_NOT_IN_PLAN' },
+      { status: 403, statusText: 'Forbidden' },
+    );
+    expect(received?.status).toBe(403);
+    expect(toast.message()).toBe('');
+
+    http.get(`${api}/webhooks`, { context }).subscribe({ error: () => undefined });
+    requests.expectOne(`${api}/webhooks`).flush(
+      { title: 'Error interno', code: 'INTERNAL_ERROR' },
+      { status: 500, statusText: 'Server Error' },
+    );
+    expect(toast.message()).toContain('Error interno');
   });
 
   it('interpreta Problem Details de peticiones con responseType text', () => {

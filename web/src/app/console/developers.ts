@@ -18,7 +18,6 @@ import {
   DsIcon,
   DsInput,
   DsOption,
-  DsProgress,
   DsSelect,
   DsSkeleton,
   DsTable,
@@ -44,7 +43,6 @@ type KeysState =
     DsField,
     DsIcon,
     DsInput,
-    DsProgress,
     DsSelect,
     DsSkeleton,
     DsTable,
@@ -55,7 +53,7 @@ type KeysState =
     <header class="page-header">
       <div class="ds-stack-sm">
         <h1>Desarrolladores</h1>
-        <p class="ds-muted">Claves de API, webhooks y límites de uso de tu institución.</p>
+        <p class="ds-muted">Claves de API y webhooks de tu institución.</p>
       </div>
       <button dsButton (click)="openCreate()"><ds-icon name="key" />Crear clave</button>
     </header>
@@ -136,16 +134,15 @@ type KeysState =
     <div class="split">
       <ds-card>
         <div class="card-head"><h2>Primera llamada</h2><span class="ds-caption">OAuth 2.0 · REST</span></div>
-        <pre class="code"><code>{{ sample }}</code></pre>
+        <div class="ds-stack-sm">
+          <pre class="code" tabindex="0" aria-label="Ejemplo con curl: token y evaluación"><code>{{ sample }}</code></pre>
+          <p class="ds-caption">
+            Cada plan tiene un límite de solicitudes por minuto. Al superarlo, la API responde 429 con la
+            cabecera Retry-After.
+          </p>
+        </div>
       </ds-card>
-      <div class="ds-stack">
-        <ds-card>
-          <div class="card-head"><h2>Uso de la API</h2></div>
-          <ds-progress label="Solicitudes por minuto" [value]="18" [max]="60" />
-          <p class="ds-caption">Límite del plan Gratis: 60 por minuto.</p>
-        </ds-card>
-        <dc-webhook-settings />
-      </div>
+      <dc-webhook-settings />
     </div>
 
     <ds-dialog #createDialog heading="Crear clave de API">

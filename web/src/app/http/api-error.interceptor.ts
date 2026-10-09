@@ -1,5 +1,5 @@
 import { DOCUMENT, inject } from '@angular/core';
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 import { BASE_PATH } from '../api';
 import { DsToastService } from '../design-system';
@@ -40,15 +40,27 @@ function errorMessage(error: HttpErrorResponse): string {
   return `${description || fallback}${correlationId ? ` · correlationId: ${correlationId}` : ''}`;
 }
 
+/**
+ * Códigos del catálogo de errores que la vista ya presenta con un estado propio
+ * (p. ej. FEATURE_NOT_IN_PLAN al abrir Webhooks en el plan Gratis). No se repiten en un toast.
+ */
+export const HANDLED_PROBLEMS = new HttpContextToken<readonly string[]>(() => []);
+
 /** RFC 9457 y fallos de red de la API; las vistas siguen recibiendo el error original. */
 export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => {
   if (!isApiRequest(request.url, inject(BASE_PATH), inject(DOCUMENT).baseURI)) {
     return next(request);
   }
   const toast = inject(DsToastService);
+  const handled = request.context.get(HANDLED_PROBLEMS);
   return next(request).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse) toast.show(errorMessage(error));
+      if (
+        error instanceof HttpErrorResponse &&
+        !handled.includes(nonEmptyText(problemBody(error.error)['code']))
+      ) {
+        toast.show(errorMessage(error));
+      }
       return throwError(() => error);
     }),
   );
