@@ -4,7 +4,6 @@ import { RouterLink } from '@angular/router';
 import { Producto, ProductoTipoEnum, ProductosService } from '../api';
 import {
   DsAlert,
-  DsBadge,
   DsButton,
   DsCard,
   DsEmptyState,
@@ -40,7 +39,7 @@ type State = 'loading' | 'ready' | 'forbidden' | 'error';
 
 @Component({
   selector: 'dc-products',
-  imports: [RouterLink, DsAlert, DsBadge, DsButton, DsCard, DsEmptyState, DsIcon, DsLink, DsSkeleton, DsSwitch],
+  imports: [RouterLink, DsAlert, DsButton, DsCard, DsEmptyState, DsIcon, DsLink, DsSkeleton, DsSwitch],
   styleUrl: './page.scss',
   template: `
     <header class="page-header">
@@ -48,7 +47,6 @@ type State = 'loading' | 'ready' | 'forbidden' | 'error';
         <h1>Productos</h1>
         <p class="ds-muted">Líneas de crédito que DoggyCredit puede recomendar a tus clientes.</p>
       </div>
-      <ds-badge tone="info">Productos propios en plan Pro</ds-badge>
     </header>
 
     @switch (state()) {
@@ -88,7 +86,7 @@ type State = 'loading' | 'ready' | 'forbidden' | 'error';
                       [checked]="product.activo"
                       [disabled]="saving() === product.id"
                       (checkedChange)="setActive(product, $event)"
-                      >Activo</ds-switch
+                      >Activo<span class="ds-sr-only">: {{ presentation(product).name }}</span></ds-switch
                     >
                   </div>
                   <div class="ds-stack-sm">

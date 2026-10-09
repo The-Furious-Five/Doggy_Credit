@@ -80,7 +80,8 @@ type State = 'loading' | 'ready' | 'forbidden' | 'error';
                           [checked]="rule.activa"
                           [disabled]="saving() === rule.id"
                           (checkedChange)="setActive(rule, $event)"
-                          >{{ rule.activa ? 'Activa' : 'Pausada' }}</ds-switch
+                          >{{ rule.activa ? 'Activa' : 'Pausada'
+                          }}<span class="ds-sr-only">: {{ rule.nombre }}</span></ds-switch
                         >
                       </td>
                     </tr>

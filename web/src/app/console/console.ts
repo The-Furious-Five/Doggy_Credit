@@ -6,7 +6,6 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { canAccessAppRoute } from '../auth/permissions';
 import { AuthSessionService } from '../auth/session.service';
 import {
-  DsBadge,
   DsBrand,
   DsIcon,
   DsIconName,
@@ -29,7 +28,6 @@ interface NavigationGroup {
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
-    DsBadge,
     DsBrand,
     DsIcon,
     DsLink,
@@ -107,15 +105,12 @@ interface NavigationGroup {
 
       <div class="console-body">
         <header class="console-top">
-          <div class="ds-row">
-            <span class="console-top__tenant"
-              ><ds-icon name="building" />{{
-                tenant()?.nombre ||
-                  (tenant() === null ? 'Institución no disponible' : 'Cargando institución…')
-              }}</span
-            >
-            <ds-badge tone="warning">Datos simulados</ds-badge>
-          </div>
+          <span class="console-top__tenant"
+            ><ds-icon name="building" />{{
+              tenant()?.nombre ||
+                (tenant() === null ? 'Institución no disponible' : 'Cargando institución…')
+            }}</span
+          >
           <div class="ds-row">
             <ds-theme-toggle />
             <span class="ds-caption">{{ user().name || 'Cargando usuario…' }}</span>

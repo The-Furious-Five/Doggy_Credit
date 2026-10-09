@@ -6,3 +6,4 @@ Definition of Done de release (capítulo 13 de la guía de inducción) y se
 agrega al cerrar el Sprint 4.
 
 - [Webhooks por tenant (E-08): configuración, firma HMAC y recuperación](webhooks-e08.md)
+- [Consola sin datos simulados (E-09): qué se retiró y revisión de accesibilidad](revision-consola-e09.md)

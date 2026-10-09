@@ -59,7 +59,7 @@ for (const plan of ['FREE', 'PRO'] as const satisfies readonly Plan[]) {
     );
     await expect(page.getByRole('heading', { name: 'Principales razones' })).toBeVisible();
 
-    // 5. Perfil del cliente: Perfil 360, score, recomendaciones y fuentes.
+    // 5. Perfil del cliente: Perfil 360, score y fuentes.
     await page.getByRole('link', { name: 'Ver perfil completo' }).click();
     await expect(page).toHaveURL(/\/app\/clientes\/[0-9a-f-]{36}$/);
     await expect(page.getByRole('heading', { name: DOCUMENT, level: 1 })).toBeVisible();
@@ -73,9 +73,6 @@ for (const plan of ['FREE', 'PRO'] as const satisfies readonly Plan[]) {
     await tabs.getByRole('tab', { name: 'Score' }).click();
     const history = page.getByRole('tabpanel', { name: 'Score' }).getByRole('row');
     await expect(history.nth(1)).toContainText(score!);
-
-    await tabs.getByRole('tab', { name: 'Recomendaciones' }).click();
-    await expect(page.getByRole('tabpanel', { name: 'Recomendaciones' })).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'Fuentes' }).click();
     const sources = page.getByRole('tabpanel', { name: 'Fuentes' });

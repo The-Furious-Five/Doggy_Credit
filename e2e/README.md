@@ -16,7 +16,7 @@ Playwright recorre la consola en Chromium contra Caddy + SPA + API + Keycloak
 
 - `credit-flow.spec.ts`, para el tenant FREE y el PRO de `seed/tenants.yaml`:
   login → `/app/evaluaciones/nueva` (alta, consentimiento, fuentes, evaluación)
-  → `/app/clientes/:id` (Perfil 360, score, recomendaciones, fuentes) →
+  → `/app/clientes/:id` (Perfil 360, score, fuentes) →
   revocar el consentimiento → `/app/configuracion#seguridad` (auditoría). En
   PRO además conecta banco y billetera y verifica que el perfil los consolida.
 - `plan-gates.spec.ts`: el tenant FREE ve bloqueadas la analítica avanzada,

@@ -97,6 +97,14 @@ describe('Perfil del cliente (B-09)', () => {
     consents.listarConsentimientos.mockReturnValue(of([consent(ConsentimientoEstadoEnum.Activo)]));
   });
 
+  it('solo ofrece pestañas con datos de la API (sin recomendaciones vacías de relleno)', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    const f = await render();
+    const tabs = [...(f.nativeElement as HTMLElement).querySelectorAll('[role="tab"]')].map((tab) => tab.textContent?.trim());
+    expect(tabs).toEqual(['Resumen', 'Score', 'Fuentes']);
+    expect(text(f)).not.toMatch(/aparecerán aquí|próximamente/i);
+  });
+
   it('muestra el resumen y el linaje por fuente del Perfil 360', async () => {
     applicants.obtenerSolicitante.mockReturnValue(of(detail()));
     const f = await render();

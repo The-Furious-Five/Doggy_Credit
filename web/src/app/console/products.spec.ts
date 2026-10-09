@@ -57,6 +57,17 @@ describe('Productos conectados a la API', () => {
     expect(page.querySelectorAll('ds-card')).toHaveLength(2);
   });
 
+  it('nombra cada interruptor con su producto y no promete funciones sin API (E-09)', () => {
+    api.listarProductos.mockReturnValue(of([micro, pyme]));
+    const { page } = render();
+
+    const names = [...page.querySelectorAll('[role="switch"]')].map(
+      (control) => page.querySelector(`#${control.getAttribute('aria-labelledby')}`)?.textContent?.trim(),
+    );
+    expect(names).toEqual(['Activo: Microcrédito', 'Activo: Crédito PYME']);
+    expect(page.textContent).not.toContain('Productos propios en plan Pro');
+  });
+
   it('muestra los montos en la moneda del producto', () => {
     api.listarProductos.mockReturnValue(of([{ ...micro, moneda: ProductoMonedaEnum.Usd }]));
     const { page } = render();
