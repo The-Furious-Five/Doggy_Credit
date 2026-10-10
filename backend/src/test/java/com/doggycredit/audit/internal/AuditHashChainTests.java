@@ -90,6 +90,55 @@ class AuditHashChainTests {
 	}
 
 	@Test
+	void detectaQueSeBorroLaUltimaFila() throws SQLException {
+		UUID tenant = UUID.randomUUID();
+		registrar(tenant, 3);
+
+		// Lo que queda (1, 2) es una cadena perfecta: solo chain_head sabe que faltaba la 3.
+		manipularComoSuperusuario("DELETE FROM audit.access_log WHERE tenant_id = ? AND chain_seq = 3", tenant);
+
+		assertThat(comoTenant(tenant, () -> verifier.verify(tenant))).containsExactly(new Break(3, "MISSING_TAIL"));
+	}
+
+	@Test
+	void detectaQueSeBorroTodaLaCadena() throws SQLException {
+		UUID tenant = UUID.randomUUID();
+		registrar(tenant, 3);
+
+		manipularComoSuperusuario("DELETE FROM audit.access_log WHERE tenant_id = ?", tenant, 3);
+
+		assertThat(comoTenant(tenant, () -> verifier.verify(tenant))).containsExactly(new Break(3, "MISSING_TAIL"));
+	}
+
+	@Test
+	void detectaQueSeReescribioLaUltimaFilaRecalculandoSuHash() throws SQLException {
+		UUID tenant = UUID.randomUUID();
+		registrar(tenant, 3);
+
+		// El hash recalculado cuadra con el contenido (no hay HASH_MISMATCH), pero no con chain_head.
+		manipularComoSuperusuario("""
+				UPDATE audit.access_log
+				   SET action = 'MANIPULADO',
+				       row_hash = audit.compute_row_hash(prev_hash, id, tenant_id, chain_seq, actor, 'MANIPULADO',
+				                                         resource_type, resource_id, correlation_id, created_at)
+				 WHERE tenant_id = ? AND chain_seq = 3""", tenant);
+
+		assertThat(comoTenant(tenant, () -> verifier.verify(tenant))).containsExactly(new Break(3, "HEAD_MISMATCH"));
+	}
+
+	@Test
+	void otroTenantNoVeLaCadenaNiLaCabezaAjena() throws SQLException {
+		UUID victima = UUID.randomUUID();
+		UUID otro = UUID.randomUUID();
+		registrar(victima, 3);
+		manipularComoSuperusuario("DELETE FROM audit.access_log WHERE tenant_id = ? AND chain_seq = 3", victima);
+
+		// La RLS de access_log y de chain_head deja al otro tenant sin filas que comparar.
+		assertThat(comoTenant(otro, () -> verifier.verify(victima))).isEmpty();
+		assertThat(comoTenant(victima, () -> verifier.verify(victima))).containsExactly(new Break(3, "MISSING_TAIL"));
+	}
+
+	@Test
 	void conEscriturasSimultaneasLaCadenaNoSeBifurca() throws Exception {
 		UUID tenant = UUID.randomUUID();
 		int hilos = 20;
@@ -133,8 +182,12 @@ class AuditHashChainTests {
 		}
 	}
 
-	/** Lo que haría un atacante con acceso de superusuario: apagar la protección y tocar la tabla. */
 	private void manipularComoSuperusuario(String sql, UUID tenant) throws SQLException {
+		manipularComoSuperusuario(sql, tenant, 1);
+	}
+
+	/** Lo que haría un atacante con acceso de superusuario: apagar la protección y tocar la tabla. */
+	private void manipularComoSuperusuario(String sql, UUID tenant, int filasEsperadas) throws SQLException {
 		try (Connection admin = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(),
 				postgres.getPassword())) {
 			admin.setAutoCommit(false);
@@ -143,7 +196,7 @@ class AuditHashChainTests {
 			}
 			try (PreparedStatement ps = admin.prepareStatement(sql)) {
 				ps.setObject(1, tenant);
-				assertThat(ps.executeUpdate()).isEqualTo(1);
+				assertThat(ps.executeUpdate()).isEqualTo(filasEsperadas);
 			}
 			try (Statement st = admin.createStatement()) {
 				st.execute("ALTER TABLE audit.access_log ENABLE TRIGGER audit_no_edit");
