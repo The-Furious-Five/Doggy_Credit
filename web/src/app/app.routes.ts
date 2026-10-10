@@ -39,6 +39,11 @@ export const routes: Routes = [
         loadComponent: () => import('./console/evaluation').then((m) => m.Evaluation),
       },
       {
+        path: 'revision',
+        title: page('Revisión manual'),
+        loadComponent: () => import('./console/manual-review').then((m) => m.ManualReview),
+      },
+      {
         path: 'productos',
         canActivate: [roleGuard],
         data: { requiredRole: APP_ROUTE_ROLES['/app/productos'] },

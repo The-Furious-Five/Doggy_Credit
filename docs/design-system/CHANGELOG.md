@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.1 — 2026-10-09
+
+- `.ds-table-scroll` es `position: relative`. Un texto `.ds-sr-only` dentro de la
+  tabla (p. ej. el encabezado «Acciones» de la última columna) es absoluto y
+  quedaba fuera del desplazamiento horizontal: en pantallas angostas ensanchaba
+  toda la página (Desarrolladores con claves, bandeja de revisión manual).
+- `ds-tabs` usa una columna `minmax(0, 1fr)`. La columna implícita `auto` crecía
+  hasta el ancho mínimo de una tabla dentro de un panel y desbordaba en móvil
+  (Configuración › Equipo y Seguridad, perfil del cliente › Fuentes).
+
 ## 3.1.0 — 2026-10-01
 
 - `a[dsLink]` acepta `appearance` (primary/secondary/quiet) para presentar como
