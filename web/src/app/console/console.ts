@@ -155,6 +155,7 @@ export class Console {
         { path: '/app/resumen', label: 'Resumen', icon: 'grid' },
         { path: '/app/clientes', label: 'Clientes', icon: 'users' },
         { path: '/app/evaluaciones/nueva', label: 'Nueva evaluación', icon: 'plus' },
+        { path: '/app/revision', label: 'Revisión manual', icon: 'tray' },
       ],
     },
     {

@@ -14,22 +14,23 @@ import {
   DsSwitch,
   DsToastService,
 } from '../design-system';
+import { productNames } from './product-format';
 import { money } from './client-format';
 
 /** Presentación de cada tipo de producto. Los datos (rangos, estado) vienen de la API. */
 const PRESENTATION: Record<ProductoTipoEnum, { name: string; icon: DsIconName; summary: string }> = {
   [ProductoTipoEnum.Microcredito]: {
-    name: 'Microcrédito',
+    name: productNames[ProductoTipoEnum.Microcredito],
     icon: 'coin',
     summary: 'Montos pequeños y aprobación ágil para personas y emprendedores.',
   },
   [ProductoTipoEnum.Verde]: {
-    name: 'Crédito ecológico',
+    name: productNames[ProductoTipoEnum.Verde],
     icon: 'leaf',
     summary: 'Financia paneles solares, eficiencia energética y movilidad limpia.',
   },
   [ProductoTipoEnum.Pyme]: {
-    name: 'Crédito PYME',
+    name: productNames[ProductoTipoEnum.Pyme],
     icon: 'store',
     summary: 'Capital de trabajo e inversión para pequeñas y medianas empresas.',
   },

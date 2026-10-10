@@ -27,6 +27,7 @@ tags:
   - name: productos
   - name: analytics
   - name: webhooks
+  - name: revision-manual
 
 paths:
 
@@ -395,6 +396,91 @@ paths:
           $ref: "#/components/responses/NoAutenticado"
         "404":
           description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
+
+
+  # RF-DEC-03 (D-10 / C-10 / E-10). Tag propio: el backend genera RevisionManualApi
+  # sin implementación por defecto, así que agregar estas rutas no obliga a tocar
+  # los controladores existentes.
+  /revision-manual:
+    get:
+      tags: [revision-manual]
+      operationId: listarCasosRevision
+      summary: >
+        Bandeja de revisión manual: evaluaciones del tenant en REVISION_MANUAL, de la
+        más antigua a la más reciente (ANALYST y TENANT_ADMIN)
+      parameters:
+        - name: pagina
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        "200":
+          description: Página de casos pendientes y productos que se pueden elegir al aprobar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaCasosRevision"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
+  /revision-manual/{evaluacionId}/resolucion:
+    post:
+      tags: [revision-manual]
+      operationId: resolverCasoRevision
+      summary: >
+        Resuelve un caso en revisión manual (override) con justificación obligatoria; al
+        aprobar se elige el producto. Queda en audit.access_log con el X-Correlation-Id
+        (ANALYST y TENANT_ADMIN)
+      parameters:
+        - name: evaluacionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolucionNueva"
+      responses:
+        "200":
+          description: Caso resuelto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resolucion"
+        "400":
+          description: >
+            VALIDATION_ERROR: falta la justificación (o es demasiado corta), o se aprueba
+            sin producto
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
+          description: >
+            ASSESSMENT_NOT_FOUND (no existe o es de otro tenant) o PRODUCT_NOT_FOUND
+            (producto inexistente, inactivo o de otro tenant)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: CONCURRENT_UPDATE, el caso ya no está en revisión manual (otra persona lo resolvió)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
 
 
   /auditoria:
@@ -1242,6 +1328,78 @@ components:
         plazoMeses: { type: integer }
         creadoEn: { type: string, format: date-time }
       required: [id, solicitanteId, estado, score, banda, creadoEn]
+
+    CasoRevision:
+      type: object
+      description: >
+        Una evaluación que las políticas dejaron en revisión manual (RF-DEC-03). Nunca es
+        un rechazo automático: rechazar o aprobar lo decide una persona.
+      properties:
+        evaluacionId: { type: string, format: uuid }
+        solicitanteId: { type: string, format: uuid }
+        documento: { type: string, description: "Documento del titular; la consola lo enmascara según el rol" }
+        creadoEn: { type: string, format: date-time }
+        score: { type: integer }
+        banda: { type: string, enum: [A, B, C, D, E] }
+        motivo:
+          type: string
+          enum: [REVISION_MANUAL, SOLICITAR_DATOS]
+          description: Decisión de las políticas que dejó el caso en la bandeja
+        resultadoParcial: { type: boolean, description: "Una fuente no respondió (resultado PARCIAL)" }
+        razones:
+          type: array
+          items: { type: string }
+          description: Razones del score, de mayor a menor impacto
+        montoSolicitado: { type: string, description: "Decimal como string" }
+        plazoMeses: { type: integer }
+        proposito: { type: string }
+      required: [evaluacionId, solicitanteId, documento, creadoEn, score, banda, motivo, resultadoParcial, razones]
+
+    PaginaCasosRevision:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CasoRevision"
+        total:
+          type: integer
+          format: int64
+          description: Casos pendientes del tenant (para la paginación)
+        productos:
+          type: array
+          description: >
+            Productos activos del catálogo del tenant, los que se pueden elegir al aprobar.
+            Van aquí porque ANALYST no puede leer /productos.
+          items:
+            $ref: "#/components/schemas/Producto"
+      required: [items, total, productos]
+
+    ResolucionNueva:
+      type: object
+      properties:
+        decision: { type: string, enum: [APROBADO, RECHAZADO] }
+        productoId:
+          type: string
+          format: uuid
+          description: Obligatorio al aprobar; se omite al rechazar
+        justificacion:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: Obligatoria. Sin ella la API responde 400 VALIDATION_ERROR (RFC 9457)
+      required: [decision, justificacion]
+
+    Resolucion:
+      type: object
+      properties:
+        evaluacionId: { type: string, format: uuid }
+        decision: { type: string, enum: [APROBADO, RECHAZADO] }
+        productoId: { type: string, format: uuid }
+        justificacion: { type: string }
+        resueltoPor: { type: string, description: "Usuario que resolvió (claim preferred_username)" }
+        resueltoEn: { type: string, format: date-time }
+      required: [evaluacionId, decision, justificacion, resueltoPor, resueltoEn]
 
     PaginaEvaluaciones:
       type: object
