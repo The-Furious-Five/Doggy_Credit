@@ -33,6 +33,8 @@
 		# Solo la SPA: Keycloak publica sus propias cabeceras de frame y necesita
 		# enmarcar su login-status-iframe en /auth/* desde el mismo origen.
 		header X-Frame-Options DENY
+		# Versión en línea (E-13): sin caché, para que siempre refleje la release activa.
+		header /release.json Cache-Control no-store
 	}
 
 	header {
