@@ -1,5 +1,6 @@
 package com.doggycredit.scoring;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -12,5 +13,12 @@ import java.util.UUID;
 public interface CreditScoring {
 
 	BasicScoreResult score(UUID tenantId, ScorecardInput basicInput, ScoringFeatures features);
+
+	/**
+	 * C-12 (RF-SCO-04): recalcula con la versión exacta que produjo un score guardado,
+	 * sin mirar el plan actual del tenant (pudo cambiar) ni degradar a otro modelo.
+	 * Vacío si esa versión ya no está cargada: nunca se aproxima con otra.
+	 */
+	Optional<BasicScoreResult> rescore(String modelVersion, ScorecardInput basicInput, ScoringFeatures features);
 
 }

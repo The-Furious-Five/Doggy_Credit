@@ -1,5 +1,6 @@
 package com.doggycredit.scoring.internal;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -51,6 +52,18 @@ class PlanAwareCreditScoring implements CreditScoring {
 			log.warn("Modelo avanzado no disponible para el tenant {}; se usa el scorecard básico", tenantId, e);
 			return basic.score(basicInput);
 		}
+	}
+
+	@Override
+	public Optional<BasicScoreResult> rescore(String modelVersion, ScorecardInput basicInput,
+			ScoringFeatures features) {
+		// Se elige por la versión guardada, no por el plan: un PRO que degradó al básico
+		// se recalcula con el básico, como ocurrió.
+		if (modelVersion.equals(advanced.version())) {
+			return Optional.of(advanced.score(features));
+		}
+		BasicScoreResult result = basic.score(basicInput);
+		return modelVersion.equals(result.modelVersion()) ? Optional.of(result) : Optional.empty();
 	}
 
 }
