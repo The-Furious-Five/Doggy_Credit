@@ -29,7 +29,8 @@ public enum ErrorCode {
     API_KEY_NOT_FOUND("api-key-not-found", 404, "Clave de API no encontrada"),
     PRODUCT_NOT_FOUND("product-not-found", 404, "Producto no encontrado"),
     POLICY_NOT_FOUND("policy-not-found", 404, "Regla no encontrada"),
-    CONCURRENT_UPDATE("concurrent-update", 409, "Cambio simultáneo");
+    CONCURRENT_UPDATE("concurrent-update", 409, "Cambio simultáneo"),
+    PLAN_CHANGE_NOT_ALLOWED("plan-change-not-allowed", 409, "Cambio de plan no permitido");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
 
