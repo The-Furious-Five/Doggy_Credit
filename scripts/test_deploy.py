@@ -49,6 +49,13 @@ elif name == "find":
                 print(str(path.stat().st_mtime) + " " + str(path))
     else:
         sys.exit(subprocess.call(["/usr/bin/find", *args]))
+elif name in ("chmod", "rm"):
+    # LOS-117: una release vieja con archivos de otro dueño (los temas de Keycloak).
+    denied = os.environ.get("TEST_CLEANUP_DENIED")
+    if denied and any(denied in arg for arg in args):
+        print(name + ": Operation not permitted", file=sys.stderr)
+        sys.exit(1)
+    sys.exit(subprocess.call(["/usr/bin/" + name, *args]))
 '''
 
 
@@ -59,7 +66,7 @@ class DeployTest(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.bin = self.base / "bin"
         self.bin.mkdir()
-        for command in ("docker", "wget", "curl", "find"):
+        for command in ("docker", "wget", "curl", "find", "chmod", "rm"):
             executable = self.bin / command
             executable.write_text("#!/usr/bin/env python3\n" + FAKE_COMMAND)
             executable.chmod(0o755)
@@ -145,6 +152,24 @@ class DeployTest(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertEqual(self.previous, self.current.resolve())
         self.assertFalse(any("up" in c["args"] for c in self.commands()))
+
+    def test_cleanup_keeps_current_previous_and_one_more_release(self):
+        stale = [self.make_release(f"stale-{n}") for n in range(3)]
+        result = self.run_script("deploy.sh")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertTrue(self.release.is_dir() and self.previous.is_dir())
+        self.assertEqual(1, sum(release.is_dir() for release in stale))
+
+    def test_old_release_that_cannot_be_deleted_does_not_fail_the_deploy(self):
+        """LOS-117: el job salía en rojo con la release nueva ya activa."""
+        stale = [self.make_release(f"stale-{n}") for n in range(3)]
+        result = self.run_script("deploy.sh", TEST_CLEANUP_DENIED="stale-")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(self.release, self.current.resolve())
+        self.assertTrue(all(release.is_dir() for release in stale))
+        self.assertEqual(2, result.stderr.count("no se pudo borrar la release vieja"), result.stderr)
+        # La limpieza de imágenes sigue después del aviso.
+        self.assertTrue(any(c["command"] == "docker" and c["args"][:1] == ["images"] for c in self.commands()))
 
     def test_healthcheck_forwards_compose_options_to_both_services(self):
         options = ["--env-file", str(self.base / ".env"), "--env-file", "infra/release.env",

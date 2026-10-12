@@ -60,13 +60,21 @@ while IFS= read -r old; do
     keep_extra=$((keep_extra - 1))
     continue
   fi
-  # Las carpetas empaquetadas pueden ser de solo lectura (p. ej., temas).
-  # Habilitar escritura en directorios permite borrarlas sin elevar privilegios.
-  find "$old" -type d -exec chmod u+rwx {} +
-  rm -rf -- "$old"
+  # Los archivos de temas (y otros) pueden llegar como solo lectura desde el tar.
+  # Habilitar permisos u+rwx permite borrarlos sin fallar ante archivos protegidos.
+  # La release nueva ya está activa (trap - ERR): si una vieja no se puede borrar,
+  # se avisa y se reintenta en el próximo despliegue, sin dejar el job en rojo
+  # (LOS-109 / LOS-117). Pasa cuando infra/keycloak/themes de una release vieja
+  # es de otro dueño (p. ej. creada por Docker como root al montar el volumen):
+  # ni chmod ni rm pueden con ella sin sudo.
+  chmod -R u+rwx "$old" 2>/dev/null || true
+  if ! rm -rf -- "$old" 2>/dev/null; then
+    echo "Aviso: no se pudo borrar la release vieja $old (¿archivos de root?). Bórrala una vez con: sudo rm -rf $old" >&2
+  fi
 done < <(find "$base/releases" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
   | sort -rn | cut -d' ' -f2-)
 keep=$(cat infra/release.env "$previous/infra/release.env" 2>/dev/null || true)
-docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '/doggycredit-(api|web):' | while read -r image; do
+# Con pipefail, un grep sin coincidencias sería el código de salida del despliegue.
+{ docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '/doggycredit-(api|web):' || true; } | while read -r image; do
   grep -qF "$image" <<< "$keep" || docker rmi "$image" > /dev/null || true
 done

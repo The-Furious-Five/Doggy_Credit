@@ -1,6 +1,7 @@
 package com.doggycredit.integration.internal;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -14,6 +15,7 @@ import com.doggycredit.billing.PlanCatalog;
 import com.doggycredit.consent.Source;
 import com.doggycredit.integration.PlanLimitReachedException;
 import com.doggycredit.integration.TenantIntegrations;
+import com.doggycredit.tenancy.PlanIntegrations;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantRegistry;
@@ -25,7 +27,11 @@ import com.doggycredit.tenancy.TenantRegistry;
  * implementación (DEBT-004).
  */
 @Service
-class IntegrationService implements TenantIntegrations {
+class IntegrationService implements TenantIntegrations, PlanIntegrations {
+
+	/** A-12: quién desactivó la fila. Mientras siga así, una subida durante la gracia la recupera. */
+	static final String SYSTEM_DOWNGRADE = "SYSTEM_DOWNGRADE";
+	static final String SYSTEM_UPGRADE = "SYSTEM_UPGRADE";
 
 	enum Entry {
 		BURO, BANCO, WALLET, OPEN_BANKING, FACTURACION, GARANTIAS;
@@ -71,6 +77,49 @@ class IntegrationService implements TenantIntegrations {
 			}
 		}
 		return active;
+	}
+
+	/** El buró cuenta y es obligatorio: las que sobran son las últimas del catálogo. */
+	@Override
+	@Transactional(readOnly = true)
+	public List<String> exceeding(UUID tenantId, int maxIntegraciones) {
+		return activeSources(tenantId).stream().skip(Math.max(maxIntegraciones, 1)).map(Source::name).toList();
+	}
+
+	@Override
+	@Transactional
+	public List<String> suspendExceeding(UUID tenantId, int maxIntegraciones) {
+		List<String> exceeding = exceeding(tenantId, maxIntegraciones);
+		for (TenantIntegration row : integrations.findByTenantId(tenantId)) {
+			if (row.active() && exceeding.contains(row.source())) {
+				row.set(false, SYSTEM_DOWNGRADE);
+				integrations.save(row);
+				audit.record(tenantId, "INTEGRATION_DISABLED", "INTEGRATION", null);
+			}
+		}
+		return exceeding;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<String> suspended(UUID tenantId) {
+		return integrations.findByTenantId(tenantId).stream().filter(TenantIntegration::suspendedByDowngrade)
+			.map(TenantIntegration::source).sorted(Comparator.comparing(Source::valueOf)).toList();
+	}
+
+	@Override
+	@Transactional
+	public List<String> restoreSuspended(UUID tenantId, int maxIntegraciones) {
+		int free = maxIntegraciones - activeSources(tenantId).size();
+		List<String> restored = suspended(tenantId).stream().limit(Math.max(free, 0)).toList();
+		for (TenantIntegration row : integrations.findByTenantId(tenantId)) {
+			if (restored.contains(row.source())) {
+				row.set(true, SYSTEM_UPGRADE);
+				integrations.save(row);
+				audit.record(tenantId, "INTEGRATION_ENABLED", "INTEGRATION", null);
+			}
+		}
+		return restored;
 	}
 
 	@Transactional(readOnly = true)

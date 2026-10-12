@@ -37,11 +37,23 @@ Cada escenario falla también si la API respondió 5xx o 429 en algún momento.
   (analítica avanzada y webhooks) se habilitan en ≤ 1 min sin volver a iniciar
   sesión. Al terminar se restaura el plan Gratis, también si el escenario falla.
 
-Los dos esperan historias de otros: C-10 (backend de la bandeja) y A-11 (operador
-sembrado). Mientras tanto quedan en `test.fixme` (el CI los informa como
-omitidos). Cada historia los activa al fusionarse; ver
-[e2e-flujos-sprint3.md](../docs/runbooks/e2e-flujos-sprint3.md). Para correrlos
-antes en local: `E2E_DEPENDENCIAS=bandeja,cambioDePlan npx playwright test`.
+`plan-upgrade.spec.ts` ya corre siempre: A-11 sembró al operador
+(`operador.demo`). `manual-review.spec.ts` espera a C-10 (backend de la bandeja) y
+mientras tanto queda en `test.fixme` (el CI lo informa como omitido); ver
+[e2e-flujos-sprint3.md](../docs/runbooks/e2e-flujos-sprint3.md). Para correrlo
+antes en local: `E2E_DEPENDENCIAS=bandeja npx playwright test`.
+
+## MFA de los administradores (A-14)
+
+Los `TENANT_ADMIN` de la semilla deben configurar MFA en su primer inicio de
+sesión y dar el código en los siguientes. `login()` (`tests/support.ts`) e
+`identity_smoke.py` lo hacen solos: leen el secreto de la pantalla de Keycloak,
+calculan el TOTP y guardan el secreto en `e2e/.generated/totp.json` (fuera del
+repositorio) para los ingresos siguientes.
+
+Ese archivo vale mientras viva el volumen de Keycloak. Si Keycloak pide el
+código de un administrador que configuró su MFA por otra vía (a mano, con una
+app), las pruebas no pueden entrar: recrear el stack con `down -v`.
 
 ### Ejecutar en local
 

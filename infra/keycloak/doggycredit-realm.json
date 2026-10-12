@@ -349,6 +349,9 @@
           "temporary": false,
           "value": "${DC_SEED_ADMIN_PASSWORD}"
         }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
       ]
     },
     {
@@ -407,6 +410,32 @@
           "type": "password",
           "temporary": false,
           "value": "${DC_SEED_ADMIN_PASSWORD_2}"
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "operador.demo",
+      "enabled": true,
+      "email": "operador.demo@doggycredit.invalid",
+      "emailVerified": true,
+      "firstName": "Operación",
+      "lastName": "DoggyCredit",
+      "attributes": {
+        "tenant_id": [
+          "9c7e7c1a-0000-4000-8000-000000000002"
+        ]
+      },
+      "realmRoles": [
+        "PLATFORM_ADMIN"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "temporary": false,
+          "value": "${DC_SEED_PLATFORM_ADMIN_PASSWORD}"
         }
       ]
     },

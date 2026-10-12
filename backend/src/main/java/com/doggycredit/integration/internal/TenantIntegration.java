@@ -56,4 +56,9 @@ class TenantIntegration {
 		return active;
 	}
 
+	/** A-12: la apagó una bajada de plan y nadie la tocó después. */
+	boolean suspendedByDowngrade() {
+		return !active && IntegrationService.SYSTEM_DOWNGRADE.equals(updatedBy);
+	}
+
 }

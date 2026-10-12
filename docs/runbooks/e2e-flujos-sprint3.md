@@ -34,6 +34,12 @@ Implementar `RevisionManualApi` (ya se genera desde el contrato de E-10) de modo
 
 ## Lo que necesita A-11 para que pase `plan-upgrade.spec.ts`
 
+> **Hecho en A-11 (LOS-115):** el operador `operador.demo` está en la semilla y el
+> interruptor `cambioDePlan` en `true`. Para la demo en la VM falta lo que no viaja
+> en el repositorio: `DC_SEED_PLATFORM_ADMIN_PASSWORD` en el `.env` del VPS **antes**
+> de fusionar a `main` (Compose la exige y sin ella el despliegue no arranca), y
+> crear el usuario en el realm ya importado, que no se actualiza solo.
+
 El cambio de plan ya es efectivo en ≤ 1 min sin volver a iniciar sesión:
 
 - `PATCH /admin/tenants/{id}` (A-08) cambia el plan;
