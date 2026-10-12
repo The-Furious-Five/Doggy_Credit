@@ -42,7 +42,7 @@ class ProductController implements ProductosApi {
 		return ResponseEntity.ok(toDto(updated));
 	}
 
-	private static Producto toDto(Product product) {
+	static Producto toDto(Product product) {
 		return new Producto().id(product.id())
 			.tipo(Producto.TipoEnum.fromValue(product.productType()))
 			.moneda(Producto.MonedaEnum.fromValue(product.currency()))

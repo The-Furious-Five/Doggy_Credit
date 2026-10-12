@@ -27,13 +27,23 @@ public final class RoleGuard {
 
 	/** Exige el rol y devuelve el JWT autenticado para operaciones que necesitan sus claims. */
 	public static JwtAuthenticationToken requireJwt(String role) {
+		return requireAnyJwt(role);
+	}
+
+	/**
+	 * Exige al menos uno de los roles (ej. ANALYST o TENANT_ADMIN) y devuelve el JWT.
+	 * @throws ErrorResponseException 403 INSUFFICIENT_ROLE si no tiene ninguno.
+	 */
+	public static JwtAuthenticationToken requireAnyJwt(String... roles) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		java.util.Set<String> accepted = java.util.Arrays.stream(roles).map(role -> "ROLE_" + role)
+			.collect(java.util.stream.Collectors.toSet());
 		boolean granted = authentication != null && authentication.getAuthorities().stream()
 			.map(GrantedAuthority::getAuthority)
-			.anyMatch(("ROLE_" + role)::equals);
+			.anyMatch(accepted::contains);
 		if (!granted || !(authentication instanceof JwtAuthenticationToken jwt)) {
-			throw new ErrorResponseException(HttpStatus.FORBIDDEN,
-					ErrorCode.INSUFFICIENT_ROLE.toProblemDetail("La operación requiere el rol " + role + "."), null);
+			throw new ErrorResponseException(HttpStatus.FORBIDDEN, ErrorCode.INSUFFICIENT_ROLE.toProblemDetail(
+					"La operación requiere el rol " + String.join(" o ", roles) + "."), null);
 		}
 		return jwt;
 	}

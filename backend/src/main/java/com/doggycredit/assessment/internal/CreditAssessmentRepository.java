@@ -1,6 +1,7 @@
 package com.doggycredit.assessment.internal;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,5 +24,19 @@ interface CreditAssessmentRepository extends JpaRepository<CreditAssessment, UUI
 			  and a.createdAt >= :from
 			order by a.createdAt desc, a.id""")
 	Page<CreditAssessment> search(UUID tenantId, UUID applicantId, Instant from, Pageable pageable);
+
+	/**
+	 * C-10 (RF-DEC-03): casos de la bandeja, los que una persona tiene que resolver y nadie
+	 * resolvió todavía, del más antiguo al más reciente. Mismo esquema (assessment): sin
+	 * JOIN entre módulos.
+	 */
+	@Query("""
+			select a from CreditAssessment a
+			where a.tenantId = :tenantId
+			  and a.status in :statuses
+			  and not exists (select r.id from ManualReviewResolution r
+			                  where r.tenantId = a.tenantId and r.assessmentId = a.id)
+			order by a.createdAt asc, a.id""")
+	Page<CreditAssessment> findPendingReview(UUID tenantId, Collection<String> statuses, Pageable pageable);
 
 }
