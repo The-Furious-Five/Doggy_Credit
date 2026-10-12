@@ -84,12 +84,16 @@ def generate(seed, origin):
             if not set(user["roles"]) <= set(seed["roles"]):
                 raise ValueError("Rol desconocido")
             first_name, last_name = person_name(user["nombre_completo"])
-            users.append({"username": user["username"], "enabled": True,
-                          "email": user["email"], "emailVerified": True,
-                          "firstName": first_name, "lastName": last_name,
-                          "attributes": {"tenant_id": [tid]}, "realmRoles": user["roles"],
-                          "credentials": [{"type": "password", "temporary": False,
-                                           "value": "${" + user["password_env"] + "}"}]})
+            # A-14 (LOS-118): MFA obligatorio para administradores de tenant.
+            user_payload = {"username": user["username"], "enabled": True,
+                            "email": user["email"], "emailVerified": True,
+                            "firstName": first_name, "lastName": last_name,
+                            "attributes": {"tenant_id": [tid]}, "realmRoles": user["roles"],
+                            "credentials": [{"type": "password", "temporary": False,
+                                             "value": "${" + user["password_env"] + "}"}]}
+            if "TENANT_ADMIN" in user["roles"]:
+                user_payload["requiredActions"] = ["CONFIGURE_TOTP"]
+            users.append(user_payload)
         for client in tenant["clientes_m2m"]:
             clients.append({"clientId": client["client_id"], "protocol": "openid-connect",
                             "publicClient": False, "standardFlowEnabled": False,

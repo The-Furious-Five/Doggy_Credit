@@ -48,6 +48,7 @@ class KeycloakApiKeyIntegrationTests {
 		.withEnv("DC_SEED_ADMIN_PASSWORD", "x")
 		.withEnv("DC_SEED_ANALYST_PASSWORD", "x")
 		.withEnv("DC_SEED_ADMIN_PASSWORD_2", "x")
+		.withEnv("DC_SEED_PLATFORM_ADMIN_PASSWORD", "x")
 		.withEnv("DC_SEED_M2M_SECRET", "x")
 		.withEnv("DC_SEED_M2M_SECRET_2", "x")
 		.withCopyFileToContainer(MountableFile.forHostPath(repoPath("infra/keycloak/doggycredit-realm.json")),
@@ -124,7 +125,8 @@ class KeycloakApiKeyIntegrationTests {
 		Map<String, String> tenants = Map.of(
 				"admin.progreso", "9c7e7c1a-0000-4000-8000-000000000001",
 				"analista.progreso", "9c7e7c1a-0000-4000-8000-000000000001",
-				"admin.vecina", "9c7e7c1a-0000-4000-8000-000000000002");
+				"admin.vecina", "9c7e7c1a-0000-4000-8000-000000000002",
+				"operador.demo", "9c7e7c1a-0000-4000-8000-000000000002");
 		assertThat(humans).extracting(user -> user.path("username").asString())
 			.containsExactlyInAnyOrderElementsOf(tenants.keySet());
 		for (JsonNode user : humans) {
@@ -145,8 +147,12 @@ class KeycloakApiKeyIntegrationTests {
 			.containsExactlyInAnyOrder("admin.progreso@doggycredit.invalid", "analista.progreso@doggycredit.invalid");
 		assertThat(progresoMembers).extracting(KeycloakClients.TeamMember::rol)
 			.contains("TENANT_ADMIN", "ANALYST");
-		assertThat(keycloak.listTeamMembers(fintech)).extracting(KeycloakClients.TeamMember::email)
-			.containsExactly("admin.vecina@doggycredit.invalid");
+		// A-11: el operador sembrado vive en este tenant y figura con su rol.
+		var fintechMembers = keycloak.listTeamMembers(fintech);
+		assertThat(fintechMembers).extracting(KeycloakClients.TeamMember::email)
+			.containsExactlyInAnyOrder("admin.vecina@doggycredit.invalid", "operador.demo@doggycredit.invalid");
+		assertThat(fintechMembers).extracting(KeycloakClients.TeamMember::rol)
+			.containsExactlyInAnyOrder("TENANT_ADMIN", "PLATFORM_ADMIN");
 	}
 
 	private static Token requestToken(String clientId, String secret) {

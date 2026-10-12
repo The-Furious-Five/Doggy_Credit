@@ -61,6 +61,16 @@ tenants:
         nombre_completo: "Paola Fernández (demo)"
         roles: [TENANT_ADMIN]
         password_env: DC_SEED_ADMIN_PASSWORD_2
+
+      # A-11 (LOS-115): operador de la plataforma que cambia planes (pago simulado en
+      # el MVP). Vive en un tenant porque la API exige tenant_id también al operador;
+      # en este, para no compartir el límite por minuto del tenant Gratis que cambia de plan.
+      - key: operador
+        username: operador.demo
+        email: operador.demo@doggycredit.invalid
+        nombre_completo: "Operación DoggyCredit (demo)"
+        roles: [PLATFORM_ADMIN]
+        password_env: DC_SEED_PLATFORM_ADMIN_PASSWORD
     clientes_m2m:
       - key: integrador
         client_id: fintech-vecina-m2m

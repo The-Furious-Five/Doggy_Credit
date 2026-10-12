@@ -5,11 +5,14 @@ import argparse
 import base64
 import hashlib
 import http.cookiejar
+import hmac
 import json
 import os
 import secrets
 import ssl
+import struct
 import sys
+import time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError
@@ -20,15 +23,47 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import yaml
 
 class LoginForm(HTMLParser):
-    action = None
+    """Acción del formulario de Keycloak con ese id y los campos ocultos de la página."""
+    def __init__(self, form_id='kc-form-login'):
+        super().__init__()
+        self.form_id, self.action, self.hidden = form_id, None, {}
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == 'form' and attrs.get('id') == 'kc-form-login':
+        if tag == 'form' and attrs.get('id') == self.form_id:
             self.action = attrs['action']
+        if tag == 'input' and attrs.get('type') == 'hidden' and attrs.get('name'):
+            self.hidden[attrs['name']] = attrs.get('value', '')
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+# A-14 (LOS-118): los TENANT_ADMIN configuran MFA en su primer inicio de sesión. El
+# secreto queda fuera del repositorio, en el mismo archivo que usa Playwright
+# (e2e/tests/support.ts), para poder volver a entrar mientras viva el volumen de Keycloak.
+TOTP_STORE = Path(__file__).resolve().parent / '.generated' / 'totp.json'
+
+def totp(secret, counter):
+    # Keycloak firma con los bytes del secreto tal cual; el Base32 es solo lo que muestra al usuario.
+    digest = hmac.new(secret.encode(), struct.pack('>Q', counter), hashlib.sha1).digest()
+    offset = digest[-1] & 0x0f
+    return f'{(struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7fffffff) % 1000000:06d}'
+
+def totp_store():
+    return json.loads(TOTP_STORE.read_text()) if TOTP_STORE.is_file() else {}
+
+def next_totp(key, secret):
+    """Keycloak no acepta dos veces el mismo código: se usa el del paso siguiente al
+    último usado (su ventana admite uno de adelanto) y, si aún no vale, se espera."""
+    store = totp_store()
+    counter = max(int(time.time() // 30), store.get(key, {}).get('counter', 0) + 1)
+    wait = (counter - 1) * 30 - time.time()
+    if wait > 0:
+        time.sleep(wait + 1)
+    store[key] = {'secret': secret, 'counter': counter}
+    TOTP_STORE.parent.mkdir(exist_ok=True)
+    TOTP_STORE.write_text(json.dumps(store, indent=2))
+    return totp(secret, counter)
 
 def claims(token):
     part = token.split('.')[1]
@@ -89,9 +124,33 @@ def main():
         assert status == 200, f'Formulario PKCE HTTP {status}'
         form = LoginForm(); form.feed(body.decode())
         assert form.action, 'No apareció el formulario Keycloak'
-        status, headers, _ = request(form.action, {'username': user['username'], 'password': os.environ[user['password_env']]})
+        status, headers, body = request(form.action, {'username': user['username'], 'password': os.environ[user['password_env']]})
+        mfa = origin + '|' + user['username']
+        if status == 200:
+            # MFA ya configurado en este Keycloak: tras la contraseña pide el código.
+            otp_form = LoginForm('kc-otp-login-form'); otp_form.feed(body.decode())
+            assert otp_form.action, 'Login HTTP 200 sin formulario de código MFA'
+            saved = totp_store().get(mfa)
+            assert saved, (f'Keycloak pide el código MFA de {user["username"]} y {TOTP_STORE} no tiene su secreto: '
+                           'recrea el volumen de Keycloak (docker compose down -v)')
+            status, headers, _ = request(otp_form.action, {'otp': next_totp(mfa, saved['secret'])})
         assert status in (302, 303), f'Login HTTP {status}'
-        redirect = urlsplit(headers['Location'])
+        location = headers['Location']
+        if 'required-action' in location:
+            # Primer inicio de sesión de un TENANT_ADMIN sembrado: Keycloak obliga a configurar MFA.
+            assert 'CONFIGURE_TOTP' in location, f'Acción requerida inesperada: {location}'
+            status, _, body = request(location)
+            assert status == 200, f'Pantalla de configuración MFA HTTP {status}'
+            setup = LoginForm('kc-totp-settings-form'); setup.feed(body.decode())
+            secret = setup.hidden.get('totpSecret')
+            assert setup.action and secret, 'No apareció el formulario de configuración MFA'
+            status, headers, _ = request(setup.action, {'totp': next_totp(mfa, secret), 'totpSecret': secret,
+                                                        'userLabel': 'e2e'})
+            assert status in (302, 303), f'Registro MFA HTTP {status}'
+            location = headers['Location']
+            print('OK: ' + user['username'] + ' tuvo que configurar MFA para entrar')
+
+        redirect = urlsplit(location)
         assert f'{redirect.scheme}://{redirect.netloc}{redirect.path}' == origin + '/callback'
         params = parse_qs(redirect.query)
         assert params['state'] == [state]
