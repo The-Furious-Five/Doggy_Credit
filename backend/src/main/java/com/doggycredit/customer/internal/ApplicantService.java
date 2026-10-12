@@ -9,6 +9,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.doggycredit.audit.AccessSubject;
 import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.consent.ApplicantDocuments;
 import com.doggycredit.customer.ApplicantAlreadyExistsException;
@@ -71,7 +72,7 @@ class ApplicantService implements ApplicantRegistry, ApplicantDocuments {
 			}
 			throw exception;
 		}
-		audit.record(tenantId, "APPLICANT_CREATED", "APPLICANT", applicant.id());
+		audit.record(tenantId, "APPLICANT_CREATED", "APPLICANT", applicant.id(), AccessSubject.applicant(applicant.id()));
 		return toProfile(tenantId, applicant);
 	}
 
@@ -110,6 +111,14 @@ class ApplicantService implements ApplicantRegistry, ApplicantDocuments {
 	public Optional<String> documentOf(UUID tenantId, UUID applicantId) {
 		return applicants.findByIdAndTenantId(applicantId, tenantId)
 			.map(applicant -> encryption.decrypt(tenantId, applicant.documentCiphertext()));
+	}
+
+	/** C-11: consent sabe de qué titular es un consentimiento a través de este puerto. */
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<UUID> applicantIdOf(UUID tenantId, String documento) {
+		String reference = documentReference.create(tenantId, DocumentNumber.normalize(documento));
+		return applicants.findByTenantIdAndDocumentRef(tenantId, reference).map(applicant -> applicant.id());
 	}
 
 	private static boolean violates(DataIntegrityViolationException exception, String constraint) {

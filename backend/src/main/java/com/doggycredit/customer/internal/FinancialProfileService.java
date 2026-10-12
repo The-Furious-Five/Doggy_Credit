@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.doggycredit.audit.AccessSubject;
 import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.consent.Source;
 import com.doggycredit.customer.ApplicantNotFoundException;
@@ -50,7 +51,8 @@ class FinancialProfileService implements FinancialProfiles {
 			.writeValueAsString(Map.of("perfil", snapshot.canonical(), "resumen", view));
 		profiles.save(new FinancialProfileSnapshot(view.id(), tenantId, applicantId, view.hash(),
 				encryption.encrypt(tenantId, payload), view.createdAt()));
-		audit.record(tenantId, "FINANCIAL_PROFILE_CREATED", "FINANCIAL_PROFILE", view.id());
+		audit.record(tenantId, "FINANCIAL_PROFILE_CREATED", "FINANCIAL_PROFILE", view.id(),
+				AccessSubject.applicant(applicantId));
 		return view;
 	}
 
