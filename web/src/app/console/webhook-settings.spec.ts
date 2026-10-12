@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { BASE_PATH } from '../api/variables';
 import { EventoWebhook } from '../api/model/eventoWebhook';
+import { HANDLED_PROBLEMS } from '../http/api-error.interceptor';
 import { WebhookSettings } from './webhook-settings';
 
 const event = EventoWebhook.CreditAssessmentCompletedV1;
@@ -53,6 +54,8 @@ describe('Desarrolladores › Webhooks', () => {
     fixture.detectChanges();
     expect(page.textContent).toContain('Webhooks disponibles con Pro');
     expect(page.querySelector('form')).toBeNull();
+    // La tarjeta ya explica el plan: el interceptor no repite FEATURE_NOT_IN_PLAN en un toast (E-09).
+    expect(load.request.context.get(HANDLED_PROBLEMS)).toEqual(['FEATURE_NOT_IN_PLAN']);
   });
 
   it('un error de permisos distinto no se confunde con una restricción de plan', () => {

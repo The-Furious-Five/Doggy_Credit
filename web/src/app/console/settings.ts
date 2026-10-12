@@ -1,7 +1,7 @@
-import { Component, inject, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, of } from 'rxjs';
 import {
   DsAlert,
@@ -9,32 +9,41 @@ import {
   DsButton,
   DsCard,
   DsField,
-  DsIcon,
   DsInput,
+  DsLink,
   DsProgress,
+  DsSpinner,
   DsSwitch,
   DsTab,
   DsTable,
   DsTabs,
   DsToastService,
 } from '../design-system';
-import { plans } from '../data';
-import { TenantService } from '../api';
+import { TenantActualPlanEnum, TenantService } from '../api';
 import { AuditLog } from './audit-log';
+import { TenantUsageService } from './tenant-usage.service';
+
+const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
+  [TenantActualPlanEnum.Free]: 'Gratis',
+  [TenantActualPlanEnum.Pro]: 'Pro',
+  [TenantActualPlanEnum.Enterprise]: 'Enterprise',
+};
 
 @Component({
   selector: 'dc-settings',
   imports: [
     FormsModule,
+    RouterLink,
     AuditLog,
     DsAlert,
     DsBadge,
     DsButton,
     DsCard,
     DsField,
-    DsIcon,
     DsInput,
+    DsLink,
     DsProgress,
+    DsSpinner,
     DsSwitch,
     DsTab,
     DsTable,
@@ -58,11 +67,11 @@ import { AuditLog } from './audit-log';
             </ds-field>
             <dl class="ds-stack-sm">
               <dt class="ds-caption">País y moneda de operación</dt>
-              <dd>{{ tenant()?.pais }} · {{ tenant()?.moneda }}</dd>
+              <dd>{{ tenant() ? tenant()!.pais + ' · ' + tenant()!.moneda : tenantStatus() }}</dd>
             </dl>
             <dl class="ds-stack-sm">
               <dt class="ds-caption">Identificador de institución (tenant)</dt>
-              <dd class="ds-mono">{{ tenant()?.id ?? 'Cargando…' }}</dd>
+              <dd class="ds-mono">{{ tenant()?.id ?? tenantStatus() }}</dd>
             </dl>
             <div class="ds-actions"><button dsButton type="submit" [busy]="savingOrganization">Guardar cambios</button></div>
           </form>
@@ -100,51 +109,50 @@ import { AuditLog } from './audit-log';
       </ds-tab>
 
       <ds-tab value="plan" label="Plan">
-        @if (usage(); as quota) {
-          <ds-card>
-            <div class="ds-stack-sm">
-              <h2>Uso de evaluaciones este mes</h2>
-              @if (quota.limiteMensual > 0) {
-                <p>{{ quota.evaluacionesMes }} de {{ quota.limiteMensual }} evaluaciones utilizadas</p>
-                <ds-progress label="Evaluaciones mensuales" [value]="quota.evaluacionesMes" [max]="quota.limiteMensual" />
-              } @else {
-                <p>{{ quota.evaluacionesMes }} evaluaciones utilizadas. El plan actual no tiene límite mensual.</p>
-              }
-            </div>
-          </ds-card>
-        } @else if (usageUnavailable()) {
-          <ds-alert heading="No se pudo consultar el uso" tone="warning">
-            Comprueba la conexión e inténtalo de nuevo más tarde.
-          </ds-alert>
-        }
-        <div class="ds-grid">
-          @for (plan of plans; track plan.id) {
-            <ds-card>
-              <div class="ds-stack">
-                <div class="ds-row ds-between">
-                  <h2>{{ plan.name }}</h2>
-                  @if (tenant()?.plan === plan.id.toUpperCase()) {
-                    <ds-badge tone="success">Plan actual</ds-badge>
-                  }
-                </div>
-                <p><strong>{{ plan.price }}</strong> <span class="ds-caption">{{ plan.period }}</span></p>
-                <ul class="list">
-                  @for (feature of plan.features; track feature) {
-                    <li>{{ feature }}<ds-icon name="check" /></li>
-                  }
-                </ul>
-                @if (plan.id === 'pro' && tenant()?.plan !== 'PRO') {
-                  <button dsButton (click)="toast.show('Te contactaremos para activar Pro.')">Mejorar a Pro</button>
-                }
+        <ds-card>
+          @if (tenant(); as current) {
+            <div class="ds-stack">
+              <div class="ds-row ds-between">
+                <h2>Plan {{ planNames[current.plan] }}</h2>
+                <ds-badge tone="success">Plan actual</ds-badge>
               </div>
-            </ds-card>
+              @if (usage(); as quota) {
+                @if (quota.limiteMensual > 0) {
+                  <p>{{ quota.evaluacionesMes }} de {{ quota.limiteMensual }} evaluaciones utilizadas este mes</p>
+                  <ds-progress label="Evaluaciones mensuales" [value]="quota.evaluacionesMes" [max]="quota.limiteMensual" />
+                } @else {
+                  <p>{{ quota.evaluacionesMes }} evaluaciones utilizadas este mes. Tu plan no tiene límite mensual.</p>
+                }
+              } @else if (usageUnavailable()) {
+                <ds-alert heading="No se pudo consultar el uso" tone="warning">
+                  Comprueba la conexión e inténtalo de nuevo más tarde.
+                </ds-alert>
+              } @else {
+                <ds-spinner label="Cargando uso mensual…" />
+              }
+              <p class="ds-muted">El equipo de DoggyCredit activa los cambios de plan de tu institución.</p>
+              <div class="ds-actions">
+                <a dsLink appearance="secondary" routerLink="/" fragment="planes">Comparar planes</a>
+              </div>
+            </div>
+          } @else if (tenantUnavailable()) {
+            <ds-alert heading="No se pudo consultar el plan" tone="warning">
+              Comprueba la conexión e inténtalo de nuevo más tarde.
+            </ds-alert>
+          } @else {
+            <ds-spinner label="Cargando plan…" />
           }
-        </div>
+        </ds-card>
       </ds-tab>
 
       <ds-tab value="seguridad" label="Seguridad">
         <ds-card>
           <div class="ds-stack">
+            @if (preferencesUnavailable()) {
+              <ds-alert heading="No se pudo consultar la preferencia" tone="warning">
+                Se muestra el valor por defecto. Recarga la página antes de cambiarla.
+              </ds-alert>
+            }
             <form class="ds-stack" (ngSubmit)="saveSecurityPreferences()">
               <ds-switch [ngModel]="maskData()" (ngModelChange)="maskData.set($event)" name="maskData">
                 Ocultar documentos y montos a roles sin permiso
@@ -164,29 +172,44 @@ import { AuditLog } from './audit-log';
   `,
 })
 export class Settings {
-  readonly toast = inject(DsToastService);
+  private readonly toast = inject(DsToastService);
   private readonly fragment = toSignal(inject(ActivatedRoute).fragment);
   readonly tab = linkedSignal(() => this.fragment() ?? 'organizacion');
 
   private readonly tenantService = inject(TenantService);
-  readonly usageUnavailable = signal(false);
-  readonly usage = toSignal(this.tenantService.obtenerUsoTenant().pipe(catchError(() => {
-    this.usageUnavailable.set(true);
+  private readonly usageService = inject(TenantUsageService);
+  readonly usage = this.usageService.usage;
+  readonly usageUnavailable = computed(() => this.usage() === null);
+  readonly tenantUnavailable = signal(false);
+  readonly tenant = toSignal(this.tenantService.obtenerTenantActual().pipe(catchError(() => {
+    this.tenantUnavailable.set(true);
     return of(null);
-  })), { initialValue: null });
-  readonly tenant = toSignal(this.tenantService.obtenerTenantActual());
+  })));
   readonly teamError = signal(false);
   readonly team = toSignal(this.tenantService.listarEquipo().pipe(catchError(() => {
     this.teamError.set(true);
     return of([]);
   })), { initialValue: [] });
-  readonly preferences = toSignal(this.tenantService.obtenerPreferenciasTenant());
+  readonly preferencesUnavailable = signal(false);
+  readonly preferences = toSignal(this.tenantService.obtenerPreferenciasTenant().pipe(catchError(() => {
+    this.preferencesUnavailable.set(true);
+    return of(null);
+  })));
   readonly maskData = linkedSignal(() => this.preferences()?.enmascararDatos ?? true);
 
-  readonly plans = plans;
+  readonly planNames = PLAN_NAMES;
   readonly org = linkedSignal(() => this.tenant()?.nombre ?? '');
   savingOrganization = false;
   savingPreferences = false;
+
+  constructor() {
+    // Si la consola ya lo había consultado, la pestaña Plan muestra el uso al día.
+    if (this.usage() !== undefined) this.usageService.refresh();
+  }
+
+  tenantStatus(): string {
+    return this.tenantUnavailable() ? 'No disponible' : 'Cargando…';
+  }
 
   async saveOrganization(): Promise<void> {
     this.savingOrganization = true;

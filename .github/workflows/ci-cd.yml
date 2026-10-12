@@ -24,11 +24,15 @@ name: CI/CD
 #                       Chromium con Playwright (E-06): alta, consentimiento,
 #                       evaluación, perfil, revocación y auditoría, más los
 #                       bloqueos del plan Gratis frente al Pro (ver e2e/README.md).
+#                       Antes pasa el smoke test de release (E-13) contra ese
+#                       mismo Compose, el que después verifica producción.
 #
 # Despliegue (CD): solo en push a main o ejecución manual, y solo si las 6
 # revisiones pasaron. Las imágenes se compilan aquí y se publican en GHCR con
 # el SHA del commit; el VPS no compila nada: descarga, arranca, valida salud y,
-# si falla, vuelve a la release anterior. Ver docs/runbooks/despliegue-vps.md.
+# si falla, vuelve a la release anterior. Al final, el smoke test comprueba
+# desde Internet que /release.json es este commit y que la demo responde.
+# Ver docs/runbooks/despliegue-vps.md y docs/runbooks/release-sprint.md.
 
 on:
   push:
@@ -256,6 +260,9 @@ jobs:
           python scripts/generate_realm.py
           docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml up -d --build --wait --wait-timeout 300
 
+      - name: Smoke test de release contra Compose (el mismo que corre en producción)
+        run: python scripts/smoke_release.py https://localhost --release local --insecure
+
       - name: Recorrer el flujo completo (Gratis y Pro)
         working-directory: e2e
         run: |
@@ -343,6 +350,7 @@ jobs:
           context: .
           file: web/Dockerfile
           push: true
+          build-args: DC_RELEASE=${{ github.sha }}
           tags: ${{ steps.release.outputs.repo }}/doggycredit-web:${{ github.sha }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
@@ -378,8 +386,8 @@ jobs:
           printf '%s' "$GH_TOKEN" | ssh -o BatchMode=yes "$TARGET" \
             "trap 'docker logout ghcr.io >/dev/null' EXIT; docker login ghcr.io -u $GITHUB_ACTOR --password-stdin && cd $dir && bash scripts/deploy.sh"
 
-      - name: Comprobar que el sitio responde desde Internet
-        run: curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 3 "${{ steps.release.outputs.origin }}/actuator/health"
+      - name: Smoke test desde Internet (versión en línea, SPA, identidad y API)
+        run: python scripts/smoke_release.py "${{ steps.release.outputs.origin }}" --release "$GITHUB_SHA"
 
       - name: Borrar la clave SSH del runner
         if: always()

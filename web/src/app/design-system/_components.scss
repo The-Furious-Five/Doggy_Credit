@@ -407,6 +407,9 @@ textarea.ds-control {
 
 // Tabla
 .ds-table-scroll {
+  // Contiene a los descendientes absolutos (p. ej. un encabezado .ds-sr-only):
+  // sin esto escapan del desplazamiento y ensanchan toda la página en móvil.
+  position: relative;
   overflow-x: auto;
   border: var(--ds-hairline) solid var(--ds-border);
   border-radius: var(--ds-radius-lg);
@@ -1070,6 +1073,9 @@ textarea.ds-control {
 // Pestañas
 .ds-tabs {
   display: grid;
+  // Una columna que no crece con el contenido: una tabla ancha se desplaza dentro de
+  // su .ds-table-scroll en vez de ensanchar el panel y la página.
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--ds-space-5);
   min-width: 0;
 }

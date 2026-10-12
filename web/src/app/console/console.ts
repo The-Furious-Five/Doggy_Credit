@@ -6,7 +6,6 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { canAccessAppRoute } from '../auth/permissions';
 import { AuthSessionService } from '../auth/session.service';
 import {
-  DsBadge,
   DsBrand,
   DsIcon,
   DsIconName,
@@ -17,6 +16,8 @@ import {
   DsThemeToggle,
   DsToastService,
 } from '../design-system';
+import { QuotaNotice } from './quota-notice';
+import { TenantUsageService } from './tenant-usage.service';
 
 interface NavigationGroup {
   readonly title: string;
@@ -29,13 +30,13 @@ interface NavigationGroup {
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
-    DsBadge,
     DsBrand,
     DsIcon,
     DsLink,
     DsMenu,
     DsThemeToggle,
     DsProgress,
+    QuotaNotice,
   ],
   styleUrl: './console.scss',
   template: `
@@ -107,15 +108,12 @@ interface NavigationGroup {
 
       <div class="console-body">
         <header class="console-top">
-          <div class="ds-row">
-            <span class="console-top__tenant"
-              ><ds-icon name="building" />{{
-                tenant()?.nombre ||
-                  (tenant() === null ? 'Institución no disponible' : 'Cargando institución…')
-              }}</span
-            >
-            <ds-badge tone="warning">Datos simulados</ds-badge>
-          </div>
+          <span class="console-top__tenant"
+            ><ds-icon name="building" />{{
+              tenant()?.nombre ||
+                (tenant() === null ? 'Institución no disponible' : 'Cargando institución…')
+            }}</span
+          >
           <div class="ds-row">
             <ds-theme-toggle />
             <span class="ds-caption">{{ user().name || 'Cargando usuario…' }}</span>
@@ -129,6 +127,7 @@ interface NavigationGroup {
           </div>
         </header>
         <main id="contenido" class="console-main" tabindex="-1">
+          <dc-quota-notice />
           <router-outlet />
         </main>
       </div>
@@ -144,7 +143,7 @@ export class Console {
   readonly tenant = toSignal(
     this.tenantService.obtenerTenantActual().pipe(catchError(() => of(null))),
   );
-  readonly usage = toSignal(this.tenantService.obtenerUsoTenant().pipe(catchError(() => of(null))));
+  readonly usage = inject(TenantUsageService).usage;
   readonly user = this.auth.session;
   readonly loggingOut = signal(false);
   readonly path = () => this.router.url.split('#')[0];
@@ -156,6 +155,7 @@ export class Console {
         { path: '/app/resumen', label: 'Resumen', icon: 'grid' },
         { path: '/app/clientes', label: 'Clientes', icon: 'users' },
         { path: '/app/evaluaciones/nueva', label: 'Nueva evaluación', icon: 'plus' },
+        { path: '/app/revision', label: 'Revisión manual', icon: 'tray' },
       ],
     },
     {

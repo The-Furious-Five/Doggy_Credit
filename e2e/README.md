@@ -16,7 +16,7 @@ Playwright recorre la consola en Chromium contra Caddy + SPA + API + Keycloak
 
 - `credit-flow.spec.ts`, para el tenant FREE y el PRO de `seed/tenants.yaml`:
   login → `/app/evaluaciones/nueva` (alta, consentimiento, fuentes, evaluación)
-  → `/app/clientes/:id` (Perfil 360, score, recomendaciones, fuentes) →
+  → `/app/clientes/:id` (Perfil 360, score, fuentes) →
   revocar el consentimiento → `/app/configuracion#seguridad` (auditoría). En
   PRO además conecta banco y billetera y verifica que el perfil los consolida.
 - `plan-gates.spec.ts`: el tenant FREE ve bloqueadas la analítica avanzada,
@@ -24,6 +24,24 @@ Playwright recorre la consola en Chromium contra Caddy + SPA + API + Keycloak
   (`FEATURE_NOT_IN_PLAN`); el PRO las tiene disponibles.
 
 Cada escenario falla también si la API respondió 5xx o 429 en algún momento.
+
+## Flujos del Sprint 3 (E-12)
+
+- `manual-review.spec.ts` (RF-DEC-03): el analista evalúa a un titular moroso, que
+  queda en revisión manual. Desde la bandeja comprueba que no se puede enviar sin
+  justificación, resuelve con override justificado y producto, y el caso sale de
+  la bandeja. Después el admin encuentra el override en la auditoría por su
+  `X-Correlation-Id`.
+- `plan-upgrade.spec.ts` (RF-PLN-04): el operador (`PLATFORM_ADMIN`) pasa el
+  tenant Gratis a Pro. En la sesión ya abierta del admin, las funciones Pro
+  (analítica avanzada y webhooks) se habilitan en ≤ 1 min sin volver a iniciar
+  sesión. Al terminar se restaura el plan Gratis, también si el escenario falla.
+
+Los dos esperan historias de otros: C-10 (backend de la bandeja) y A-11 (operador
+sembrado). Mientras tanto quedan en `test.fixme` (el CI los informa como
+omitidos). Cada historia los activa al fusionarse; ver
+[e2e-flujos-sprint3.md](../docs/runbooks/e2e-flujos-sprint3.md). Para correrlos
+antes en local: `E2E_DEPENDENCIAS=bandeja,cambioDePlan npx playwright test`.
 
 ### Ejecutar en local
 

@@ -12,6 +12,7 @@ api/evaluaciones.service.ts
 api/integraciones.service.ts
 api/politicas.service.ts
 api/productos.service.ts
+api/revisionManual.service.ts
 api/solicitantes.service.ts
 api/tenant.service.ts
 api/webhooks.service.ts
@@ -24,6 +25,7 @@ model/analyticsNecesidad.ts
 model/analyticsPro.ts
 model/analyticsProducto.ts
 model/analyticsResumen.ts
+model/casoRevision.ts
 model/claveApi.ts
 model/claveApiCreada.ts
 model/claveApiNueva.ts
@@ -41,6 +43,7 @@ model/miembroEquipo.ts
 model/models.ts
 model/organizacionTenantPatch.ts
 model/paginaAuditoria.ts
+model/paginaCasosRevision.ts
 model/paginaEvaluaciones.ts
 model/paginaSolicitantes.ts
 model/perfilFinanciero360.ts
@@ -53,6 +56,8 @@ model/producto.ts
 model/productoCambios.ts
 model/recomendacion.ts
 model/registroAuditoria.ts
+model/resolucion.ts
+model/resolucionNueva.ts
 model/segmento.ts
 model/solicitante.ts
 model/solicitanteDetalle.ts

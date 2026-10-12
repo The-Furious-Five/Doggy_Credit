@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +10,7 @@ import {
   DsAlert, DsBadge, DsButton, DsCard, DsDialog, DsEmptyState, DsField, DsInput,
   DsOption, DsSelect, DsSkeleton, DsToastService,
 } from '../design-system';
+import { HANDLED_PROBLEMS } from '../http/api-error.interceptor';
 
 type State = { status: 'loading' | 'error' | 'restricted' } | { status: 'ready'; config: WebhookConfiguracion };
 
@@ -110,7 +111,9 @@ export class WebhookSettings implements OnInit {
 
   load(): void {
     this.state.set({ status: 'loading' });
-    this.api.obtenerWebhooks().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    // El plan sin Webhooks se explica en la tarjeta; no hace falta además un toast de error.
+    const context = new HttpContext().set(HANDLED_PROBLEMS, ['FEATURE_NOT_IN_PLAN']);
+    this.api.obtenerWebhooks('body', false, { context }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (config) => this.loaded(config),
       error: (error: HttpErrorResponse) => this.state.set({ status: this.restricted(error) ? 'restricted' : 'error' }),
     });

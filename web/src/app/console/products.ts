@@ -4,7 +4,6 @@ import { RouterLink } from '@angular/router';
 import { Producto, ProductoTipoEnum, ProductosService } from '../api';
 import {
   DsAlert,
-  DsBadge,
   DsButton,
   DsCard,
   DsEmptyState,
@@ -15,22 +14,23 @@ import {
   DsSwitch,
   DsToastService,
 } from '../design-system';
+import { productNames } from './product-format';
 import { money } from './client-format';
 
 /** Presentación de cada tipo de producto. Los datos (rangos, estado) vienen de la API. */
 const PRESENTATION: Record<ProductoTipoEnum, { name: string; icon: DsIconName; summary: string }> = {
   [ProductoTipoEnum.Microcredito]: {
-    name: 'Microcrédito',
+    name: productNames[ProductoTipoEnum.Microcredito],
     icon: 'coin',
     summary: 'Montos pequeños y aprobación ágil para personas y emprendedores.',
   },
   [ProductoTipoEnum.Verde]: {
-    name: 'Crédito ecológico',
+    name: productNames[ProductoTipoEnum.Verde],
     icon: 'leaf',
     summary: 'Financia paneles solares, eficiencia energética y movilidad limpia.',
   },
   [ProductoTipoEnum.Pyme]: {
-    name: 'Crédito PYME',
+    name: productNames[ProductoTipoEnum.Pyme],
     icon: 'store',
     summary: 'Capital de trabajo e inversión para pequeñas y medianas empresas.',
   },
@@ -40,7 +40,7 @@ type State = 'loading' | 'ready' | 'forbidden' | 'error';
 
 @Component({
   selector: 'dc-products',
-  imports: [RouterLink, DsAlert, DsBadge, DsButton, DsCard, DsEmptyState, DsIcon, DsLink, DsSkeleton, DsSwitch],
+  imports: [RouterLink, DsAlert, DsButton, DsCard, DsEmptyState, DsIcon, DsLink, DsSkeleton, DsSwitch],
   styleUrl: './page.scss',
   template: `
     <header class="page-header">
@@ -48,7 +48,6 @@ type State = 'loading' | 'ready' | 'forbidden' | 'error';
         <h1>Productos</h1>
         <p class="ds-muted">Líneas de crédito que DoggyCredit puede recomendar a tus clientes.</p>
       </div>
-      <ds-badge tone="info">Productos propios en plan Pro</ds-badge>
     </header>
 
     @switch (state()) {
@@ -88,7 +87,7 @@ type State = 'loading' | 'ready' | 'forbidden' | 'error';
                       [checked]="product.activo"
                       [disabled]="saving() === product.id"
                       (checkedChange)="setActive(product, $event)"
-                      >Activo</ds-switch
+                      >Activo<span class="ds-sr-only">: {{ presentation(product).name }}</span></ds-switch
                     >
                   </div>
                   <div class="ds-stack-sm">

@@ -97,6 +97,15 @@ describe('Perfil del cliente (B-09)', () => {
     consents.listarConsentimientos.mockReturnValue(of([consent(ConsentimientoEstadoEnum.Activo)]));
   });
 
+  it('solo ofrece pestañas con datos de la API (sin recomendaciones vacías de relleno)', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    const f = await render();
+    const tabs = [...(f.nativeElement as HTMLElement).querySelectorAll('[role="tab"]')].map((tab) => tab.textContent?.trim());
+    // C-06 (LOS-86): Recomendaciones ya sale de la API (la evaluación más reciente), no es relleno.
+    expect(tabs).toEqual(['Resumen', 'Score', 'Recomendaciones', 'Fuentes']);
+    expect(text(f)).not.toMatch(/aparecerán aquí|próximamente/i);
+  });
+
   it('muestra el resumen y el linaje por fuente del Perfil 360', async () => {
     applicants.obtenerSolicitante.mockReturnValue(of(detail()));
     const f = await render();

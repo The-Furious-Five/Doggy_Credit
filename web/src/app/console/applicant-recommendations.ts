@@ -26,7 +26,7 @@ import { RecommendationList } from './recommendation-list';
     } @else {
       <ds-empty-state
         heading="Sin recomendaciones"
-        description="Las recomendaciones de productos aparecerán aquí después de evaluar al cliente."
+        description="Este cliente todavía no tiene evaluaciones. Las recomendaciones salen de su evaluación más reciente."
       />
     }
   `,

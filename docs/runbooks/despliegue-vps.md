@@ -11,7 +11,10 @@ Workflow: `.github/workflows/ci-cd.yml`.
 paquete de configuración (compose, Caddyfile y realm con el dominio público; sin
 código fuente). En el VPS `scripts/deploy.sh` descarga las imágenes, arranca con
 `infra/compose.prod.yaml`, valida `/actuator/health` por HTTPS y, si algo falla,
-vuelve a la release anterior. El job verifica además la salud desde Internet.
+vuelve a la release anterior. Al final, `scripts/smoke_release.py` comprueba
+desde Internet que `/release.json` es el SHA del commit, que la SPA, Keycloak y la
+API responden como se espera y que actuator está cerrado. Ver
+[release-sprint.md](release-sprint.md).
 
 ## Banco y billetera en cada release (E-04)
 

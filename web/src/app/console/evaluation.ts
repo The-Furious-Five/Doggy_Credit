@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -18,6 +18,8 @@ import {
   SolicitanteNuevoMonedaEnum,
   SolicitantesService,
 } from '../api';
+import { canAccessAppRoute } from '../auth/permissions';
+import { AuthSessionService } from '../auth/session.service';
 import {
   DsAlert,
   DsBadge,
@@ -39,6 +41,7 @@ import {
 } from '../design-system';
 import { money } from './client-format';
 import { RecommendationList } from './recommendation-list';
+import { TenantUsageService } from './tenant-usage.service';
 
 const SEGMENTS: DsOption<Segmento>[] = [
   { value: Segmento.Persona, label: 'Persona' },
@@ -119,7 +122,7 @@ const code = (error: unknown): string =>
       <form class="ds-stack form" (ngSubmit)="next()">
         @switch (step()) {
           @case (0) {
-            <h2>Solicitante</h2>
+            <h2 #stepHeading tabindex="-1">Solicitante</h2>
             <div class="filters">
               <ds-field label="Segmento">
                 <ds-select name="segment" [options]="segments" [(ngModel)]="segment" />
@@ -157,7 +160,7 @@ const code = (error: unknown): string =>
             }
           }
           @case (1) {
-            <h2>Consentimiento</h2>
+            <h2 #stepHeading tabindex="-1">Consentimiento</h2>
             <p class="ds-muted ds-reading">
               El cliente autoriza a tu institución a consultar sus datos financieros con la única
               finalidad de evaluar esta solicitud. La autorización vence en 90 días y puede revocarse
@@ -182,7 +185,7 @@ const code = (error: unknown): string =>
             }
           }
           @case (2) {
-            <h2>Fuentes</h2>
+            <h2 #stepHeading tabindex="-1">Fuentes</h2>
             @if (sources() === null) {
               <div aria-busy="true" aria-label="Cargando fuentes"><ds-skeleton /></div>
             } @else if (sources()!.length) {
@@ -201,7 +204,11 @@ const code = (error: unknown): string =>
             @if (problem() === 'quota') {
               <ds-alert tone="warning" heading="Llegaste al límite de evaluaciones de tu plan">
                 Pausamos las nuevas evaluaciones hasta el próximo mes.
-                <a dsLink routerLink="/app/configuracion" fragment="plan">Conoce el plan Pro</a>
+                @if (canManagePlan()) {
+                  <a dsLink routerLink="/app/configuracion" fragment="plan">Ver tu plan</a>
+                } @else {
+                  Pide a quien administra tu institución que revise el plan.
+                }
               </ds-alert>
             }
             @if (problem() === 'error') {
@@ -213,7 +220,7 @@ const code = (error: unknown): string =>
           @case (3) {
             @if (result(); as r) {
               <div class="card-head">
-                <h2>Resultado</h2>
+                <h2 #stepHeading tabindex="-1">Resultado</h2>
                 @if (r.simulado) {
                   <ds-badge tone="warning">Datos simulados</ds-badge>
                 }
@@ -271,6 +278,10 @@ export class Evaluation {
   private readonly consents = inject(ConsentimientosService);
   private readonly integrations = inject(IntegracionesService);
   private readonly assessments = inject(EvaluacionesService);
+  private readonly auth = inject(AuthSessionService);
+  private readonly quota = inject(TenantUsageService);
+  private readonly injector = inject(Injector);
+  private readonly stepHeading = viewChild<ElementRef<HTMLElement>>('stepHeading');
 
   readonly steps = ['Solicitante', 'Consentimiento', 'Fuentes', 'Resultado'];
   readonly segments = SEGMENTS;
@@ -288,6 +299,7 @@ export class Evaluation {
   readonly sources = signal<Integracion[] | null>(null);
   readonly result = signal<Evaluacion | null>(null);
   readonly capacity = signal('—');
+  readonly canManagePlan = computed(() => canAccessAppRoute('/app/configuracion', this.auth.session().roles));
 
   segment: Segmento = Segmento.Persona;
   document = '';
@@ -326,11 +338,11 @@ export class Evaluation {
 
   back(): void {
     this.problem.set(null);
-    this.step.set(Math.max(0, this.step() - 1));
+    this.goTo(Math.max(0, this.step() - 1));
   }
 
   restart(): void {
-    this.step.set(0);
+    this.goTo(0);
     this.applicantId.set(null);
     this.consentId.set(null);
     this.result.set(null);
@@ -347,6 +359,12 @@ export class Evaluation {
     this.consentAccounts = false;
     this.consentWallet = false;
     this.idempotencyKey = crypto.randomUUID();
+  }
+
+  /** Al cambiar de paso el botón pulsado puede desaparecer: el foco pasa al título del paso nuevo. */
+  private goTo(step: number): void {
+    this.step.set(step);
+    afterNextRender(() => this.stepHeading()?.nativeElement.focus(), { injector: this.injector });
   }
 
   sourceInfo(source: Integracion) {
@@ -378,7 +396,7 @@ export class Evaluation {
         switchMap((existing) => (existing ? of(existing) : this.createApplicant(document, activity))),
       ));
       this.applicantId.set(id);
-      this.step.set(1);
+      this.goTo(1);
     } catch {
       // El interceptor ya avisó con el detalle del error (RFC 9457).
     }
@@ -431,7 +449,7 @@ export class Evaluation {
       }));
       this.consentId.set(consent.id ?? null);
       this.problem.set(null);
-      this.step.set(2);
+      this.goTo(2);
       this.loadSources();
     } catch {
       // El interceptor ya avisó con el detalle del error.
@@ -458,17 +476,20 @@ export class Evaluation {
         plazoMeses: this.term ?? undefined,
       }));
       this.result.set(result);
-      this.step.set(3);
+      this.goTo(3);
       this.loadCapacity();
+      // La evaluación consumió cuota: la barra y los avisos del 80 % y 100 % se actualizan (E-11).
+      this.quota.refresh();
     } catch (error) {
       const errorCode = code(error);
       if (errorCode === 'QUOTA_EXCEEDED') {
         this.problem.set('quota');
+        this.quota.refresh();
       } else if (errorCode === 'CONSENT_REQUIRED') {
         // El consentimiento venció o fue revocado: hay que registrar uno nuevo.
         this.problem.set('consent');
         this.consentId.set(null);
-        this.step.set(1);
+        this.goTo(1);
       } else {
         this.problem.set('error');
       }

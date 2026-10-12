@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { NEVER, of, throwError } from 'rxjs';
@@ -16,7 +17,9 @@ import {
   RecomendacionTipoProductoEnum,
   SolicitantesService,
 } from '../api';
+import { AuthSession, AuthSessionService } from '../auth/session.service';
 import { Evaluation } from './evaluation';
+import { TenantUsageService } from './tenant-usage.service';
 
 const APPLICANT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONSENT_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -40,9 +43,12 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
   const consents = { crearConsentimiento: vi.fn() };
   const integrations = { listarIntegraciones: vi.fn() };
   const assessments = { crearEvaluacion: vi.fn() };
+  const usage = { refresh: vi.fn() };
+  const session = signal<AuthSession>({ isAuthenticated: true, name: 'Analista', tenantId: 't', roles: ['ANALYST'] });
 
   beforeEach(() => {
     vi.resetAllMocks();
+    session.set({ isAuthenticated: true, name: 'Analista', tenantId: 't', roles: ['ANALYST'] });
     applicants.listarSolicitantes.mockReturnValue(of({ items: [], total: 0 }));
     applicants.crearSolicitante.mockReturnValue(of({ id: APPLICANT_ID }));
     applicants.obtenerSolicitante.mockReturnValue(
@@ -64,6 +70,8 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
         { provide: ConsentimientosService, useValue: consents },
         { provide: IntegracionesService, useValue: integrations },
         { provide: EvaluacionesService, useValue: assessments },
+        { provide: AuthSessionService, useValue: { session } },
+        { provide: TenantUsageService, useValue: usage },
       ],
     });
   });
@@ -198,7 +206,11 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
     expect(text(f)).toContain('Bs 3.100');
     expect(f.nativeElement.querySelectorAll('.ds-mono').length).toBe(3);
     expect(text(f)).not.toContain('PLAZO_HASTA_12_MESES');
+    // La evaluación consumió cuota: se actualizan la barra y los avisos del 80 % y 100 % (E-11).
+    expect(usage.refresh).toHaveBeenCalledOnce();
     expect(text(f)).toContain('Recomendación, no aprobación');
+    // Sin promesas de funciones que la API todavía no expone (E-09).
+    expect(text(f)).not.toMatch(/aparecerán aquí|próximamente/i);
     const link = [...f.nativeElement.querySelectorAll('a')].find((a: HTMLAnchorElement) =>
       a.textContent?.includes('Ver perfil completo'),
     ) as HTMLAnchorElement;
@@ -251,6 +263,39 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
 
     expect(f.componentInstance.step()).toBe(2);
     expect(text(f)).toContain('Llegaste al límite de evaluaciones de tu plan');
+    expect(usage.refresh).toHaveBeenCalledOnce();
+    // Un analista no puede abrir Configuración: no se le ofrece un enlace que el guard rechazaría.
+    expect(f.nativeElement.querySelector('a[href="/app/configuracion#plan"]')).toBeNull();
+    expect(text(f)).toContain('Pide a quien administra tu institución que revise el plan.');
+  });
+
+  it('QUOTA_EXCEEDED: a TENANT_ADMIN le enlaza su plan en Configuración', async () => {
+    session.set({ isAuthenticated: true, name: 'Admin', tenantId: 't', roles: ['TENANT_ADMIN'] });
+    assessments.crearEvaluacion.mockReturnValue(throwError(() => problem(429, 'QUOTA_EXCEEDED')));
+    const f = render();
+    await goToResult(f);
+
+    const link = f.nativeElement.querySelector('a[href="/app/configuracion#plan"]') as HTMLAnchorElement;
+    expect(link.textContent?.trim()).toBe('Ver tu plan');
+    expect(text(f)).not.toContain('Pide a quien administra');
+  });
+
+  it('al cambiar de paso, el foco pasa al título del paso nuevo (el botón pulsado puede desaparecer)', async () => {
+    const f = render();
+    const heading = () => f.nativeElement.querySelector('h2') as HTMLHeadingElement;
+    // Al abrir la vista el foco no se mueve: lo conserva el enlace o el salto de contenido.
+    expect(document.activeElement).not.toBe(heading());
+
+    await goToResult(f);
+    await f.whenStable();
+    expect(heading().textContent?.trim()).toBe('Resultado');
+    expect(document.activeElement).toBe(heading());
+
+    f.componentInstance.restart();
+    f.detectChanges();
+    await f.whenStable();
+    expect(heading().textContent?.trim()).toBe('Solicitante');
+    expect(document.activeElement).toBe(heading());
   });
 
   it('CONSENT_REQUIRED: vuelve al consentimiento para registrar uno nuevo', async () => {

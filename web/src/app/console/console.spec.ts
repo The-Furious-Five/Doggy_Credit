@@ -70,6 +70,8 @@ describe('Consola y barra A-01', () => {
     expect(top.textContent).not.toContain(tenant.id);
     expect(page.querySelector('[aria-label="Cuenta de Persona de prueba"]')).not.toBeNull();
     expect(page.textContent).toContain('12 de 50 este mes');
+    // «Datos simulados» solo acompaña respuestas marcadas por la API (simulado=true), nunca la barra fija (E-09).
+    expect(top.textContent).not.toMatch(/simulad/i);
   });
 
   it.each(['ANALYST', 'API_CLIENT', 'PLATFORM_ADMIN'] as AppRole[])(
@@ -124,6 +126,15 @@ describe('Consola y barra A-01', () => {
     fixture.detectChanges();
     expect(page.querySelectorAll('.console-nav a')).toHaveLength(0);
     expect(page.textContent).not.toContain('Persona de prueba');
+  });
+
+  it('muestra el aviso de cuota (E-11) encima de la vista al llegar al 80 %', () => {
+    api.obtenerUsoTenant.mockReturnValue(of({ evaluacionesMes: 45, limiteMensual: 50 }));
+    const { page } = render();
+    const notice = page.querySelector('main#contenido > dc-quota-notice');
+    expect(notice?.textContent).toContain('Usaste el 90 % de las evaluaciones del mes');
+    // La barra lateral y el aviso leen el mismo uso: una sola consulta.
+    expect(api.obtenerUsoTenant).toHaveBeenCalledOnce();
   });
 
   it('distingue la carga de tenant de un plan gratuito', () => {

@@ -50,6 +50,16 @@ describe('Políticas conectadas a la API (C-05)', () => {
     expect(page.textContent).toContain('Pausada');
   });
 
+  it('nombra cada interruptor con su regla, no solo con el estado (E-09)', () => {
+    api.listarPoliticas.mockReturnValue(of([preapproval, missingData]));
+    const { page } = render();
+
+    const names = [...page.querySelectorAll('[role="switch"]')].map(
+      (control) => page.querySelector(`#${control.getAttribute('aria-labelledby')}`)?.textContent?.trim(),
+    );
+    expect(names).toEqual(['Activa: Preaprobación por score', 'Pausada: Datos insuficientes']);
+  });
+
   it('no ofrece crear reglas (el editor está fuera de alcance)', () => {
     api.listarPoliticas.mockReturnValue(of([preapproval]));
     const { page } = render();
