@@ -51,6 +51,41 @@ comprobación anterior informa ambos simuladores saludables. Esa prueba requiere
 el VPS y sus credenciales; los tests locales con comandos simulados no la
 sustituyen.
 
+## Acceso de la app iOS (automático)
+
+El generador produce `doggycredit-realm.json` y `doggycredit-mobile.json` desde
+la misma definición del cliente público `doggycredit-mobile`. El cliente usa
+Authorization Code, PKCE S256 obligatorio y la redirección exacta
+`doggycredit://oauth/callback`; incluye los scopes `basic`, `profile`, `email`,
+`roles` y los mappers `tenant_id` y `api-audience`.
+
+En cada despliegue, `sync_mobile_client.sh` se ejecuta dentro de Keycloak con
+las credenciales administradoras que ya usa el pipeline. Crea el cliente si no
+existe o actualiza su configuración conservando su ID si ya existe. Funciona
+con el realm persistido: no depende de `--import-realm`, no recrea el realm y
+no requiere Python ni jq en el VPS. Si falla, el despliegue restaura la release
+anterior antes de activar `current`.
+
+Antes de validar Compose, `ensure_deploy_env.sh` genera una contraseña aleatoria
+para `DC_SEED_PLATFORM_ADMIN_PASSWORD` si falta o está vacía en el `.env` de
+producción. La guarda una sola vez con permiso 600, sin imprimirla y sin cambiar
+un valor existente. Esto permite desplegar desde releases anteriores que aún
+no tenían esa variable. No actualiza contraseñas de usuarios ya importados.
+
+CI prueba crear el cliente en un realm existente, corregir una configuración
+incompleta y repetir la sincronización sin duplicados. También ejecuta el login
+móvil real, valida sus claims, consulta las rutas que usa iOS, renueva el token
+y cierra la sesión. Con el mismo token móvil crea una evaluación sintética,
+lista su caso de revisión, aprueba/rechaza con justificación y comprueba que
+una segunda resolución responde 409. La migración de revisión se ejecuta después
+de las migraciones ya publicadas, por lo que también actualiza bases existentes.
+El smoke test de producción verifica desde Internet que el
+cliente móvil presenta el formulario de acceso con el callback y PKCE esperados.
+
+Una vez fusionado el cambio a `main`, CI/CD aplica todo sin intervención manual
+en el VPS. La app iOS usa `https://doggycredit.los5furiosos.cloud` por defecto;
+para consumir datos reales se inicia sesión con una cuenta de la institución.
+
 ## Preparar el VPS (una vez)
 
 1. Docker Engine + Docker Compose **>= 2.24**, `curl`. Puertos 443 abiertos y DNS

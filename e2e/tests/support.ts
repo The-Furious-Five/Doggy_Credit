@@ -72,7 +72,7 @@ export function operator(): DemoUser {
  */
 const merged = {
   /** C-10 (LOS-111): el backend implementa RevisionManualApi (GET y POST /revision-manual). */
-  bandeja: false,
+  bandeja: true,
   /** A-11 (LOS-115): seed/tenants.yaml siembra un operador PLATFORM_ADMIN (y su contraseña en .env.example). */
   cambioDePlan: true,
 };

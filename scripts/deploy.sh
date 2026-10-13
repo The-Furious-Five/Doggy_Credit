@@ -2,10 +2,11 @@
 # Ejecutar en el VPS dentro de la release extraída (lo invoca el job deploy de
 # ci-cd.yml). No compila ni crea secretos: descarga las imágenes de GHCR,
 # arranca y valida salud; si algo falla, vuelve a la release anterior.
-set -euo pipefail
+set -Eeuo pipefail
 base=${DC_DEPLOY_BASE:-/srv/doggycredit}
 release=$(pwd)
 test -f "$base/.env"
+bash scripts/ensure_deploy_env.sh "$base/.env"
 compose() {
   docker compose --env-file "$base/.env" --env-file infra/release.env \
     -f infra/compose.yaml -f infra/compose.prod.yaml "$@"
@@ -14,6 +15,7 @@ compose config --quiet
 compose pull --quiet
 previous=$(readlink "$base/current" || true)
 rollback() {
+  trap - ERR
   if [ -n "$previous" ] && [ "$previous" != "$release" ]; then
     echo "Despliegue fallido: restaurando $previous" >&2
     cd "$previous" && compose up -d --no-build --remove-orphans --wait --wait-timeout 300
@@ -31,6 +33,7 @@ compose exec -T keycloak bash -c \
      --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" &&
    /opt/keycloak/bin/kcadm.sh update realms/doggycredit -s loginTheme=doggycredit \
      -s "displayNameHtml=Doggy<span class=\"dc-wordmark-accent\">Credit</span>"'
+compose exec -T keycloak bash -s < scripts/sync_mobile_client.sh
 origin=$(sed -n 's|^DC_KEYCLOAK_ISSUER_URI=\(.*\)/auth/realms/doggycredit$|\1|p' infra/release.env)
 curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 2 "$origin/actuator/health" > /dev/null
 ln -sfn "$release" "$base/current"

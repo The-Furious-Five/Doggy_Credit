@@ -54,6 +54,12 @@ services:
       DC_KEYCLOAK_API_ADMIN_SECRET: ${DC_KEYCLOAK_API_ADMIN_SECRET:?falta DC_KEYCLOAK_API_ADMIN_SECRET en .env}
     volumes:
       - ./keycloak/doggycredit-realm.json:/opt/keycloak/data/import/doggycredit-realm.json:ro
+      - type: bind
+        source: ./keycloak/doggycredit-mobile.json
+        target: /opt/keycloak/doggycredit-mobile.json
+        read_only: true
+        bind:
+          create_host_path: false
       # Tema de la pantalla de acceso con los colores del Design System.
       - ./keycloak/themes/doggycredit:/opt/keycloak/themes/doggycredit:ro
       - keycloak_data:/opt/keycloak/data

@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # no sirve contra la API (la rechazan la audiencia y TenantClaimFilter).
 API_ADMIN_CLIENT = "doggycredit-api-admin"
 API_ADMIN_ROLES = ["manage-clients", "view-clients", "manage-users", "view-users", "view-realm"]
+MOBILE_CLIENT_ID = "doggycredit-mobile"
 
 def user_profile():
     """Keycloak 26 oculta atributos no gestionados incluso en la Admin REST API.
@@ -48,6 +49,28 @@ def mapper(name, kind, config):
             "config": {"access.token.claim": "true", "id.token.claim": "true",
                        "userinfo.token.claim": "true", "jsonType.label": "String", **config}}
 
+def mobile_client():
+    """Una sola definición para importaciones nuevas y despliegues con realm existente."""
+    return {"clientId": MOBILE_CLIENT_ID, "enabled": True, "publicClient": True,
+            "protocol": "openid-connect", "standardFlowEnabled": True,
+            "implicitFlowEnabled": False, "directAccessGrantsEnabled": False,
+            "serviceAccountsEnabled": False, "bearerOnly": False,
+            "redirectUris": ["doggycredit://oauth/callback"], "webOrigins": [],
+            "attributes": {"pkce.code.challenge.method": "S256"},
+            "defaultClientScopes": ["basic", "profile", "email", "roles"],
+            "optionalClientScopes": [],
+            "protocolMappers": [
+                mapper("tenant_id", "oidc-usermodel-attribute-mapper",
+                       {"user.attribute": "tenant_id", "claim.name": "tenant_id"}),
+                mapper("api-audience", "oidc-audience-mapper",
+                       {"included.custom.audience": "doggycredit-api", "id.token.claim": "false"})]}
+
+def write_realm(realm, output):
+    output.write_text(json.dumps(realm, indent=2, ensure_ascii=False) + "\n")
+    # Fuera de data/import: este archivo representa un cliente, no otro realm.
+    output.with_name("doggycredit-mobile.json").write_text(
+        json.dumps(mobile_client(), indent=2, ensure_ascii=False) + "\n")
+
 def person_name(full_name):
     """Keycloak rechaza ()<>&... en nombres y forzaría VERIFY_PROFILE en cada login.
     Las anotaciones de la semilla, como "(demo)", no forman parte del nombre visible."""
@@ -73,7 +96,7 @@ def generate(seed, origin):
                 "attributes": {"pkce.code.challenge.method": "S256",
                                "post.logout.redirect.uris": origin + "/"},
                 "defaultClientScopes": ["basic", "profile", "email", "roles"],
-                "protocolMappers": [tenant_mapper, audience]}]
+                "protocolMappers": [tenant_mapper, audience]}, mobile_client()]
     users, seen = [], set()
     for tenant in seed["tenants"]:
         tid = str(UUID(tenant["tenant_id"]))
@@ -162,4 +185,4 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=ROOT / "infra/keycloak/doggycredit-realm.json")
     args = parser.parse_args()
     realm = generate(yaml.safe_load((ROOT / "seed/tenants.yaml").read_text()), args.origin)
-    args.output.write_text(json.dumps(realm, indent=2, ensure_ascii=False) + "\n")
+    write_realm(realm, args.output)

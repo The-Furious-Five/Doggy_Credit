@@ -33,13 +33,17 @@ def healthy_site(origin=ORIGIN, release=SHA, hsts="max-age=31536000; includeSubD
         "/api/v1/tenant/actual": (401, headers(Content_Type="application/problem+json;charset=UTF-8"), b"{}"),
         "/actuator/env": (404, headers(), b""),
         REALM: (200, headers(Strict_Transport_Security=hsts), b"{}"),
+        REALM + '/protocol/openid-connect/auth': (
+            200, headers(Content_Type='text/html'),
+            b'<form id="kc-form-login" action="/auth/login-actions/authenticate"></form>',
+        ),
     }
 
 
 class SmokeReleaseTest(unittest.TestCase):
     def smoke(self, site, origin=ORIGIN, release=SHA):
         lines = []
-        get = lambda url: site.get(url[len(origin):], (404, headers(), b""))
+        get = lambda url: site.get(url[len(origin):].split('?')[0], (404, headers(), b""))
         ok = run(origin, release, get, attempts=1, delay=0, out=lines.append)
         return ok, "\n".join(lines)
 
@@ -80,6 +84,20 @@ class SmokeReleaseTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("FALLA identidad", report)
 
+    def test_missing_mobile_client_fails_release(self):
+        site = healthy_site()
+        site[REALM + '/protocol/openid-connect/auth'] = (400, headers(), b'{"error":"Cliente no encontrado"}')
+        ok, report = self.smoke(site)
+        self.assertFalse(ok)
+        self.assertIn('FALLA acceso móvil', report)
+
+    def test_mobile_error_page_with_http_200_is_not_a_login(self):
+        site = healthy_site()
+        site[REALM + '/protocol/openid-connect/auth'] = (200, headers(), b'<p>Invalid redirect URI</p>')
+        ok, report = self.smoke(site)
+        self.assertFalse(ok)
+        self.assertIn('no presenta el formulario', report)
+
     def test_api_without_token_must_be_rejected(self):
         site = healthy_site()
         site["/api/v1/tenant/actual"] = (200, headers(Content_Type="application/json"), b"{}")
@@ -112,7 +130,7 @@ class SmokeReleaseTest(unittest.TestCase):
         calls = []
 
         def get(url):
-            path = url[len(ORIGIN):]
+            path = url[len(ORIGIN):].split('?')[0]
             if path == "/release.json":
                 calls.append(path)
                 if len(calls) == 3:
