@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -24,6 +25,8 @@ if name == "docker":
         print("ghcr.io/example/doggycredit-api:new")
         print("ghcr.io/example/doggycredit-web:new")
     elif "pull" in args and os.environ.get("TEST_PULL_FAIL"):
+        sys.exit(1)
+    elif "up" in args and os.environ.get("TEST_STARTUP_FAIL") and pathlib.Path.cwd().name == "new":
         sys.exit(1)
     elif "exec" in args:
         index = args.index("exec")
@@ -154,6 +157,16 @@ class DeployTest(unittest.TestCase):
         rollback = [c for c in self.commands() if "up" in c["args"]][-1]
         self.assertEqual(str(self.previous), rollback["cwd"])
 
+    def test_startup_failure_records_simulator_diagnostics_before_rollback(self):
+        result = self.run_script("deploy.sh", TEST_STARTUP_FAIL="1")
+        self.assertNotEqual(0, result.returncode)
+        self.assertEqual(self.previous, self.current.resolve())
+        commands = self.commands()
+        logs = next(i for i, command in enumerate(commands) if "logs" in command["args"])
+        rollback = next(i for i, command in enumerate(commands)
+                        if "up" in command["args"] and command["cwd"] == str(self.previous))
+        self.assertLess(logs, rollback)
+
     def test_mobile_client_failure_rolls_back_before_activating_release(self):
         result = self.run_script("deploy.sh", TEST_MOBILE_SYNC_FAIL="1")
         self.assertNotEqual(0, result.returncode)
@@ -238,6 +251,9 @@ class ReleasePackageTest(unittest.TestCase):
             for directory in ("infra", "simulators", "scripts"):
                 shutil.copytree(ROOT / directory, stage / directory,
                                 ignore=shutil.ignore_patterns("__pycache__"))
+            if sys.platform == 'darwin':
+                mapping = next((stage / 'simulators/wiremock/wallet/mappings').glob('*.json'))
+                subprocess.run(['xattr', '-w', 'com.doggycredit.test', 'metadata-test', str(mapping)], check=True)
             env = dict(os.environ, REPO="ghcr.io/example", GITHUB_SHA="test-sha",
                        DC_KEYCLOAK_ISSUER_URI="https://demo.example/auth/realms/doggycredit",
                        DC_MASTER_KEY="configuration-test-only")
@@ -245,6 +261,11 @@ class ReleasePackageTest(unittest.TestCase):
             extracted = Path(temporary).resolve() / "release"
             extracted.mkdir()
             with tarfile.open(stage / "release.tar.gz") as archive:
+                self.assertFalse(any(part.startswith('._') for member in archive.getmembers()
+                                     for part in Path(member.name).parts), 'No incluir AppleDouble en Linux')
+                for member in archive.getmembers():
+                    if '/mappings/' in member.name and member.name.endswith('.json'):
+                        json.load(archive.extractfile(member))
                 archive.extractall(extracted, filter="data")
             self.assertTrue((extracted / "scripts/check_simulators.sh").is_file())
             self.assertTrue((extracted / "scripts/ensure_deploy_env.sh").is_file())
