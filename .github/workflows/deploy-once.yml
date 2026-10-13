@@ -108,17 +108,19 @@ jobs:
           npm test -- --watch=false
 
       - name: '3 · Contratos: generadores, despliegue y configuración'
-        env:
-          DC_API_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-api:${{ github.sha }}
-          DC_WEB_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-web:${{ github.sha }}
-          DC_MASTER_KEY: ci_configuration_validation_only
         run: |
           python -m unittest discover -s scripts -p 'test_*.py'
-          docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.prod.yaml config --quiet
           python scripts/generate_realm.py
           bash scripts/generate_clients.sh
           git diff --exit-code -- infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json web/src/app/api
           test -z "$(git ls-files --others --exclude-standard web/src/app/api)"
+
+      - name: Validar Compose de producción con imágenes por etiqueta
+        env:
+          DC_API_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-api:${{ github.sha }}
+          DC_WEB_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-web:${{ github.sha }}
+          DC_MASTER_KEY: ci_configuration_validation_only
+        run: docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.prod.yaml config --quiet
 
       - name: '4 · Identidad: cliente móvil, login PKCE, renovación y API'
         run: |
