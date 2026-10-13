@@ -27,6 +27,9 @@ jobs:
       github.sha == inputs.expected_sha &&
       startsWith(inputs.runner_label, 'doggycredit-once-')
     runs-on: ${{ inputs.runner_label }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 90
     concurrency:
       group: production-deploy
@@ -59,23 +62,36 @@ jobs:
           test -n "$DOCKER_HOST"
           docker info
           mkdir -p "$RUNNER_TEMP/dc-docker-config"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          assert __import__('sys').version_info >= (3, 12)
+          source = Path.home() / '.docker/config.json'
+          plugins = json.loads(source.read_text()).get('cliPluginsExtraDirs', []) if source.exists() else []
+          plugins.append(str(Path.home() / '.docker/cli-plugins'))
+          destination = Path(os.environ['RUNNER_TEMP']) / 'dc-docker-config/config.json'
+          destination.write_text(json.dumps({'cliPluginsExtraDirs': plugins}))
+          PY
           echo "DOCKER_CONFIG=$RUNNER_TEMP/dc-docker-config" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+          settings-path: ${{ runner.temp }}/dc-maven-settings
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Instalar dependencias de los scripts
-        run: pip install -r scripts/requirements.txt
+      - name: Preparar Python local y dependencias en un entorno temporal
+        run: |
+          python3 -m venv "$RUNNER_TEMP/dc-python"
+          "$RUNNER_TEMP/dc-python/bin/pip" install -r scripts/requirements.txt
+          echo "$RUNNER_TEMP/dc-python/bin" >> "$GITHUB_PATH"
+          docker compose version
+          docker buildx version
 
       - name: '1 · Backend: compilar, arquitectura y todos los tests'
         run: |
@@ -225,8 +241,8 @@ jobs:
       - name: Limpiar el stack temporal y las claves
         if: always()
         run: |
+          trap 'rm -rf "$RUNNER_TEMP/dc-ssh"' EXIT
           docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml down --volumes --remove-orphans
-          rm -rf "$RUNNER_TEMP/dc-ssh"
 
       - name: Guardar los reportes de validación
         if: always()
