@@ -10,12 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.ErrorResponseException;
 
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.recommendation.ProductCatalog;
 import com.doggycredit.shared.ErrorCode;
 import com.doggycredit.shared.TenantContext;
+import com.doggycredit.shared.contract.model.Producto;
 
 /** C-06 (LOS-86): consulta y edición del catálogo de productos del tenant actual. */
 @Service
-class ProductCatalogService {
+class ProductCatalogService implements ProductCatalog {
 
 	private final ProductRepository products;
 	private final AuditTrail audit;
@@ -28,6 +30,19 @@ class ProductCatalogService {
 	@Transactional(readOnly = true)
 	List<Product> list() {
 		return products.findAllByOrderByProductTypeAsc();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<Producto> activeProducts() {
+		return list().stream().filter(Product::active).map(ProductController::toDto).toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public boolean isActive(UUID productId) {
+		// Un producto de otro tenant no se ve (RLS + @TenantId): cuenta como inexistente.
+		return products.findById(productId).map(Product::active).orElse(false);
 	}
 
 	/**

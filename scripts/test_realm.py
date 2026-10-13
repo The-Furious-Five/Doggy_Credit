@@ -1,7 +1,7 @@
 import json
 import unittest
 import yaml
-from generate_realm import generate, ROOT, API_ADMIN_CLIENT
+from generate_realm import generate, ROOT, API_ADMIN_CLIENT, MOBILE_CLIENT_ID, mobile_client
 
 class RealmTest(unittest.TestCase):
     def setUp(self):
@@ -14,6 +14,21 @@ class RealmTest(unittest.TestCase):
         self.assertEqual(client['attributes']['pkce.code.challenge.method'], 'S256')
         self.assertEqual(client['redirectUris'], ['https://localhost/callback'])
         self.assertTrue(all(not c['directAccessGrantsEnabled'] for c in self.realm['clients']))
+
+    def test_mobile_client_is_public_with_exact_callback_and_required_claims(self):
+        client = next(c for c in self.realm['clients'] if c['clientId'] == MOBILE_CLIENT_ID)
+        self.assertTrue(client['enabled'])
+        self.assertTrue(client['publicClient'])
+        self.assertTrue(client['standardFlowEnabled'])
+        for grant in ('directAccessGrantsEnabled', 'implicitFlowEnabled', 'serviceAccountsEnabled'):
+            self.assertFalse(client[grant])
+        self.assertNotIn('secret', client)
+        self.assertEqual(['doggycredit://oauth/callback'], client['redirectUris'])
+        self.assertEqual('S256', client['attributes']['pkce.code.challenge.method'])
+        self.assertEqual(['basic', 'profile', 'email', 'roles'], client['defaultClientScopes'])
+        self.assertEqual(mobile_client(), client)
+        checked_in = json.loads((ROOT / 'infra/keycloak/doggycredit-mobile.json').read_text())
+        self.assertEqual(client, checked_in, 'La actualización del VPS y el realm nuevo deben coincidir')
 
     def test_human_and_service_account_share_seed_tenant(self):
         users = {u['username']: u for u in self.realm['users']}
@@ -29,6 +44,24 @@ class RealmTest(unittest.TestCase):
                 self.assertEqual(actual['realmRoles'], ['API_CLIENT'])
                 self.assertEqual(clients[client['client_id']]['secret'], '${' + client['secret_env'] + '}')
                 self.assertTrue(clients[client['client_id']]['serviceAccountsEnabled'])
+
+    def test_tenant_admins_must_configure_mfa_on_first_login(self):
+        """A-14: MFA obligatorio para TENANT_ADMIN, y solo para ellos."""
+        users = {u['username']: u for u in self.realm['users']}
+        admins = [user for tenant in self.seed['tenants'] for user in tenant['usuarios']
+                  if 'TENANT_ADMIN' in user['roles']]
+        self.assertTrue(admins, 'La semilla debe tener al menos un TENANT_ADMIN')
+        for tenant in self.seed['tenants']:
+            for user in tenant['usuarios']:
+                expected = ['CONFIGURE_TOTP'] if 'TENANT_ADMIN' in user['roles'] else []
+                self.assertEqual(users[user['username']].get('requiredActions', []), expected, user['username'])
+        # Las cuentas de servicio no tienen pantalla de acceso: una acción requerida las dejaría sin token.
+        for user in self.realm['users']:
+            if 'serviceAccountClientId' in user:
+                self.assertNotIn('requiredActions', user, user['username'])
+        # Sin un segundo factor ya sembrado: cada administrador lo configura él mismo.
+        for user in self.realm['users']:
+            self.assertFalse([c for c in user.get('credentials', []) if c['type'] != 'password'], user['username'])
 
     def test_tenant_is_visible_to_admin_and_cannot_be_changed_by_users(self):
         providers = self.realm.get('components', {}).get(

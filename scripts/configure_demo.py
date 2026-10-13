@@ -1,5 +1,4 @@
 """Configura URLs públicas usando DC_KEYCLOAK_ISSUER_URI ya declarada."""
-import json
 import os
 import re
 from pathlib import Path
@@ -35,6 +34,6 @@ def caddyfile_for(text, url, origin):
 if __name__ == "__main__":
     url, origin = public_origin(os.environ["DC_KEYCLOAK_ISSUER_URI"])
     realm = generate_realm.generate(yaml.safe_load((ROOT / "seed/tenants.yaml").read_text()), origin)
-    (ROOT / "infra/keycloak/doggycredit-realm.json").write_text(json.dumps(realm, indent=2, ensure_ascii=False) + "\n")
+    generate_realm.write_realm(realm, ROOT / "infra/keycloak/doggycredit-realm.json")
     caddyfile = ROOT / "infra/caddy/Caddyfile"
     caddyfile.write_text(caddyfile_for(caddyfile.read_text(), url, origin))

@@ -13,6 +13,36 @@ con `tenant_id`. Usuarios y servicios comparten el mapper de tenant y la audienc
 El volumen persiste el realm. La importación solo crea realms ausentes; no borra
 ni actualiza los existentes. Ver [runbook de Franco](../../docs/runbooks/franco-sprint1.md).
 
+## MFA obligatorio para TENANT_ADMIN (A-14, RF-SEG-06)
+
+El generador marca a cada usuario `TENANT_ADMIN` de la semilla con la acción
+requerida `CONFIGURE_TOTP`: en su primer inicio de sesión, tras la contraseña,
+Keycloak le hace registrar una app de autenticación (TOTP), y desde ahí le pide
+el código en cada ingreso. No se siembra ningún segundo factor: cada
+administrador registra el suyo. `ANALYST`, el operador y las cuentas de
+servicio no cambian.
+
+Como el resto del realm, solo aplica al importarlo. Un realm ya importado (el
+de la VM, o un volumen local anterior) no se actualiza solo; para exigirlo sin
+borrar datos, por cada administrador:
+
+```bash
+docker compose -p doggycredit -f infra/compose.yaml --env-file .env exec keycloak bash -c \
+  '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master \
+     --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" &&
+   id=$(/opt/keycloak/bin/kcadm.sh get users -r doggycredit -q username=admin.progreso -q exact=true --fields id --format csv --noquotes) &&
+   /opt/keycloak/bin/kcadm.sh update "users/$id" -r doggycredit -s "requiredActions=[\"CONFIGURE_TOTP\"]"'
+```
+
+## Cliente móvil
+
+El generador también produce `doggycredit-mobile.json`, montado fuera de
+`data/import`. Define el cliente público de iOS con PKCE S256, callback exacto
+`doggycredit://oauth/callback`, scopes de identidad y mappers de tenant y audiencia.
+El pipeline ejecuta `scripts/sync_mobile_client.sh` para crearlo o actualizarlo
+sobre un realm ya existente. No es necesario entrar al VPS ni editar la consola
+administradora. Ver [despliegue automatizado](../../docs/runbooks/despliegue-vps.md).
+
 ## Tema de acceso
 
 `themes/doggycredit` hereda `keycloak.v2` y solo cambia color, tipografía y forma

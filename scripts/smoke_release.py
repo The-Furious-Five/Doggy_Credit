@@ -7,6 +7,7 @@ Solo hace GET de lectura: no inicia sesión, no crea datos y no consume cuota.
 Reintenta mientras la release nueva termina de arrancar; sale con 1 si algo falla.
 """
 import argparse
+from html.parser import HTMLParser
 import json
 import re
 import ssl
@@ -14,9 +15,26 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
 
 REALM = "/auth/realms/doggycredit"
+
+
+def mobile_authorization_url(origin):
+    return origin + REALM + "/protocol/openid-connect/auth?" + urlencode({
+        "client_id": "doggycredit-mobile", "redirect_uri": "doggycredit://oauth/callback",
+        "response_type": "code", "scope": "openid profile", "state": "release-smoke",
+        "code_challenge": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "code_challenge_method": "S256",
+    })
+
+
+class MobileLoginForm(HTMLParser):
+    found = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "form" and attrs.get("id") == "kc-form-login" and attrs.get("action"):
+            self.found = True
 
 
 class SmokeFailure(Exception):
@@ -96,6 +114,16 @@ def check_api_requires_token(origin, get, release):
     return "la API exige token (401 RFC 9457)"
 
 
+def check_mobile_login(origin, get, release):
+    status, _, body = get(mobile_authorization_url(origin))
+    _expect_status(status, 200, "el acceso móvil PKCE")
+    form = MobileLoginForm()
+    form.feed(body.decode("utf-8", "replace"))
+    if not form.found:
+        raise SmokeFailure("Keycloak no presenta el formulario del cliente doggycredit-mobile")
+    return "cliente móvil disponible con callback doggycredit://oauth/callback y PKCE S256"
+
+
 def check_actuator_closed(origin, get, release):
     status, _, _ = get(origin + "/actuator/env")
     _expect_status(status, 404, "/actuator/env")
@@ -119,6 +147,7 @@ CHECKS = (
     ("versión", check_release),
     ("SPA", check_spa),
     ("identidad", check_identity),
+    ("acceso móvil", check_mobile_login),
     ("API", check_api_requires_token),
     ("actuator", check_actuator_closed),
     ("HSTS", check_hsts),

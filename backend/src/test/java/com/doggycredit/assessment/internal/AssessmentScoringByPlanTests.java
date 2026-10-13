@@ -36,6 +36,7 @@ import com.doggycredit.integration.BureauReport.Endeudamiento;
 import com.doggycredit.integration.BureauReport.Linaje;
 import com.doggycredit.integration.BureauReport.TipoTitular;
 import com.doggycredit.shared.Money;
+import com.doggycredit.shared.DocumentNumber;
 import com.doggycredit.shared.TenantContext;
 
 /**
@@ -49,7 +50,7 @@ class AssessmentScoringByPlanTests {
 
 	private static final String FREE = "9c7e7c1a-0000-4000-8000-000000000001";
 	private static final String PRO = "9c7e7c1a-0000-4000-8000-000000000002";
-	private static final String DOCUMENT = "CI-PLAN-0001";
+	private final String document = DocumentNumber.normalize("CI-PLAN-" + UUID.randomUUID());
 
 	@Autowired
 	MockMvc mvc;
@@ -95,28 +96,25 @@ class AssessmentScoringByPlanTests {
 			.content("""
 					{"titularDocumento":"%s","consentId":"%s","proposito":"Capital de trabajo",
 					 "montoSolicitado":"3000.00","plazoMeses":12}
-					""".formatted(DOCUMENT, consent)));
+					""".formatted(document, consent)));
 	}
 
 	private UUID prepare(String tenant) throws Exception {
-		if (comoTenant(tenant, () -> jdbc.queryForObject(
-				"select count(*) from customer.applicants where tenant_id = ?::uuid", Integer.class, tenant)) == 0) {
-			mvc.perform(post("/solicitantes")
-				.with(jwt().jwt(token -> token.subject("analista-plan").claim("tenant_id", tenant)))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-						{"documento":"%s","actividad":"Comercio","antiguedadActividadMeses":36,
-						 "ingresosMensuales":"5000.00","moneda":"BOB","destinoCredito":"Capital"}
-						""".formatted(DOCUMENT)))
-				.andExpect(status().isCreated());
-		}
+		mvc.perform(post("/solicitantes")
+			.with(jwt().jwt(token -> token.subject("analista-plan").claim("tenant_id", tenant)))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"documento":"%s","actividad":"Comercio","antiguedadActividadMeses":36,
+					 "ingresosMensuales":"5000.00","moneda":"BOB","destinoCredito":"Capital"}
+					""".formatted(document)))
+			.andExpect(status().isCreated());
 		UUID consent = UUID.randomUUID();
 		comoTenant(tenant, () -> jdbc.update("""
 				insert into consent.consents (id, tenant_id, titular_documento, fuentes, finalidad, vigencia_dias,
 				  otorgado_en, expira_en, estado, otorgado_por, payload_sha256)
 				values (?, ?::uuid, ?, '{BURO}'::text[], 'evaluacion', 90, now(), now() + interval '1 day',
 				  'ACTIVO', 'test', 'x')
-				""", consent, tenant, DOCUMENT));
+				""", consent, tenant, document));
 		return consent;
 	}
 
