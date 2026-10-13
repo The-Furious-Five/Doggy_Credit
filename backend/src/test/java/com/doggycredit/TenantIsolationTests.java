@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.doggycredit.shared.TenantContext;
@@ -22,6 +23,9 @@ import com.doggycredit.shared.TenantContext;
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+// Estas pruebas escriben filas inmutables y habilitan un conector del tenant FREE.
+// Retirar su base al terminar evita que ese estado altere otras clases del contexto.
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class TenantIsolationTests {
 
     private static final String TENANT_A = "9c7e7c1a-0000-4000-8000-000000000001"; // Progreso Andino (FREE)
