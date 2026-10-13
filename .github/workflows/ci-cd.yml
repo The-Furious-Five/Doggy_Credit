@@ -371,7 +371,7 @@ jobs:
           DC_WEB_IMAGE=$REPO/doggycredit-web:$GITHUB_SHA
           DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
           EOF
-          tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
+          COPYFILE_DISABLE=1 tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
             infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json infra/keycloak/themes infra/grafana \
             simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh scripts/ensure_deploy_env.sh scripts/sync_mobile_client.sh
 

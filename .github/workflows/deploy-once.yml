@@ -185,7 +185,6 @@ jobs:
           push: true
           tags: ${{ steps.release.outputs.repo }}/doggycredit-api:${{ github.sha }}
           cache-from: type=gha,scope=api
-          cache-to: type=gha,scope=api,mode=max
 
       - name: Construir y publicar la web para el VPS
         uses: docker/build-push-action@v6
@@ -197,7 +196,6 @@ jobs:
           build-args: DC_RELEASE=${{ github.sha }}
           tags: ${{ steps.release.outputs.repo }}/doggycredit-web:${{ github.sha }}
           cache-from: type=gha,scope=web
-          cache-to: type=gha,scope=web,mode=max
 
       - name: Empaquetar release
         env:
@@ -209,7 +207,7 @@ jobs:
           DC_WEB_IMAGE=$REPO/doggycredit-web:$GITHUB_SHA
           DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
           EOF
-          tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
+          COPYFILE_DISABLE=1 tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
             infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json infra/keycloak/themes infra/grafana \
             simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh scripts/ensure_deploy_env.sh scripts/sync_mobile_client.sh
 

@@ -22,7 +22,12 @@ rollback() {
   fi
 }
 trap rollback ERR
-compose up -d --no-build --remove-orphans --wait --wait-timeout 300
+compose up -d --no-build --remove-orphans --wait --wait-timeout 300 || {
+  # La API aún no ha arrancado: conservar el diagnóstico de los simuladores
+  # antes de que el rollback reemplace sus contenedores.
+  compose logs --no-color --tail=60 wiremock-bank wiremock-wallet >&2 || true
+  false
+}
 # La salud de la API no demuestra que se hayan montado los datos de banco/billetera.
 # Si alguno falla, el trap restaura la release anterior antes de cambiar current.
 bash scripts/check_simulators.sh --env-file "$base/.env" --env-file infra/release.env \
