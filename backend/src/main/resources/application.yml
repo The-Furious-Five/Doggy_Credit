@@ -71,10 +71,17 @@ doggycredit:
       connect-timeout: ${DC_INTEGRATION_BUREAU_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_BUREAU_READ_TIMEOUT:1500ms}
     # Core bancario (B-03, bank.v1.yaml) y billetera móvil (B-05, wallet.v1.yaml): mismos plazos.
+    # provider: "uno" (BankConnector, por defecto) o "dos" (BankDosConnector, B-10) — nunca
+    # los dos activos a la vez, es el mismo Source.BANCO con otro proveedor.
     bank:
+      provider: ${DC_INTEGRATION_BANK_PROVIDER:uno}
       url: ${DC_INTEGRATION_BANK_URL:http://localhost:8090}
       connect-timeout: ${DC_INTEGRATION_BANK_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_BANK_READ_TIMEOUT:1500ms}
+    bank-dos:
+      url: ${DC_INTEGRATION_BANK_DOS_URL:http://localhost:8092}
+      connect-timeout: ${DC_INTEGRATION_BANK_DOS_CONNECT_TIMEOUT:500ms}
+      read-timeout: ${DC_INTEGRATION_BANK_DOS_READ_TIMEOUT:1500ms}
     wallet:
       url: ${DC_INTEGRATION_WALLET_URL:http://localhost:8091}
       connect-timeout: ${DC_INTEGRATION_WALLET_CONNECT_TIMEOUT:500ms}

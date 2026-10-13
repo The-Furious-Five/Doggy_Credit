@@ -68,6 +68,34 @@ class ProfileConsolidationTest {
 	}
 
 	@Test
+	void ingresoObservadoMuyDistintoDelDeclaradoDisparaLaAlerta() {
+		// Declarado 5000, observado (banco) 9500: 90 % de diferencia, > 30 % (RF-PER-06).
+		FinancialProfile360 p = view(Map.of(Source.BURO, ok(BUREAU), Source.BANCO, ok(BANK)));
+
+		assertThat(p.declaredMonthlyIncome()).isEqualTo(DECLARED);
+		assertThat(p.incomeDiscrepancy()).isTrue();
+	}
+
+	@Test
+	void ingresoObservadoParecidoAlDeclaradoNoDisparaLaAlerta() {
+		Money declaradoParecido = bob("9000.00"); // observado 9500: ~5 % de diferencia.
+		FinancialProfile360 p = ProfileConsolidation
+			.consolidate(UUID.randomUUID(), T, UUID.randomUUID(), "ref", declaradoParecido,
+					Map.of(Source.BURO, ok(BUREAU), Source.BANCO, ok(BANK)))
+			.view();
+
+		assertThat(p.incomeDiscrepancy()).isFalse();
+	}
+
+	@Test
+	void sinObservadoConQueCompararNoHayAlerta() {
+		FinancialProfile360 p = view(Map.of(Source.BURO, SourceResult.unavailable()));
+
+		assertThat(p.incomeOrigin()).isEqualTo(IncomeOrigin.DECLARADO);
+		assertThat(p.incomeDiscrepancy()).isNull();
+	}
+
+	@Test
 	void conElBancoCaidoElIngresoSaleDeLaBilleteraYLaFuenteQuedaNoDisponible() {
 		FinancialProfile360 p = view(Map.of(Source.BURO, ok(BUREAU), Source.BANCO, SourceResult.unavailable(),
 				Source.WALLET, ok(WALLET)));

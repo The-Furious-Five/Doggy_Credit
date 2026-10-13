@@ -104,6 +104,8 @@ class ApplicantController implements SolicitantesApi {
 			.creadoEn(p.createdAt().atOffset(ZoneOffset.UTC))
 			.ingresoMensual(money(p.monthlyIncome()))
 			.origenIngreso(PerfilFinanciero360.OrigenIngresoEnum.fromValue(p.incomeOrigin().name()))
+			.ingresoDeclarado(money(p.declaredMonthlyIncome()))
+			.discrepanciaIngreso(p.incomeDiscrepancy())
 			.deudaVigente(money(p.currentDebt()))
 			.obligaciones(p.obligations())
 			.cuotaMensual(money(p.monthlyInstallment()))

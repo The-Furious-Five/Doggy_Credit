@@ -11,6 +11,7 @@ genera `seed/generate_synthetic.py` a partir de las mismas 50 personas de
 | Buró | `bureau.v1.yaml` | `wiremock-bureau` | 8089 | `integration.BureauConnector` |
 | Core bancario | `bank.v1.yaml` | `wiremock-bank` | 8090 | `integration.BankConnector` |
 | Billetera móvil | `wallet.v1.yaml` | `wiremock-wallet` | 8091 | `integration.WalletConnector` |
+| Segundo core bancario | `bank-dos.v1.yaml` | `wiremock-bank-dos` | 8092 | `integration.BankDosConnector` |
 
 Las tres comparten los documentos de falla: `CI-DEMO-0009503` → 503 y
 `CI-DEMO-0009504` → 200 recién a los 15 s. Cualquier documento no sembrado → 404.
@@ -88,3 +89,33 @@ Resultados: movimientos → `Optional.of(report)`; 404 `TITULAR_NO_REGISTRADO`
 `SourceUnavailableException(WALLET)`.
 
 Pruebas de contrato: `backend/src/test/java/com/doggycredit/integration/WalletConnectorContractTests.java`.
+
+## `bank-dos.v1.yaml` (B-10)
+
+Segundo core bancario: `GET /bank-dos/v1/cuentas/{documento}` → JSON con su
+propio vocabulario y forma (otro proveedor, otro contrato de cable), sobre
+los mismos titulares que `bank.v1.yaml`. La capa anticorrupción
+(`integration.internal.BankDosJson`) lo traduce al mismo canónico `BankReport`
+que el primer banco:
+
+| JSON del segundo banco | Canónico v1 (`BankReport`) |
+|---|---|
+| `cuenta.tipoProducto` (`AHORRO`/`CORRIENTE`) | `cuentas[].tipo` (`CAJA_AHORRO`/`CUENTA_CORRIENTE`) |
+| `cuenta.moneda` | `cuentas[].moneda` |
+| `cuenta.saldoPromedio3Meses` | `cuentas[].saldoPromedio3m` (`Dinero`) |
+| `corte` − `cuenta.fechaDesde` | `cuentas[].antiguedadMeses` (meses completos) |
+| `movimientos[].creditos` | `flujos.ingresosMensuales[]`, `origen` = `BANCO` |
+| `movimientos[].debitos` | `flujos.egresosMensuales[]` |
+| cuerpo crudo | `linaje.sha256Crudo` (el crudo no se guarda, ADR-016) |
+| `documentoCliente` | se verifica igual al pedido; no sale del conector |
+
+Resultados: cuenta → `Optional.of(report)`; 404 `CLIENTE_INEXISTENTE` →
+`Optional.empty()` (sin cuenta en el banco); 5xx, timeout, red o JSON que no
+cumple el contrato → `SourceUnavailableException(BANCO)`.
+
+Mismo `Source.BANCO` que `BankConnector`: cuál de los dos conectores está
+activo es un cambio de configuración (`doggycredit.integration.bank.provider`,
+`uno` o `dos`), no de código — demuestra que un proveedor nuevo entra sin
+tocar nada fuera de su propio archivo (FF-15).
+
+Pruebas de contrato: `backend/src/test/java/com/doggycredit/integration/BankDosConnectorContractTests.java`.
