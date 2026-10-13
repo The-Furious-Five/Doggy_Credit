@@ -75,7 +75,11 @@ no tenían esa variable. No actualiza contraseñas de usuarios ya importados.
 CI prueba crear el cliente en un realm existente, corregir una configuración
 incompleta y repetir la sincronización sin duplicados. También ejecuta el login
 móvil real, valida sus claims, consulta las rutas que usa iOS, renueva el token
-y cierra la sesión. El smoke test de producción verifica desde Internet que el
+y cierra la sesión. Con el mismo token móvil crea una evaluación sintética,
+lista su caso de revisión, aprueba/rechaza con justificación y comprueba que
+una segunda resolución responde 409. La migración de revisión se ejecuta después
+de las migraciones ya publicadas, por lo que también actualiza bases existentes.
+El smoke test de producción verifica desde Internet que el
 cliente móvil presenta el formulario de acceso con el callback y PKCE esperados.
 
 Una vez fusionado el cambio a `main`, CI/CD aplica todo sin intervención manual

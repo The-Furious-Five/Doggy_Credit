@@ -103,10 +103,11 @@ def main():
         except HTTPError as error:
             return error.code, error.headers, error.read()
 
-    def request_json(method, url, token, payload=None):
+    def request_json(method, url, token, payload=None, extra_headers=None):
         data = json.dumps(payload).encode() if payload is not None else None
         req = Request(url, data=data, method=method,
-                      headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'})
+                      headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json',
+                               **(extra_headers or {})})
         try:
             with opener.open(req, timeout=20) as response:
                 return response.status, response.read()
@@ -222,9 +223,44 @@ def main():
     audience = mobile_claims['aud']
     assert 'doggycredit-api' in ([audience] if isinstance(audience, str) else audience)
     for path in ('tenant/actual', 'tenant/actual/uso', 'tenant/actual/preferencias',
-                 'credit-assessments', 'solicitantes'):
+                 'revision-manual', 'credit-assessments', 'solicitantes'):
         status, _, _ = request(origin + '/api/v1/' + path, token=mobile['access_token'])
         assert status == 200, f'Consulta iOS {path}: HTTP {status}'
+
+    for decision in ('APROBADO', 'RECHAZADO'):
+        document_mobile = 'CI-MOBILE-' + secrets.token_hex(8)
+        status, _ = request_json('POST', origin + '/api/v1/solicitantes', mobile['access_token'], {
+            'documento': document_mobile, 'actividad': 'Comercio', 'antiguedadActividadMeses': 36,
+            'ingresosMensuales': '5000.00', 'moneda': 'BOB', 'destinoCredito': 'Capital'})
+        assert status == 201, f'Alta móvil HTTP {status}'
+        status, body = request_json('POST', origin + '/api/v1/consentimientos', mobile['access_token'], {
+            'titularDocumento': document_mobile, 'fuentes': ['BURO'],
+            'finalidad': 'Prueba sintética móvil', 'vigenciaDias': 1})
+        assert status == 201, f'Consentimiento móvil HTTP {status}'
+        consent_id = json.loads(body)['id']
+        status, body = request_json('POST', origin + '/api/v1/credit-assessments', mobile['access_token'], {
+            'titularDocumento': document_mobile, 'consentId': consent_id, 'proposito': 'Capital de trabajo',
+            'montoSolicitado': '3000.00', 'plazoMeses': 12}, {'Idempotency-Key': 'mobile-' + secrets.token_hex(16)})
+        assert status == 201, f'Evaluación móvil HTTP {status}'
+        evaluation_id = json.loads(body)['id']
+        # El documento sintético no existe en el buró: el caso parcial requiere revisión humana.
+        status, body = request_json('GET', origin + '/api/v1/revision-manual?tamano=100', mobile['access_token'])
+        assert status == 200, f'Bandeja móvil HTTP {status}'
+        inbox = json.loads(body)
+        assert any(item['evaluacionId'] == evaluation_id for item in inbox['items']), 'Falta el caso en la bandeja'
+        resolution = {'decision': decision, 'justificacion': 'Ingresos verificados durante la prueba móvil'}
+        if decision == 'APROBADO':
+            assert inbox['productos'], 'Faltan productos activos al aprobar'
+            resolution['productoId'] = inbox['productos'][0]['id']
+        url = origin + '/api/v1/revision-manual/' + evaluation_id + '/resolucion'
+        status, body = request_json('POST', url, mobile['access_token'], resolution)
+        assert status == 200, f'Resolución móvil HTTP {status}'
+        assert json.loads(body)['decision'] == decision
+        status, body = request_json('POST', url, mobile['access_token'], resolution)
+        assert status == 409 and json.loads(body)['code'] == 'CONCURRENT_UPDATE', 'Se duplicó una resolución'
+        status, body = request_json('GET', origin + '/api/v1/revision-manual?tamano=100', mobile['access_token'])
+        assert status == 200 and all(item['evaluacionId'] != evaluation_id for item in json.loads(body)['items'])
+    print('OK: móvil crea solicitante, consentimiento y evaluación; aprueba/rechaza casos reales sin duplicados')
     synchronize()  # El despliegue repetido conserva también una sesión móvil activa.
     status, _, body = request(issuer + '/protocol/openid-connect/token', {
         'grant_type': 'refresh_token', 'client_id': 'doggycredit-mobile', 'refresh_token': mobile['refresh_token']})
