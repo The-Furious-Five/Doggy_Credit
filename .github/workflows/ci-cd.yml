@@ -146,7 +146,7 @@ jobs:
           python scripts/generate_realm.py
           bash scripts/generate_clients.sh
           # Si esto falla: corre ambos scripts localmente y commitea el resultado.
-          git diff --exit-code -- infra/keycloak/doggycredit-realm.json web/src/app/api
+          git diff --exit-code -- infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json web/src/app/api
           test -z "$(git ls-files --others --exclude-standard web/src/app/api)"
 
       - name: Rechazar cambios del OpenAPI que rompan a los consumidores (solo PR)
@@ -179,7 +179,10 @@ jobs:
           docker compose --env-file .env.example -f infra/compose.yaml cp caddy:/data/caddy/pki/authorities/local/root.crt "$RUNNER_TEMP/doggycredit-root.crt"
           curl --retry 30 --retry-all-errors --retry-delay 2 --fail --silent --cacert "$RUNNER_TEMP/doggycredit-root.crt" https://localhost/actuator/health
 
-      - name: Probar login de usuario (PKCE) y de servicio (client_credentials)
+      - name: Probar creación y actualización del cliente móvil en un realm existente
+        run: python e2e/mobile_client_sync.py
+
+      - name: Probar login web y móvil (PKCE), renovación y servicio (client_credentials)
         run: |
           set -a
           source .env.example
@@ -366,8 +369,8 @@ jobs:
           DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
           EOF
           tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
-            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/themes infra/grafana \
-            simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh
+            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json infra/keycloak/themes infra/grafana \
+            simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh scripts/ensure_deploy_env.sh scripts/sync_mobile_client.sh
 
       - name: Copiar release al VPS y arrancarla (con rollback si falla)
         env:

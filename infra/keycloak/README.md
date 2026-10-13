@@ -34,6 +34,15 @@ docker compose -p doggycredit -f infra/compose.yaml --env-file .env exec keycloa
    /opt/keycloak/bin/kcadm.sh update "users/$id" -r doggycredit -s "requiredActions=[\"CONFIGURE_TOTP\"]"'
 ```
 
+## Cliente móvil
+
+El generador también produce `doggycredit-mobile.json`, montado fuera de
+`data/import`. Define el cliente público de iOS con PKCE S256, callback exacto
+`doggycredit://oauth/callback`, scopes de identidad y mappers de tenant y audiencia.
+El pipeline ejecuta `scripts/sync_mobile_client.sh` para crearlo o actualizarlo
+sobre un realm ya existente. No es necesario entrar al VPS ni editar la consola
+administradora. Ver [despliegue automatizado](../../docs/runbooks/despliegue-vps.md).
+
 ## Tema de acceso
 
 `themes/doggycredit` hereda `keycloak.v2` y solo cambia color, tipografía y forma

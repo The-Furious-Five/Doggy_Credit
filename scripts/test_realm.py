@@ -1,7 +1,7 @@
 import json
 import unittest
 import yaml
-from generate_realm import generate, ROOT, API_ADMIN_CLIENT
+from generate_realm import generate, ROOT, API_ADMIN_CLIENT, MOBILE_CLIENT_ID, mobile_client
 
 class RealmTest(unittest.TestCase):
     def setUp(self):
@@ -14,6 +14,21 @@ class RealmTest(unittest.TestCase):
         self.assertEqual(client['attributes']['pkce.code.challenge.method'], 'S256')
         self.assertEqual(client['redirectUris'], ['https://localhost/callback'])
         self.assertTrue(all(not c['directAccessGrantsEnabled'] for c in self.realm['clients']))
+
+    def test_mobile_client_is_public_with_exact_callback_and_required_claims(self):
+        client = next(c for c in self.realm['clients'] if c['clientId'] == MOBILE_CLIENT_ID)
+        self.assertTrue(client['enabled'])
+        self.assertTrue(client['publicClient'])
+        self.assertTrue(client['standardFlowEnabled'])
+        for grant in ('directAccessGrantsEnabled', 'implicitFlowEnabled', 'serviceAccountsEnabled'):
+            self.assertFalse(client[grant])
+        self.assertNotIn('secret', client)
+        self.assertEqual(['doggycredit://oauth/callback'], client['redirectUris'])
+        self.assertEqual('S256', client['attributes']['pkce.code.challenge.method'])
+        self.assertEqual(['basic', 'profile', 'email', 'roles'], client['defaultClientScopes'])
+        self.assertEqual(mobile_client(), client)
+        checked_in = json.loads((ROOT / 'infra/keycloak/doggycredit-mobile.json').read_text())
+        self.assertEqual(client, checked_in, 'La actualización del VPS y el realm nuevo deben coincidir')
 
     def test_human_and_service_account_share_seed_tenant(self):
         users = {u['username']: u for u in self.realm['users']}

@@ -21,6 +21,7 @@ from urllib.request import build_opener, HTTPCookieProcessor, HTTPHandler, HTTPS
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import yaml
+from mobile_client_sync import synchronize
 
 class LoginForm(HTMLParser):
     """Acción del formulario de Keycloak con ese id y los campos ocultos de la página."""
@@ -112,13 +113,14 @@ def main():
         except HTTPError as error:
             return error.code, error.read()
 
-    def pkce_login(user):
+    def pkce_login(user, client_id='doggycredit-web', redirect_uri=None):
         """Flujo humano Authorization Code + PKCE S256 con el formulario real de Keycloak."""
         jar.clear()  # sin la sesión SSO anterior, Keycloak vuelve a pedir usuario y contraseña
+        redirect_uri = redirect_uri or origin + '/callback'
         verifier, state, nonce = secrets.token_urlsafe(48), secrets.token_urlsafe(24), secrets.token_urlsafe(24)
         challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
-        query = {'client_id': 'doggycredit-web', 'response_type': 'code', 'scope': 'openid profile',
-                 'redirect_uri': origin + '/callback', 'state': state, 'nonce': nonce,
+        query = {'client_id': client_id, 'response_type': 'code', 'scope': 'openid profile',
+                 'redirect_uri': redirect_uri, 'state': state, 'nonce': nonce,
                  'code_challenge': challenge, 'code_challenge_method': 'S256'}
         status, _, body = request(issuer + '/protocol/openid-connect/auth?' + urlencode(query))
         assert status == 200, f'Formulario PKCE HTTP {status}'
@@ -151,12 +153,12 @@ def main():
             print('OK: ' + user['username'] + ' tuvo que configurar MFA para entrar')
 
         redirect = urlsplit(location)
-        assert f'{redirect.scheme}://{redirect.netloc}{redirect.path}' == origin + '/callback'
+        assert f'{redirect.scheme}://{redirect.netloc}{redirect.path}' == redirect_uri
         params = parse_qs(redirect.query)
         assert params['state'] == [state]
         status, _, body = request(issuer + '/protocol/openid-connect/token', {
-            'grant_type': 'authorization_code', 'client_id': 'doggycredit-web',
-            'code': params['code'][0], 'redirect_uri': origin + '/callback', 'code_verifier': verifier})
+            'grant_type': 'authorization_code', 'client_id': client_id,
+            'code': params['code'][0], 'redirect_uri': redirect_uri, 'code_verifier': verifier})
         assert status == 200, f'Canje PKCE HTTP {status}'
         tokens = json.loads(body)
         assert claims(tokens['id_token'])['nonce'] == nonce
@@ -193,6 +195,46 @@ def main():
     assert claims(tokens['access_token'])['tenant_id'] == tenant['tenant_id']
     verify_api(tokens['access_token'])
     print('OK: humano PKCE S256, tenant_id y API real')
+
+    for invalid in ('redirect', 'missing-pkce', 'plain-pkce'):
+        jar.clear()
+        query = {'client_id': 'doggycredit-mobile', 'response_type': 'code', 'scope': 'openid profile',
+                 'redirect_uri': 'doggycredit://oauth/callback', 'state': 'invalid-mobile-probe',
+                 'code_challenge': 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', 'code_challenge_method': 'S256'}
+        if invalid == 'redirect':
+            query['redirect_uri'] = 'doggycredit://unregistered/callback'
+        elif invalid == 'missing-pkce':
+            del query['code_challenge']
+            del query['code_challenge_method']
+        else:
+            query['code_challenge_method'] = 'plain'
+        status, headers, _ = request(issuer + '/protocol/openid-connect/auth?' + urlencode(query))
+        assert status in (400, 302, 303), f'El cliente móvil aceptó {invalid}: HTTP {status}'
+        if status in (302, 303):
+            params = parse_qs(urlsplit(headers['Location']).query)
+            assert 'error' in params and 'code' not in params, f'No se rechazó {invalid}'
+
+    mobile = pkce_login(tenant['usuarios'][1], 'doggycredit-mobile', 'doggycredit://oauth/callback')
+    mobile_claims = claims(mobile['access_token'])
+    assert mobile_claims['tenant_id'] == tenant['tenant_id']
+    assert mobile_claims['sub'] and mobile_claims['preferred_username']
+    assert 'ANALYST' in mobile_claims['realm_access']['roles']
+    audience = mobile_claims['aud']
+    assert 'doggycredit-api' in ([audience] if isinstance(audience, str) else audience)
+    for path in ('tenant/actual', 'tenant/actual/uso', 'tenant/actual/preferencias',
+                 'credit-assessments', 'solicitantes'):
+        status, _, _ = request(origin + '/api/v1/' + path, token=mobile['access_token'])
+        assert status == 200, f'Consulta iOS {path}: HTTP {status}'
+    synchronize()  # El despliegue repetido conserva también una sesión móvil activa.
+    status, _, body = request(issuer + '/protocol/openid-connect/token', {
+        'grant_type': 'refresh_token', 'client_id': 'doggycredit-mobile', 'refresh_token': mobile['refresh_token']})
+    assert status == 200, f'Renovación móvil HTTP {status}'
+    refreshed = json.loads(body)
+    assert claims(refreshed['access_token'])['tenant_id'] == tenant['tenant_id']
+    status, _, _ = request(issuer + '/protocol/openid-connect/logout', {
+        'client_id': 'doggycredit-mobile', 'refresh_token': refreshed['refresh_token']})
+    assert status == 204, f'Cierre de sesión móvil HTTP {status}'
+    print('OK: móvil PKCE, claims, consultas de la app, renovación y cierre de sesión')
 
     # D-09: un TENANT_ADMIN crea una clave de API; la clave obtiene un token del
     # tenant correcto que la API acepta, y al revocarla deja de obtener tokens.
