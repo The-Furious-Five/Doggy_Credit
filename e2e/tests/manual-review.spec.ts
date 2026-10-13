@@ -42,13 +42,21 @@ test('Analista: resuelve un caso en revisión manual con override justificado y 
   expect(resolutions, 'no se envía una resolución sin justificación').toEqual([]);
 
   // 4. Override justificado: la API lo acepta y el caso sale de la bandeja.
+  // Capturar el cuerpo del servidor antes de entregarlo al navegador. Chromium puede
+  // descartar su buffer después de que la interfaz procese la respuesta y cierre el diálogo.
+  let resolutionBody: unknown;
+  await page.route('**/api/v1/revision-manual/*/resolucion', async (route) => {
+    const upstream = await route.fetch();
+    resolutionBody = await upstream.json();
+    await route.fulfill({ response: upstream });
+  });
   await dialog.getByRole('textbox', { name: 'Justificación' }).fill(JUSTIFICATION);
   const [response] = await Promise.all([
     page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/resolucion')),
     dialog.getByRole('button', { name: 'Resolver caso' }).click(),
   ]);
   expect(response.status()).toBe(200);
-  expect(await response.json()).toMatchObject({ decision: 'APROBADO', justificacion: JUSTIFICATION });
+  expect(resolutionBody).toMatchObject({ decision: 'APROBADO', justificacion: JUSTIFICATION });
   const correlationId = response.headers()['x-correlation-id'];
   expect(correlationId, 'la resolución devuelve su X-Correlation-Id').toBeTruthy();
   await expect(toast(page, `Caso aprobado con ${productName}.`)).toBeVisible();

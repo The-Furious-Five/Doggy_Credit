@@ -27,7 +27,7 @@ name: CI/CD
 #                       Antes pasa el smoke test de release (E-13) contra ese
 #                       mismo Compose, el que después verifica producción.
 #
-# Despliegue (CD): solo en push a main o ejecución manual, y solo si las 6
+# Despliegue (CD): en push a main, ejecución manual o reintento mensual, y solo si las 6
 # revisiones pasaron. Las imágenes se compilan aquí y se publican en GHCR con
 # el SHA del commit; el VPS no compila nada: descarga, arranca, valida salud y,
 # si falla, vuelve a la release anterior. Al final, el smoke test comprueba
@@ -40,6 +40,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Reintentar al renovarse la cuota gratuita, sin subir el presupuesto de Actions.
+  schedule:
+    - cron: '17 6 1 * *' # Día 1, 06:17 UTC (02:17 Bolivia); evita el inicio de hora.
 
 permissions:
   contents: read
@@ -146,7 +149,7 @@ jobs:
           python scripts/generate_realm.py
           bash scripts/generate_clients.sh
           # Si esto falla: corre ambos scripts localmente y commitea el resultado.
-          git diff --exit-code -- infra/keycloak/doggycredit-realm.json web/src/app/api
+          git diff --exit-code -- infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json web/src/app/api
           test -z "$(git ls-files --others --exclude-standard web/src/app/api)"
 
       - name: Rechazar cambios del OpenAPI que rompan a los consumidores (solo PR)
@@ -179,7 +182,10 @@ jobs:
           docker compose --env-file .env.example -f infra/compose.yaml cp caddy:/data/caddy/pki/authorities/local/root.crt "$RUNNER_TEMP/doggycredit-root.crt"
           curl --retry 30 --retry-all-errors --retry-delay 2 --fail --silent --cacert "$RUNNER_TEMP/doggycredit-root.crt" https://localhost/actuator/health
 
-      - name: Probar login de usuario (PKCE) y de servicio (client_credentials)
+      - name: Probar creación y actualización del cliente móvil en un realm existente
+        run: python e2e/mobile_client_sync.py
+
+      - name: Probar login web y móvil (PKCE), renovación y servicio (client_credentials)
         run: |
           set -a
           source .env.example
@@ -365,9 +371,9 @@ jobs:
           DC_WEB_IMAGE=$REPO/doggycredit-web:$GITHUB_SHA
           DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
           EOF
-          tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
-            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/themes infra/grafana \
-            simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh
+          COPYFILE_DISABLE=1 tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
+            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json infra/keycloak/themes infra/grafana \
+            simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh scripts/ensure_deploy_env.sh scripts/sync_mobile_client.sh
 
       - name: Copiar release al VPS y arrancarla (con rollback si falla)
         env:

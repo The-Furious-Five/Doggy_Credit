@@ -28,6 +28,8 @@ tags:
   - name: analytics
   - name: webhooks
   - name: revision-manual
+  - name: planes
+  - name: reporte-accesos
 
 paths:
 
@@ -398,9 +400,9 @@ paths:
           description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
 
 
-  # RF-DEC-03 (D-10 / C-10 / E-10). Tag propio: el backend genera RevisionManualApi
-  # sin implementación por defecto, así que agregar estas rutas no obliga a tocar
-  # los controladores existentes.
+  # RF-DEC-03 (D-10 / C-10 / E-10). Propuesto por E-10 y adoptado sin cambios por D-10.
+  # Tag propio: el backend genera RevisionManualApi sin implementación por defecto, así
+  # que agregar estas rutas no obliga a tocar los controladores existentes.
   /revision-manual:
     get:
       tags: [revision-manual]
@@ -524,6 +526,78 @@ paths:
         "403":
           $ref: "#/components/responses/ErrorNegocio"
 
+  # RF-CON-03 (D-10 / C-11). Tag propio: AuditoriaApi ya está implementada, y sumar
+  # parámetros a listarAuditoria cambiaría la firma generada de AuditQueryController.
+  /auditoria/accesos:
+    get:
+      tags: [reporte-accesos]
+      operationId: obtenerReporteAccesos
+      summary: >
+        Reporte de accesos: quién accedió a los datos de un titular y con qué autorización
+        (solo TENANT_ADMIN)
+      description: >
+        RF-CON-03. Se filtra por titular (`solicitanteId`), por `correlationId` o por ambos;
+        al menos uno es obligatorio (sin ninguno, 400 VALIDATION_ERROR). Por titular devuelve
+        toda acción registrada sobre sus recursos: alta, consentimientos, consultas a las
+        fuentes, Perfil 360, evaluaciones, lecturas y resoluciones de revisión manual. Por
+        correlation-id devuelve lo que hizo una sola petición. De lo más reciente a lo más
+        antiguo, con paginación por cursor como /auditoria. Lee de audit.access_log por la
+        API pública del módulo audit, sin JOIN entre esquemas. La respuesta no lleva datos
+        personales: el titular va por id. Generar el reporte también queda en la bitácora.
+      parameters:
+        - name: solicitanteId
+          in: query
+          required: false
+          description: Titular del reporte. Inexistente o de otro tenant responde 404 UNKNOWN_APPLICANT
+          schema: { type: string, format: uuid }
+        - name: correlationId
+          in: query
+          required: false
+          description: X-Correlation-Id de una petición; coincidencia exacta
+          schema: { type: string, minLength: 1, maxLength: 128 }
+        - name: desde
+          in: query
+          required: false
+          description: Incluye registros creados en o después de este instante
+          schema: { type: string, format: date-time }
+        - name: hasta
+          in: query
+          required: false
+          description: Incluye registros creados antes de este instante (exclusivo)
+          schema: { type: string, format: date-time }
+        - name: cursor
+          in: query
+          required: false
+          description: Secuencia del último registro de la página anterior
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        "200":
+          description: Página del reporte con las autorizaciones que aparecen en ella
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteAccesos"
+        "400":
+          description: VALIDATION_ERROR, sin `solicitanteId` ni `correlationId`, o un parámetro inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
+          description: UNKNOWN_APPLICANT, el solicitante no existe o es de otro tenant (nunca se distingue cuál)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+
   /tenant/actual:
     get:
       tags: [tenant]
@@ -633,6 +707,87 @@ paths:
           description: Sin permisos
 
 
+  # RF-PLN-04 / RF-PLN-05 (D-10 / A-11 / A-12). Subir de plan es PATCH /admin/tenants/{id}
+  # (operador). Tag propio por la misma razón que revision-manual: con
+  # skipDefaultInterface, sumar operaciones a TenantApi rompería la compilación de
+  # TenantController hasta que A-12 las implemente.
+  /tenant/actual/plan:
+    get:
+      tags: [planes]
+      operationId: obtenerEstadoPlan
+      summary: Plan del tenant autenticado, período en curso, bajada programada y gracia vigente
+      description: >
+        Cualquier rol del tenant. El período es el mes calendario en UTC, el mismo con el
+        que se cuenta la cuota mensual. El tenant sale exclusivamente del JWT.
+      responses:
+        "200":
+          description: Estado del plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstadoPlan"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /tenant/actual/plan/bajada:
+    put:
+      tags: [planes]
+      operationId: programarBajadaPlan
+      summary: Programa la bajada de plan para el cierre del período (solo TENANT_ADMIN)
+      description: >
+        RF-PLN-05. No cambia nada hoy: el plan actual sigue hasta `periodo.fin`. Al cierre,
+        el tenant pasa a `planDestino` y empiezan 30 días de gracia: las integraciones que
+        excedan el plan nuevo quedan desactivadas, no borradas; la preaprobación automática
+        (nivel 1) vuelve a decisión sugerida, y nada se purga antes de `gracia.hasta`. Si
+        durante la gracia el operador vuelve a subir el plan, el tenant recupera lo
+        desactivado. Programar otra vez reemplaza la bajada anterior. Queda en
+        audit.access_log con el X-Correlation-Id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BajadaPlanNueva"
+      responses:
+        "200":
+          description: Bajada programada; el plan actual no cambia hasta el cierre del período
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstadoPlan"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "409":
+          description: PLAN_CHANGE_NOT_ALLOWED, `planDestino` no es inferior al plan actual
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    delete:
+      tags: [planes]
+      operationId: cancelarBajadaPlan
+      summary: Cancela la bajada programada antes del cierre del período (solo TENANT_ADMIN)
+      description: >
+        Idempotente: sin bajada programada devuelve el estado igual. No termina una gracia
+        ya iniciada; eso solo ocurre si el operador vuelve a subir el plan. Queda en
+        audit.access_log con el X-Correlation-Id.
+      responses:
+        "200":
+          description: Estado del plan, sin bajada programada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstadoPlan"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
+
   /admin/tenants:
     get:
       tags: [admin]
@@ -657,7 +812,15 @@ paths:
     patch:
       tags: [admin]
       operationId: actualizarTenant
-      summary: Activa o desactiva un tenant (solo PLATFORM_ADMIN)
+      summary: Activa o desactiva un tenant, o cambia su plan (solo PLATFORM_ADMIN)
+      description: >
+        RF-PLN-04: el operador sube el plan en el momento (pago simulado en el MVP). El cambio
+        es efectivo en ≤ 1 min sin volver a iniciar sesión, porque los entitlements se leen
+        del servidor en cada petición y no viajan en el token. Subir cancela una bajada
+        programada y termina la gracia vigente. Aquí el cambio es inmediato en ambos
+        sentidos: es la herramienta del operador (y del E2E para restaurar el plan). La bajada
+        que pide el tenant va por PUT /tenant/actual/plan/bajada, al cierre del período.
+        Todo cambio de plan queda en audit.access_log.
       parameters:
         - name: id
           in: path
@@ -1470,6 +1633,123 @@ components:
       properties:
         activa: { type: boolean }
       required: [activa]
+
+    CodigoPlan:
+      type: string
+      enum: [FREE, PRO, ENTERPRISE]
+
+    PeriodoPlan:
+      type: object
+      description: Mes calendario en UTC, el mismo con el que se cuenta la cuota.
+      properties:
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time, description: "Exclusivo: inicio del mes siguiente" }
+      required: [inicio, fin]
+
+    EstadoPlan:
+      type: object
+      description: RF-PLN-04 / RF-PLN-05. Plan vigente hoy y los cambios en curso.
+      properties:
+        plan: { $ref: "#/components/schemas/CodigoPlan" }
+        periodo: { $ref: "#/components/schemas/PeriodoPlan" }
+        bajadaProgramada:
+          $ref: "#/components/schemas/BajadaPlan"
+          description: Ausente si no hay una bajada programada
+        gracia:
+          $ref: "#/components/schemas/GraciaPlan"
+          description: Ausente si no hay una gracia vigente
+      required: [plan, periodo]
+
+    BajadaPlanNueva:
+      type: object
+      properties:
+        planDestino:
+          $ref: "#/components/schemas/CodigoPlan"
+          description: Debe ser inferior al plan actual (si no, 409 PLAN_CHANGE_NOT_ALLOWED)
+      required: [planDestino]
+
+    BajadaPlan:
+      type: object
+      description: Bajada que se aplicará al cierre del período.
+      properties:
+        planDestino: { $ref: "#/components/schemas/CodigoPlan" }
+        efectivaEn: { type: string, format: date-time, description: "Igual a periodo.fin" }
+        integracionesADesactivar:
+          type: array
+          description: Integraciones activas hoy que excederán el plan destino; vacío si ninguna
+          items: { $ref: "#/components/schemas/FuenteIntegracion" }
+        solicitadaPor: { type: string, description: "Usuario que la programó (claim preferred_username)" }
+        solicitadaEn: { type: string, format: date-time }
+      required: [planDestino, efectivaEn, integracionesADesactivar, solicitadaPor, solicitadaEn]
+
+    GraciaPlan:
+      type: object
+      description: >
+        30 días después de una bajada. Lo que excede el plan nuevo queda desactivado, no
+        borrado; al terminar se aplican los límites y la retención del plan nuevo.
+      properties:
+        planAnterior: { $ref: "#/components/schemas/CodigoPlan" }
+        desde: { type: string, format: date-time }
+        hasta: { type: string, format: date-time, description: "desde + 30 días; antes de esta fecha no se purga nada" }
+        integracionesDesactivadas:
+          type: array
+          items: { $ref: "#/components/schemas/FuenteIntegracion" }
+      required: [planAnterior, desde, hasta, integracionesDesactivadas]
+
+    ReporteAccesos:
+      type: object
+      description: RF-CON-03. Una página del reporte, sin datos personales.
+      properties:
+        solicitanteId: { type: string, format: uuid, description: "Filtro aplicado, si se indicó" }
+        correlationId: { type: string, description: "Filtro aplicado, si se indicó" }
+        generadoEn: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RegistroAcceso"
+        autorizaciones:
+          type: array
+          description: Los consentimientos que aparecen en `items`, una vez cada uno
+          items:
+            $ref: "#/components/schemas/AutorizacionAcceso"
+        siguienteCursor:
+          type: integer
+          format: int64
+          description: Ausente si no hay más páginas
+      required: [generadoEn, items, autorizaciones]
+
+    RegistroAcceso:
+      description: Un registro de la bitácora, con el titular afectado y la autorización usada.
+      allOf:
+        - $ref: "#/components/schemas/RegistroAuditoria"
+        - type: object
+          properties:
+            solicitanteId:
+              type: string
+              format: uuid
+              description: Titular cuyos datos se tocaron; ausente si la acción no toca datos de un titular
+            consentimientoId:
+              type: string
+              format: uuid
+              description: >
+                Consentimiento con el que se hizo la acción; ausente si no lo requiere (por
+                ejemplo, leer un perfil ya consolidado)
+
+    AutorizacionAcceso:
+      type: object
+      description: Resumen de un consentimiento, sin el documento del titular.
+      properties:
+        consentimientoId: { type: string, format: uuid }
+        solicitanteId: { type: string, format: uuid }
+        fuentes:
+          type: array
+          items: { type: string, enum: [BURO, BANCO, WALLET] }
+        finalidad: { type: string }
+        estado: { type: string, enum: [ACTIVO, REVOCADO, EXPIRADO] }
+        creadoEn: { type: string, format: date-time }
+        expiraEn: { type: string, format: date-time }
+        revocadoEn: { type: string, format: date-time, description: Solo si estado es REVOCADO }
+      required: [consentimientoId, solicitanteId, fuentes, finalidad, estado, creadoEn, expiraEn]
 
     Recomendacion:
       type: object

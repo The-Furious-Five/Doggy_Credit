@@ -144,6 +144,16 @@ class CreditAssessment {
 		return requestHash;
 	}
 
+	/** C-10: lo que la bandeja de revisión manual muestra de esta evaluación. */
+	ReviewCase reviewCase() {
+		return new ReviewCase(id, applicantId, AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band),
+				List.of(reasons), requestedAmount, termMonths, purpose, createdAt);
+	}
+
+	record ReviewCase(UUID id, UUID applicantId, AssessmentStatus status, int score, ScoreBand band,
+			List<String> reasons, BigDecimal requestedAmount, Integer termMonths, String purpose, Instant createdAt) {
+	}
+
 	CreditAssessmentCompleted completedEvent() {
 		// El evento v1 no conoce SOLICITAR_DATOS: se publica el estado equivalente.
 		return new CreditAssessmentCompleted(UUID.randomUUID(), Instant.now(), tenantId, id, applicantId,

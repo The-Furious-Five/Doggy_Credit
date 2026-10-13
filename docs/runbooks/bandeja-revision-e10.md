@@ -74,3 +74,16 @@ consume ese cliente generado.
 - Al revisar en móvil aparecieron dos defectos del Design System, corregidos en
   la 3.1.1 (ver `docs/design-system/CHANGELOG.md`): `.ds-table-scroll` no
   contenía el encabezado `.ds-sr-only`, y `ds-tabs` crecía con tablas anchas.
+
+## Integración con iOS y despliegue
+
+La implementación de LOS-111 expone las dos rutas del contrato para ANALYST y
+TENANT_ADMIN. Las resoluciones se guardan como registros inmutables separados
+de la evaluación original, con aislamiento por tenant, justificación obligatoria
+y auditoría. La restricción única impide resolver un caso dos veces: el segundo
+intento responde 409 CONCURRENT_UPDATE.
+
+La migración `V2026_10_12_2300__assessment_manual_review_resolutions.sql` se aplica
+automáticamente al desplegar, después de las migraciones de main ya publicadas.
+CI prueba también las resoluciones simultáneas, el producto de otro tenant y el
+flujo de creación/aprobación/rechazo usando un token real del cliente móvil.

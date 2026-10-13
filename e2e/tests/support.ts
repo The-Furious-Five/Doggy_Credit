@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { createHmac } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { test as base, expect, type Browser, type Page } from '@playwright/test';
 import { parse } from 'yaml';
 
@@ -71,9 +72,9 @@ export function operator(): DemoUser {
  */
 const merged = {
   /** C-10 (LOS-111): el backend implementa RevisionManualApi (GET y POST /revision-manual). */
-  bandeja: false,
+  bandeja: true,
   /** A-11 (LOS-115): seed/tenants.yaml siembra un operador PLATFORM_ADMIN (y su contraseña en .env.example). */
-  cambioDePlan: false,
+  cambioDePlan: true,
 };
 const enabled = new Set((process.env['E2E_DEPENDENCIAS'] ?? '').split(',').map((name) => name.trim()));
 
@@ -81,13 +82,77 @@ export function ready(dependency: keyof typeof merged): boolean {
   return merged[dependency] || enabled.has(dependency);
 }
 
-/** Login real: SPA → Keycloak (PKCE) → callback → consola. */
+/**
+ * A-14 (LOS-118): los TENANT_ADMIN sembrados configuran MFA en su primer inicio de sesión
+ * y desde ahí Keycloak les pide el código cada vez. El secreto queda fuera del repositorio
+ * (e2e/.generated, el mismo archivo que usa identity_smoke.py) para poder volver a entrar
+ * mientras viva el volumen de Keycloak.
+ */
+const TOTP_DIR = new URL('../.generated/', import.meta.url);
+const TOTP_STORE = new URL('totp.json', TOTP_DIR);
+const TOTP_STEP_MS = 30_000;
+
+type TotpStore = Record<string, { secret: string; counter: number }>;
+
+function totpStore(): TotpStore {
+  return existsSync(TOTP_STORE) ? (JSON.parse(readFileSync(TOTP_STORE, 'utf8')) as TotpStore) : {};
+}
+
+function totp(secret: string, counter: number): string {
+  const message = Buffer.alloc(8);
+  message.writeBigUInt64BE(BigInt(counter));
+  // Keycloak firma con los bytes del secreto tal cual; el Base32 es solo lo que muestra al usuario.
+  const digest = createHmac('sha1', Buffer.from(secret, 'utf8')).update(message).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  return ((digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).toString().padStart(6, '0');
+}
+
+/**
+ * Keycloak no acepta dos veces el mismo código: se usa el del paso siguiente al último
+ * usado (su ventana admite uno de adelanto) y, si aún no vale, se espera.
+ */
+async function nextTotp(page: Page, key: string, secret: string): Promise<string> {
+  const store = totpStore();
+  const counter = Math.max(Math.floor(Date.now() / TOTP_STEP_MS), (store[key]?.counter ?? 0) + 1);
+  const wait = (counter - 1) * TOTP_STEP_MS - Date.now();
+  if (wait > 0) await page.waitForTimeout(wait + 1_000);
+  store[key] = { secret, counter };
+  mkdirSync(TOTP_DIR, { recursive: true });
+  writeFileSync(TOTP_STORE, JSON.stringify(store, null, 2));
+  return totp(secret, counter);
+}
+
+/** Login real: SPA → Keycloak (PKCE, y MFA si el usuario lo tiene) → callback → consola. */
 export async function login(page: Page, admin: DemoUser): Promise<void> {
   await page.goto('/acceso');
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await page.locator('#username').fill(admin.username);
   await page.locator('#password').fill(admin.password);
   await page.locator('#kc-login').click();
+
+  // Tras la contraseña: configurar MFA (primer ingreso), dar el código, o ya la consola.
+  const setup = page.locator('#totp');
+  const challenge = page.locator('#otp');
+  await expect(setup.or(challenge).or(page.getByRole('navigation', { name: 'Consola' })).first()).toBeVisible();
+  const key = `${new URL(page.url()).origin}|${admin.username}`;
+  if (await setup.isVisible()) {
+    const secret = await page.locator('#totpSecret').getAttribute('value');
+    if (!secret) throw new Error('La pantalla de configuración MFA de Keycloak no trae el secreto');
+    await setup.fill(await nextTotp(page, key, secret));
+    await page.locator('#userLabel').fill('e2e');
+    await page.locator('#saveTOTPBtn').click();
+  } else if (await challenge.isVisible()) {
+    const saved = totpStore()[key];
+    if (!saved) {
+      throw new Error(
+        `Keycloak pide el código MFA de ${admin.username} y e2e/.generated/totp.json no tiene su secreto: ` +
+          'recrea el volumen de Keycloak (docker compose down -v). Ver e2e/README.md',
+      );
+    }
+    await challenge.fill(await nextTotp(page, key, saved.secret));
+    await page.locator('#kc-login').click();
+  }
+
   await expect(page).toHaveURL(/\/app\/resumen$/);
   await expect(page.getByText(admin.tenant, { exact: true })).toBeVisible();
   const sidebar = page.getByRole('complementary');

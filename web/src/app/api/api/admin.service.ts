@@ -40,7 +40,8 @@ export class AdminService extends BaseService {
     }
 
     /**
-     * Activa o desactiva un tenant (solo PLATFORM_ADMIN)
+     * Activa o desactiva un tenant, o cambia su plan (solo PLATFORM_ADMIN)
+     * RF-PLN-04: el operador sube el plan en el momento (pago simulado en el MVP). El cambio es efectivo en ≤ 1 min sin volver a iniciar sesión, porque los entitlements se leen del servidor en cada petición y no viajan en el token. Subir cancela una bajada programada y termina la gracia vigente. Aquí el cambio es inmediato en ambos sentidos: es la herramienta del operador (y del E2E para restaurar el plan). La bajada que pide el tenant va por PUT /tenant/actual/plan/bajada, al cierre del período. Todo cambio de plan queda en audit.access_log. 
      * @endpoint patch /admin/tenants/{id}
      * @param id 
      * @param tenantPatch 
