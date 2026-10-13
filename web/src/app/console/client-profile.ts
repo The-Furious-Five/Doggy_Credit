@@ -113,6 +113,11 @@ const incomeOrigin: Record<PerfilFinanciero360['origenIngreso'], string> = {
       <ds-tabs label="Perfil del cliente">
         <ds-tab value="resumen" label="Resumen">
           @if (c.perfil; as p) {
+            @if (p.discrepanciaIngreso) {
+              <ds-alert heading="Ingreso declarado distinto del observado" tone="warning">
+                <p>{{ discrepancyDetail(p) }}</p>
+              </ds-alert>
+            }
             <div class="kpis">
               <ds-card padding="compact"><ds-stat label="Ingreso mensual" [value]="sensitive.amount(money(p.ingresoMensual))" [detail]="origin(p)" /></ds-card>
               <ds-card padding="compact"><ds-stat label="Deuda vigente" [value]="sensitive.amount(money(p.deudaVigente))" [detail]="obligations(p)" /></ds-card>
@@ -210,6 +215,11 @@ export class ClientProfile {
 
   origin(p: PerfilFinanciero360): string {
     return incomeOrigin[p.origenIngreso];
+  }
+
+  /** B-11 (RF-PER-06): difieren en más de 30 %. */
+  discrepancyDetail(p: PerfilFinanciero360): string {
+    return `Declarado ${this.sensitive.amount(money(p.ingresoDeclarado))} · Observado ${this.sensitive.amount(money(p.ingresoMensual))}`;
   }
 
   obligations(p: PerfilFinanciero360): string {

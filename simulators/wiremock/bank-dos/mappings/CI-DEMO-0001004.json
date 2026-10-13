@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/bank-dos/v1/cuentas/CI-DEMO-0001004"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "status": 200,
+    "bodyFileName": "CI-DEMO-0001004.json",
+    "fixedDelayMilliseconds": 300
+  }
+}

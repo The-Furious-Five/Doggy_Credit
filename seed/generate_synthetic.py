@@ -20,8 +20,9 @@ TENANTS_YAML = ROOT / "seed" / "tenants.yaml"
 PERSONAS_JSON = ROOT / "seed" / "personas-sinteticas.json"
 BUREAU = ROOT / "simulators" / "wiremock" / "bureau"
 BANK = ROOT / "simulators" / "wiremock" / "bank"
+BANK_DOS = ROOT / "simulators" / "wiremock" / "bank-dos"
 WALLET = ROOT / "simulators" / "wiremock" / "wallet"
-SIMULADORES = (BUREAU, BANK, WALLET)
+SIMULADORES = (BUREAU, BANK, BANK_DOS, WALLET)
 
 SEED = 20260928
 MONEDA = "BOB"
@@ -221,6 +222,25 @@ def resumen_banco(p):
     })
 
 
+def resumen_banco_dos(p):
+    """Formato del segundo core bancario (B-10, contracts/connectors/bank-dos.v1.yaml).
+
+    Mismo titular y mismas cifras que `resumen_banco` (ambos bancos describen
+    al mismo cliente), pero con la forma y el vocabulario propios de este otro
+    proveedor: demuestra que el conector estándar (`SourceConnector`) no exige
+    ningún formato de cable en particular, solo el canónico de salida."""
+    b = p["banco"]
+    producto = "AHORRO" if b["tipo_cuenta"] == "CAJA_AHORRO" else "CORRIENTE"
+    return dump({
+        "documentoCliente": p["documento"],
+        "corte": FECHA_CORTE,
+        "cuenta": {"tipoProducto": producto, "moneda": MONEDA, "fechaDesde": b["fecha_apertura"],
+                   "saldoPromedio3Meses": b["saldo_promedio_3m"]},
+        "movimientos": [{"mes": per, "creditos": a, "debitos": c}
+                        for per, a, c in zip(PERIODOS, b["abonos_mensuales"], b["cargos_mensuales"])],
+    })
+
+
 def movimientos_billetera(p):
     """Formato de la billetera móvil (contracts/connectors/wallet.v1.yaml)."""
     w = p["billetera"]
@@ -287,6 +307,8 @@ def build_files():
                              "<Documento>{{request.path.[3]}}</Documento></ErrorBuro>\n"}})
     simulador_json(files, BANK, "/bank/v1/clientes/", resumen_banco, personas,
                    {"codigo": "CLIENTE_NO_ENCONTRADO", "numeroDocumento": "{{request.path.[3]}}"})
+    simulador_json(files, BANK_DOS, "/bank-dos/v1/cuentas/", resumen_banco_dos, personas,
+                   {"codigo": "CLIENTE_INEXISTENTE", "documentoCliente": "{{request.path.[3]}}"})
     simulador_json(files, WALLET, "/wallet/v1/titulares/", movimientos_billetera, personas,
                    {"error": "TITULAR_NO_REGISTRADO", "documento": "{{request.path.[3]}}"})
     return personas, files

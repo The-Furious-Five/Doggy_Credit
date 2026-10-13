@@ -1308,6 +1308,12 @@ components:
         creadoEn: { type: string, format: date-time }
         ingresoMensual: { $ref: "#/components/schemas/Dinero" }
         origenIngreso: { type: string, enum: [BANCO, WALLET, DECLARADO] }
+        ingresoDeclarado: { $ref: "#/components/schemas/Dinero" }
+        discrepanciaIngreso:
+          type: boolean
+          description: >
+            RF-PER-06: declarado y observado difieren en más de 30 %. Ausente
+            si no hay observado con que comparar (origenIngreso DECLARADO).
         deudaVigente: { $ref: "#/components/schemas/Dinero" }
         obligaciones: { type: integer, minimum: 0 }
         cuotaMensual: { $ref: "#/components/schemas/Dinero" }

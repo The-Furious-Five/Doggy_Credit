@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/bank-dos/v1/cuentas/CI-DEMO-0009503"
+  },
+  "response": {
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "status": 503,
+    "jsonBody": {
+      "codigo": "SERVICIO_NO_DISPONIBLE"
+    }
+  }
+}
