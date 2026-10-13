@@ -27,7 +27,7 @@ name: CI/CD
 #                       Antes pasa el smoke test de release (E-13) contra ese
 #                       mismo Compose, el que después verifica producción.
 #
-# Despliegue (CD): solo en push a main o ejecución manual, y solo si las 6
+# Despliegue (CD): en push a main, ejecución manual o reintento mensual, y solo si las 6
 # revisiones pasaron. Las imágenes se compilan aquí y se publican en GHCR con
 # el SHA del commit; el VPS no compila nada: descarga, arranca, valida salud y,
 # si falla, vuelve a la release anterior. Al final, el smoke test comprueba
@@ -40,6 +40,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Reintentar al renovarse la cuota gratuita, sin subir el presupuesto de Actions.
+  schedule:
+    - cron: '17 6 1 * *' # Día 1, 06:17 UTC (02:17 Bolivia); evita el inicio de hora.
 
 permissions:
   contents: read
