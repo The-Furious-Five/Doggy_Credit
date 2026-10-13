@@ -65,6 +65,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          settings-path: ${{ runner.temp }}/dc-maven-settings
 
       - uses: actions/setup-node@v4
         with:
