@@ -35,6 +35,26 @@ Para comprobar el resultado, revisar el workflow CI/CD y comparar el SHA de
 `https://doggycredit.los5furiosos.cloud/release.json` con el de esa ejecución.
 Mientras no coincidan y pase el smoke test, el despliegue sigue pendiente.
 
+## Despliegue personal con Mac temporal
+
+`deploy-once.yml` acepta sólo ejecuciones manuales. Un único job repite las seis
+revisiones y luego construye imágenes Linux x64, despliega con rollback y
+comprueba producción. No modifica los runners del workflow CI/CD habitual.
+
+Antes de ejecutarlo se autorizan temporalmente `DC_ONCE_DEPLOY_ACTOR` (usuario
+de GitHub) y `DC_ONCE_DEPLOY_SHA` (commit completo de `main`). El workflow exige
+que actor, SHA e input coincidan. Se registra un runner de ese repositorio con
+una etiqueta aleatoria `doggycredit-once-...`, `--no-default-labels` y
+`--ephemeral`. Así los jobs habituales del equipo no lo seleccionan y GitHub
+lo retira automáticamente después de ese único job.
+
+El runner se ejecuta en primer plano desde una carpeta temporal, sin instalar
+un servicio ni un inicio automático en el Mac. Usa un proyecto Compose propio
+con puertos de prueba en loopback. Sus claves SSH y configuración de Docker
+están en carpetas temporales, sin reemplazar las credenciales del usuario.
+Al finalizar se comprueba la baja del runner, se borran ambas autorizaciones y
+se retira la carpeta temporal. El VPS sigue funcionando al apagar el Mac.
+
 ## Banco y billetera en cada release (E-04)
 
 El paquete `releases/<sha>` contiene los mappings y respuestas de banco y
