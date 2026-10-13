@@ -2,9 +2,11 @@
 
 Workflow: `.github/workflows/ci-cd.yml`.
 
-- **PR a main**: backend, web, contracts (incluye oasdiff), identity y ML. No despliega.
+- **PR a main**: backend, web, contracts (incluye oasdiff), identity, ML y E2E. No despliega.
 - **Push a main** (o *Run workflow* manual sobre main): los mismos jobs y, solo si
   todos pasan, `deploy`. El PR queda para revisión manual antes de fusionar.
+- **Reintento mensual**: el día 1 a las 06:17 UTC (02:17 en Bolivia), el mismo
+  workflow vuelve a comprobar `main` y despliega sólo si sus seis revisiones pasan.
 
 `deploy` compila **en GitHub Actions** las imágenes `doggycredit-api` y
 `doggycredit-web`, las publica en GHCR con el SHA del commit y envía al VPS un
@@ -15,6 +17,23 @@ vuelve a la release anterior. Al final, `scripts/smoke_release.py` comprueba
 desde Internet que `/release.json` es el SHA del commit, que la SPA, Keycloak y la
 API responden como se espera y que actuator está cerrado. Ver
 [release-sprint.md](release-sprint.md).
+
+## Cuota gratuita de Actions
+
+Con el presupuesto de Actions en **0 USD** y el bloqueo de uso adicional activo,
+GitHub detiene los jobs cuando se agotan los minutos incluidos. Los cambios
+fusionados permanecen en `main`; el VPS sigue sirviendo su release anterior.
+Un workflow fallido no se reanuda por sí solo al renovarse la cuota.
+
+El evento `schedule` del día 1 inicia una nueva ejecución sobre la versión
+actual de `main` tras la renovación mensual. Ejecuta las seis revisiones y el
+mismo despliegue con rollback y smoke test, sin cambiar el presupuesto ni
+requerir entrar manualmente al VPS. GitHub puede retrasar el horario programado;
+si persiste un bloqueo de facturación o falla una revisión, no se despliega.
+
+Para comprobar el resultado, revisar el workflow CI/CD y comparar el SHA de
+`https://doggycredit.los5furiosos.cloud/release.json` con el de esa ejecución.
+Mientras no coincidan y pase el smoke test, el despliegue sigue pendiente.
 
 ## Banco y billetera en cada release (E-04)
 
