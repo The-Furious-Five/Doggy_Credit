@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.DoggyCredit" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">#101815</item>
+        <item name="android:colorAccent">#74C9AF</item>
+    </style>
+</resources>
