@@ -23,6 +23,11 @@ export interface PerfilFinanciero360 {
     creadoEn: string;
     ingresoMensual: Dinero;
     origenIngreso: PerfilFinanciero360OrigenIngresoEnum;
+    ingresoDeclarado?: Dinero;
+    /**
+     * RF-PER-06: declarado y observado difieren en más de 30 %. Ausente si no hay observado con que comparar (origenIngreso DECLARADO). 
+     */
+    discrepanciaIngreso?: boolean;
     deudaVigente?: Dinero;
     obligaciones?: number;
     cuotaMensual?: Dinero;

@@ -16,6 +16,18 @@ class ContractTests {
         assertNull(applicant.profile)
         assertTrue(Display.date(applicant.createdAt).contains("2026"))
     }
+    @Test fun profileAcceptsOptionalIncomeComparisonFieldsFromMergedApi() {
+        val profile = ApiJson.decodeFromString<FinancialProfile>("""
+            {"id":"profile-1","hash":"ab12","creadoEn":"2026-10-01T14:03:22Z",
+             "ingresoMensual":{"amount":"9500.00","currency":"BOB"},"origenIngreso":"BANCO",
+             "ingresoDeclarado":{"amount":"5000.00","currency":"BOB"},"discrepanciaIngreso":true,
+             "fuentes":[{"fuente":"BANCO","estado":"COMPLETA"}]}
+        """.trimIndent())
+        assertEquals("9500.00", profile.monthlyIncome.amount)
+        assertEquals("BANCO", profile.incomeOrigin)
+        assertEquals("COMPLETA", profile.sources.single().state)
+        assertNull(profile.debt)
+    }
     @Test fun simulatedFlagIsNeverHidden() {
         assertTrue(ApiJson.decodeFromString<Assessment>("{}").simulated)
         assertFalse(ApiJson.decodeFromString<Assessment>("""{"score":710,"simulado":false}""").simulated)

@@ -58,6 +58,19 @@ struct ContractDecodingTests {
         #expect(abs(created - expected) < 0.000_01)
     }
 
+    @Test("Perfil 360 acepta los nuevos campos opcionales de comparación de ingresos")
+    func profileAcceptsOptionalIncomeComparisonFields() throws {
+        let profile = try decode(FinancialProfile.self, """
+        {"id":"1c9a6f3e-77b7-4a63-a2b5-3d6f8f0e2c10","hash":"ab12","creadoEn":"2026-10-01T14:03:22Z",
+         "ingresoMensual":{"amount":"9500.00","currency":"BOB"},"origenIngreso":"BANCO",
+         "ingresoDeclarado":{"amount":"5000.00","currency":"BOB"},"discrepanciaIngreso":true,
+         "fuentes":[{"fuente":"BANCO","estado":"COMPLETA"}]}
+        """)
+        #expect(profile.monthlyIncome.decimal == Decimal(9500))
+        #expect(profile.sources.map(\.state) == [.complete])
+        #expect(profile.outstandingDebt == nil)
+    }
+
     @Test("Bandeja de revisión con productos para aprobar")
     func reviewPage() throws {
         let page = try decode(ReviewCasePage.self, """
