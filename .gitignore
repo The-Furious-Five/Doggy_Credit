@@ -11,6 +11,50 @@ backend/target/
 !.mvn/wrapper/maven-wrapper.jar
 build/
 
+# --- Android / Gradle ---
+/android-mobile-app/**/.gradle/
+/android-mobile-app/**/.kotlin/
+/android-mobile-app/**/.cxx/
+/android-mobile-app/**/.externalNativeBuild/
+/android-mobile-app/captures/
+/android-mobile-app/**/local.properties
+/android-mobile-app/**/*.apk
+/android-mobile-app/**/*.aab
+/android-mobile-app/**/*.ap_
+/android-mobile-app/**/*.dex
+/android-mobile-app/**/*.jks
+/android-mobile-app/**/*.keystore
+/android-mobile-app/**/keystore.properties
+/android-mobile-app/**/key.properties
+/android-mobile-app/**/signing.properties
+# Necesario para compilar el proyecto aunque los demás JAR estén ignorados.
+!/android-mobile-app/gradle/wrapper/gradle-wrapper.jar
+
+# --- iOS / Xcode / Swift ---
+/ios-mobile-app/**/DerivedData/
+/ios-mobile-app/**/Build/
+/ios-mobile-app/**/.build/
+/ios-mobile-app/**/.swiftpm/
+/ios-mobile-app/**/xcuserdata/
+/ios-mobile-app/**/*.xcuserstate
+/ios-mobile-app/**/*.xccheckout
+/ios-mobile-app/**/*.xcscmblueprint
+/ios-mobile-app/**/*.xcarchive/
+/ios-mobile-app/**/*.xcresult/
+/ios-mobile-app/**/*.ipa
+/ios-mobile-app/**/*.dSYM
+/ios-mobile-app/**/*.dSYM.zip
+/ios-mobile-app/**/*.hmap
+/ios-mobile-app/**/*.bcsymbolmap
+/ios-mobile-app/**/*.profraw
+/ios-mobile-app/**/*.profdata
+/ios-mobile-app/**/Pods/
+/ios-mobile-app/**/Carthage/Build/
+/ios-mobile-app/**/*.p12
+/ios-mobile-app/**/*.p8
+/ios-mobile-app/**/*.mobileprovision
+/ios-mobile-app/**/*.local.xcconfig
+
 # --- Node / Angular ---
 web/node_modules/
 e2e/node_modules/
