@@ -22,4 +22,32 @@ interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
 			""")
 	List<AuditEvent> findPage(Instant from, Instant to, long before, Limit limit);
 
+	/** C-11: lo que se hizo con los datos de un titular. Mismas reglas que {@link #findPage}. */
+	@Query("""
+			select e from AuditEvent e
+			where e.applicantId = :applicantId
+			  and e.createdAt >= :from and e.createdAt < :to and e.chainSeq < :before
+			order by e.chainSeq desc
+			""")
+	List<AuditEvent> findByApplicant(UUID applicantId, Instant from, Instant to, long before, Limit limit);
+
+	/** C-11: lo que hizo una sola petición. */
+	@Query("""
+			select e from AuditEvent e
+			where e.correlationId = :correlationId
+			  and e.createdAt >= :from and e.createdAt < :to and e.chainSeq < :before
+			order by e.chainSeq desc
+			""")
+	List<AuditEvent> findByCorrelation(String correlationId, Instant from, Instant to, long before, Limit limit);
+
+	/** C-11: lo que hizo una petición con los datos de un titular. */
+	@Query("""
+			select e from AuditEvent e
+			where e.applicantId = :applicantId and e.correlationId = :correlationId
+			  and e.createdAt >= :from and e.createdAt < :to and e.chainSeq < :before
+			order by e.chainSeq desc
+			""")
+	List<AuditEvent> findByApplicantAndCorrelation(UUID applicantId, String correlationId, Instant from, Instant to,
+			long before, Limit limit);
+
 }
