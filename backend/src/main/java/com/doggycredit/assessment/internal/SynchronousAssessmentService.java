@@ -93,13 +93,15 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		SourceCollection collection = sources.collect(command.tenantId(), command.consentId(), normalizedDocument);
 		// B-04: el Perfil 360 se consolida con lo mismo que ve el score, en la misma transacción.
 		profiles.consolidate(command.tenantId(), applicant.id(), collection.toSourceResults());
-		BasicScoreResult score = scoring.score(command.tenantId(),
-				toScorecardInput(command, applicant, collection),
-				toScoringFeatures(applicant, bureauReport(collection)));
+		ScorecardInput basicInput = toScorecardInput(command, applicant, collection);
+		ScoringFeatures features = toScoringFeatures(applicant, bureauReport(collection));
+		BasicScoreResult score = scoring.score(command.tenantId(), basicInput, features);
 		AssessmentStatus status = decide(command, collection, score);
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
 				command.termMonths(), status, score, command.correlationId());
+		// C-12 (RF-SCO-04): el mismo vector que vio el scoring, para poder recalcularlo.
+		assessment.captureScoringInput(ScoringInput.of(basicInput, features));
 		assessment.captureAnalytics(analytics.capture(command, applicant, collection, score.band(), tenant.moneda()),
 				java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
 		assessments.save(assessment);
