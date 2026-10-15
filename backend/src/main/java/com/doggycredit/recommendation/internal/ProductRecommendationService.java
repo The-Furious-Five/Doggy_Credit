@@ -1,7 +1,7 @@
 package com.doggycredit.recommendation.internal;
 
 import java.math.BigDecimal;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -25,10 +25,10 @@ class ProductRecommendationService implements ProductRecommendations {
     }
 
     @Override
-    public Optional<Recommendation> first(UUID tenantId, String currency, ScoreBand band,
+    public List<Recommendation> rank(UUID tenantId, String currency, ScoreBand band,
             HolderType holderType, CreditNeed need) {
         if (need.suggestedAmount().signum() <= 0) {
-            return Optional.empty();
+            return List.of();
         }
         var catalog = jdbc.query("""
                 SELECT id, product_type, min_amount, max_amount, min_term_months,
@@ -52,12 +52,17 @@ class ProductRecommendationService implements ProductRecommendations {
             BigDecimal amount = need.suggestedAmount().min(product.maxAmount()).min(affordable)
                     .setScale(2, java.math.RoundingMode.DOWN);
             return new Candidate(product, amount);
-        }).filter(candidate -> eligibility.evaluate(new EligibilityEngine.Request(request.band(), candidate.amount(),
-                request.termMonths(), request.holderType(), request.greenDestination()), java.util.List.of(candidate.product()))
-                .getFirst().eligible())
-            .sorted(java.util.Comparator.comparingInt(candidate -> ranking.indexOf(candidate.product())))
-            .findFirst().map(candidate -> new Recommendation(candidate.product().type().name(), candidate.amount()));
+        }).map(candidate -> new Assessed(candidate, eligibility.evaluate(new EligibilityEngine.Request(request.band(),
+                candidate.amount(), request.termMonths(), request.holderType(), request.greenDestination()),
+                java.util.List.of(candidate.product())).getFirst()))
+            .filter(assessed -> assessed.evaluation().eligible())
+            .sorted(java.util.Comparator.comparingInt(assessed -> ranking.indexOf(assessed.candidate().product())))
+            .map(assessed -> new Recommendation(assessed.candidate().product().type().name(),
+                    assessed.candidate().amount(), assessed.evaluation().reason()))
+            .toList();
     }
 
     private record Candidate(CreditProduct product, BigDecimal amount) { }
+
+    private record Assessed(Candidate candidate, EligibilityEngine.Evaluation evaluation) { }
 }

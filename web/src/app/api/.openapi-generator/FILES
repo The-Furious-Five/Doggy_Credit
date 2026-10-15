@@ -63,6 +63,7 @@ model/preferenciasTenant.ts
 model/problemDetail.ts
 model/producto.ts
 model/productoCambios.ts
+model/recomendacion.ts
 model/registroAcceso.ts
 model/registroAuditoria.ts
 model/reporteAccesos.ts

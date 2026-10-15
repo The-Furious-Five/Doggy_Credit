@@ -40,6 +40,7 @@ import {
   DsTone,
 } from '../design-system';
 import { money } from './client-format';
+import { RecommendationList } from './recommendation-list';
 import { TenantUsageService } from './tenant-usage.service';
 
 const SEGMENTS: DsOption<Segmento>[] = [
@@ -91,6 +92,7 @@ const code = (error: unknown): string =>
   imports: [
     FormsModule,
     RouterLink,
+    RecommendationList,
     DsAlert,
     DsBadge,
     DsButton,
@@ -245,6 +247,10 @@ const code = (error: unknown): string =>
                   </ul>
                 </div>
               }
+              <div class="ds-stack-sm">
+                <h3>Productos recomendados</h3>
+                <dc-recommendation-list [items]="r.recomendaciones" />
+              </div>
               <ds-alert heading="Recomendación, no aprobación">
                 La decisión final corresponde a tu política de crédito.
                 <a dsLink [routerLink]="['/app/clientes', applicantId()]">Ver perfil completo</a>

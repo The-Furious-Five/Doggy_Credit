@@ -38,6 +38,7 @@ export * from './preferenciasTenant';
 export * from './problemDetail';
 export * from './producto';
 export * from './productoCambios';
+export * from './recomendacion';
 export * from './registroAcceso';
 export * from './registroAuditoria';
 export * from './reporteAccesos';

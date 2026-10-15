@@ -23,6 +23,7 @@ import com.doggycredit.shared.contract.model.Evaluacion;
 import com.doggycredit.shared.contract.model.EvaluacionNueva;
 import com.doggycredit.shared.contract.model.EvaluacionResumen;
 import com.doggycredit.shared.contract.model.PaginaEvaluaciones;
+import com.doggycredit.shared.contract.model.Recomendacion;
 
 @RestController
 class AssessmentController implements EvaluacionesApi {
@@ -92,7 +93,15 @@ class AssessmentController implements EvaluacionesApi {
 			.razones(result.reasons())
 			.modelVersion(result.modelVersion())
 			.simulado(result.simulated())
-			.correlationId(result.correlationId());
+			.correlationId(result.correlationId())
+			// C-06: ausente si no corresponden (plan sin la función o PARCIAL); [] si ninguna aplica.
+			.recomendaciones(result.recommendations() == null ? null : result.recommendations().stream()
+				.map(r -> new Recomendacion()
+					.tipoProducto(Recomendacion.TipoProductoEnum.fromValue(r.productType()))
+					.moneda(Recomendacion.MonedaEnum.fromValue(r.currency()))
+					.montoSugerido(r.suggestedAmount().toPlainString())
+					.razon(r.reason()))
+				.toList());
 	}
 
 }
