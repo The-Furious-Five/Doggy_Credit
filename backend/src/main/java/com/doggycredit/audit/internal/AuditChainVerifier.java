@@ -15,7 +15,11 @@ import org.springframework.stereotype.Component;
 @Component
 class AuditChainVerifier {
 
-	/** Un eslabón roto: la fila alterada (HASH_MISMATCH) o el enlace cortado (BROKEN_LINK). */
+	/**
+	 * Un eslabón roto: la fila alterada (HASH_MISMATCH), el enlace cortado (BROKEN_LINK) o,
+	 * contra audit.chain_head (C-13, LOS-114), la cola borrada (MISSING_TAIL) o la última
+	 * fila reescrita con su hash recalculado (HEAD_MISMATCH).
+	 */
 	record Break(long chainSeq, String problem) {
 	}
 
