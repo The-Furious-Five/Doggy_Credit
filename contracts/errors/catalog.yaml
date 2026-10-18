@@ -61,6 +61,12 @@ errors:
     title: "Tenant no registrado"
     detail_template: "El tenant {tenantId} no está registrado."
 
+  - code: TENANT_SUSPENDED
+    type: tenant-suspended
+    status: 403
+    title: "Tenant suspendido"
+    detail_template: "El tenant está suspendido. Contacta al operador de DoggyCredit."
+
   - code: UNAUTHENTICATED
     type: unauthenticated
     status: 401
