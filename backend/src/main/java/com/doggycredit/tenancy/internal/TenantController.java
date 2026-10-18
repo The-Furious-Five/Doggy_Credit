@@ -13,6 +13,7 @@ import com.doggycredit.shared.contract.model.TenantActual;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.billing.Entitlements;
 import com.doggycredit.billing.PlanCatalog;
 import com.doggycredit.billing.UsageMeter;
 import java.util.List;
@@ -30,16 +31,18 @@ public class TenantController implements TenantApi {
     private final UsageMeter usageMeter;
     private final KeycloakClients keycloak;
     private final TeamInvitationService invitations;
+    private final Entitlements entitlements;
 
     TenantController(TenantRegistry tenantRegistry, TenantPreferencesService preferences,
             PlanCatalog planCatalog, UsageMeter usageMeter, KeycloakClients keycloak,
-            TeamInvitationService invitations) {
+            TeamInvitationService invitations, Entitlements entitlements) {
         this.tenantRegistry = tenantRegistry;
         this.preferences = preferences;
         this.planCatalog = planCatalog;
         this.usageMeter = usageMeter;
         this.keycloak = keycloak;
         this.invitations = invitations;
+        this.entitlements = entitlements;
     }
 
     @Override
@@ -58,7 +61,14 @@ public class TenantController implements TenantApi {
                 .pais(tenantInfo.pais())
                 .moneda(tenantInfo.moneda())
                 .activo(tenantInfo.activo());
-                
+        // A-01 (LOS-64): límites, funciones y uso del mes del plan vigente, leídos en cada petición.
+        Entitlements.Granted granted = entitlements.of(tenantId);
+        tenantActual.evaluacionesMes(usageMeter.currentMonthEvaluations(tenantId))
+                .limiteMensual(granted.evaluacionesMes())
+                .limiteUsuarios(granted.maxUsuarios())
+                .limiteIntegraciones(granted.maxIntegraciones())
+                .funcionalidades(granted.features().stream().sorted()
+                        .map(feature -> TenantActual.FuncionalidadesEnum.fromValue(feature.name())).toList());
         return ResponseEntity.ok(tenantActual);
     }
 

@@ -1,12 +1,14 @@
 package com.doggycredit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -54,5 +56,32 @@ class ProductionDataSourceWiringTest {
 		assertThat(row.get("current_user")).isEqualTo("doggycredit_app");
 		assertThat(row.get("rolsuper")).isEqualTo(false);
 		assertThat(row.get("rolbypassrls")).isEqualTo(false);
+	}
+
+	/**
+	 * A-05 (LOS-67, DEBT-018): la app entra con su propio LOGIN, así que RESET ROLE la deja
+	 * en doggycredit_app y no en un superusuario; tampoco puede asumir el rol de Flyway.
+	 */
+	@Test
+	void resetRoleNoDevuelvePrivilegiosNiSaltaRls() {
+		jdbc.execute((ConnectionCallback<Void>) connection -> {
+			try (var statement = connection.createStatement()) {
+				statement.execute("RESET ROLE");
+				try (var rs = statement.executeQuery("""
+						select session_user, current_user,
+						       (select rolsuper or rolbypassrls from pg_roles where rolname = current_user) as privileged,
+						       (select count(*) from consent.consents) as visible
+						""")) {
+					rs.next();
+					assertThat(rs.getString("session_user")).isEqualTo("doggycredit_app");
+					assertThat(rs.getString("current_user")).isEqualTo("doggycredit_app");
+					assertThat(rs.getBoolean("privileged")).isFalse();
+					assertThat(rs.getLong("visible")).as("sin app.tenant_id, RLS no deja ver filas").isZero();
+				}
+				assertThatThrownBy(() -> statement.execute("SET ROLE \"" + POSTGRES.getUsername() + "\""))
+					.hasMessageContaining("permission denied");
+			}
+			return null;
+		});
 	}
 }

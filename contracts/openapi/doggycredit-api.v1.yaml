@@ -1424,11 +1424,27 @@ components:
         evaluacionesMes:
           type: integer
           minimum: 0
-          description: Solo en GET /admin/tenants. Evaluaciones del mes calendario UTC; 0 si no hay consumo.
+          description: En GET /admin/tenants y GET /tenant/actual. Evaluaciones del mes calendario UTC; 0 si no hay consumo.
         limiteMensual:
           type: integer
           minimum: 0
-          description: Solo en GET /admin/tenants. Cuota mensual del plan actual; 0 significa sin límite.
+          description: En GET /admin/tenants y GET /tenant/actual. Cuota mensual del plan actual; 0 significa sin límite.
+        limiteUsuarios:
+          type: integer
+          minimum: 0
+          description: A-01 (LOS-64). Solo en GET /tenant/actual. Cuentas humanas que admite el plan; 0 significa sin límite.
+        limiteIntegraciones:
+          type: integer
+          minimum: 0
+          description: A-01 (LOS-64). Solo en GET /tenant/actual. Integraciones activas que admite el plan; 0 significa sin límite.
+        funcionalidades:
+          type: array
+          description: >
+            A-01 (LOS-64). Solo en GET /tenant/actual. Funciones incluidas en el plan vigente,
+            según billing.Entitlements; las ausentes responden FEATURE_NOT_IN_PLAN.
+          items:
+            type: string
+            enum: [SCORING_AVANZADO, API_PRODUCCION, WEBHOOKS, ANALYTICS, RECOMENDACIONES]
       required: [id, nombre, nit, tipo, plan, pais, moneda, activo]
 
 
