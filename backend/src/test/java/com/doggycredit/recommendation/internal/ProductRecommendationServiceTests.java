@@ -19,6 +19,7 @@ import com.doggycredit.recommendation.CreditNeeds.HolderType;
 import com.doggycredit.recommendation.NeedCategory;
 import com.doggycredit.recommendation.ProductRecommendations;
 import com.doggycredit.recommendation.ProductRecommendations.Recommendation;
+import com.doggycredit.recommendation.ProductEligibility;
 import com.doggycredit.shared.TenantContext;
 import com.doggycredit.scoring.ScoreBand;
 
@@ -57,9 +58,68 @@ class ProductRecommendationServiceTests {
                     need(NeedCategory.EFICIENCIA_ENERGETICA, "3000.00", "1000.00", 12));
             assertThat(ranked).extracting(Recommendation::productType).containsExactly("VERDE", "MICROCREDITO");
             assertThat(ranked).allSatisfy(r -> assertThat(r.reason()).isNotBlank());
+            assertThat(ranked).allSatisfy(r -> {
+                assertThat(r.termMonths()).isBetween(6, 36);
+                assertThat(r.reasons()).hasSizeGreaterThanOrEqualTo(2).doesNotHaveDuplicates();
+            });
             assertThat(recommendations.first(tenant, "BOB", ScoreBand.B, HolderType.PERSONA,
                     need(NeedCategory.EFICIENCIA_ENERGETICA, "3000.00", "1000.00", 12)))
                 .contains(ranked.getFirst());
+        });
+    }
+
+    @Test
+    void pymeRequiereEmpresaYLosTresProductosExplicanSusSeisCriterios() throws Exception {
+        UUID tenant = UUID.randomUUID();
+        for (String type : List.of("MICROCREDITO", "VERDE", "PYME")) product(tenant, type, true, "BOB");
+        asTenant(tenant, () -> {
+            var person = recommendations.assess(tenant, "BOB", ScoreBand.B, HolderType.PERSONA,
+                    need(NeedCategory.EFICIENCIA_ENERGETICA, "3000", "1000", 12), true);
+            assertThat(person.eligibility()).hasSize(3).allSatisfy(p -> {
+                assertThat(p.criteria()).hasSize(6);
+                assertThat(p.eligible()).isEqualTo(p.criteria().stream().allMatch(ProductEligibility.Criterion::met));
+                assertThat(p.criteria()).allSatisfy(c -> assertThat(c.detail()).isNotBlank());
+            });
+            assertThat(person.recommendations()).extracting(Recommendation::productType)
+                    .containsExactly("VERDE", "MICROCREDITO");
+            var company = recommendations.assess(tenant, "BOB", ScoreBand.B, HolderType.PYME,
+                    need(NeedCategory.CAPITAL_TRABAJO, "3000", "1000", 12), true);
+            assertThat(company.recommendations()).extracting(Recommendation::productType).containsExactly("PYME");
+            assertThat(company.eligibility().stream().filter(p -> p.productType().equals("MICROCREDITO"))
+                    .findFirst().orElseThrow().criteria()).anyMatch(c -> c.code() == ProductEligibility.Code.TIPO_TITULAR && !c.met());
+        });
+    }
+
+    @Test
+    void cadaCuotaSugeridaRespetaLaCapacidadALaTasaRealDelProducto() throws Exception {
+        UUID tenant = UUID.randomUUID();
+        product(tenant, "MICROCREDITO", true, "BOB");
+        asTenant(tenant, () -> {
+            var ranked = recommendations.rank(tenant, "BOB", ScoreBand.B, HolderType.PERSONA,
+                    need(NeedCategory.CAPITAL_TRABAJO, "15000", "100", 12));
+            assertThat(ranked).hasSize(1).allSatisfy(r -> {
+                assertThat(r.amount()).isBetween(new BigDecimal("1000"), new BigDecimal("10000"));
+                double rate = 0.115 / 12;
+                double payment = r.amount().doubleValue() * rate / (1 - Math.pow(1 + rate, -r.termMonths()));
+                assertThat(payment).isLessThanOrEqualTo(100.0);
+                assertThat(r.reasons()).hasSizeGreaterThanOrEqualTo(2);
+            });
+        });
+    }
+
+    @Test
+    void laCapacidadCeroODesconocidaExplicaElCatalogoPeroNoRecomienda() throws Exception {
+        UUID tenant = UUID.randomUUID();
+        product(tenant, "MICROCREDITO", true, "BOB");
+        asTenant(tenant, () -> {
+            for (boolean known : List.of(true, false)) {
+                var result = recommendations.assess(tenant, "BOB", ScoreBand.B, HolderType.PERSONA,
+                        need(NeedCategory.CAPITAL_TRABAJO, "0", "0", 12), known);
+                assertThat(result.eligibility()).hasSize(1).noneMatch(ProductEligibility::eligible);
+                assertThat(result.recommendations()).isEmpty();
+                assertThat(result.eligibility().getFirst().criteria())
+                        .anyMatch(c -> c.code() == ProductEligibility.Code.CAPACIDAD_PAGO && !c.met());
+            }
         });
     }
 
@@ -89,6 +149,13 @@ class ProductRecommendationServiceTests {
             var need = need(NeedCategory.CAPITAL_TRABAJO, "3000.00", "1000.00", 12);
             assertThat(recommendations.first(tenant, "BOB", ScoreBand.B, HolderType.PERSONA, need)).isEmpty();
             assertThat(recommendations.first(other, "BOB", ScoreBand.B, HolderType.PERSONA, need)).isEmpty();
+            var eligibility = recommendations.assess(tenant, "BOB", ScoreBand.B, HolderType.PERSONA, need, true).eligibility();
+            assertThat(eligibility).hasSize(1).allSatisfy(p -> {
+                assertThat(p.productType()).isEqualTo("VERDE");
+                assertThat(p.currency()).isEqualTo("USD");
+                assertThat(p.eligible()).isFalse();
+                assertThat(p.criteria()).anyMatch(c -> c.code() == ProductEligibility.Code.RANGO_MONTO && !c.met());
+            });
         });
     }
 

@@ -19,6 +19,7 @@ import com.doggycredit.integration.WalletReport;
 import com.doggycredit.recommendation.CreditNeeds;
 import com.doggycredit.recommendation.CreditNeeds.HolderType;
 import com.doggycredit.recommendation.ProductRecommendations;
+import com.doggycredit.recommendation.ProductEligibility;
 import com.doggycredit.scoring.ScoreBand;
 
 /** Captura D-06/C-03 una vez; analítica nunca recalcula el histórico. */
@@ -50,16 +51,17 @@ class AssessmentAnalyticsSnapshot {
                 bureau.map(report -> report.endeudamiento().size()).orElse(null),
                 command.requestedAmount(), command.termMonths()));
         // No mezclar monedas ni emitir una recomendación con fuentes fallidas.
-        boolean available = !collection.partial()
-                && currency.equals(applicant.monthlyIncome().currency().getCurrencyCode())
-                && planGate.isAvailable(planId, Feature.RECOMENDACIONES);
+        boolean capacityKnown = !collection.partial()
+                && currency.equals(applicant.monthlyIncome().currency().getCurrencyCode());
+        var products = recommendations.assess(command.tenantId(), currency, band, type, need, capacityKnown);
+        boolean available = capacityKnown && planGate.isAvailable(planId, Feature.RECOMENDACIONES);
         // C-06: la lista completa (null si no corresponde); analítica guarda solo la primera.
         List<ProductRecommendations.Recommendation> ranked = available
-                ? recommendations.rank(command.tenantId(), currency, band, type, need) : null;
+                ? products.recommendations() : null;
         var recommendation = ranked == null ? Optional.<ProductRecommendations.Recommendation>empty()
                 : ranked.stream().findFirst();
         return new Snapshot(need.category().name(), recommendation.map(ProductRecommendations.Recommendation::productType).orElse(null),
-                recommendation.map(ProductRecommendations.Recommendation::amount).orElse(null), ranked);
+                recommendation.map(ProductRecommendations.Recommendation::amount).orElse(null), ranked, products.eligibility());
     }
 
     private List<BigDecimal> observedFlows(SourceCollection collection) {
@@ -81,5 +83,5 @@ class AssessmentAnalyticsSnapshot {
 
     /** @param recommendations C-06: todas las elegibles en orden; null si no corresponden. */
     record Snapshot(String needCategory, String productType, BigDecimal recommendedAmount,
-            List<ProductRecommendations.Recommendation> recommendations) { }
+            List<ProductRecommendations.Recommendation> recommendations, List<ProductEligibility> eligibility) { }
 }

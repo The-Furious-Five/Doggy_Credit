@@ -26,21 +26,35 @@ class AssessmentRecommendationStore {
 			AssessmentRecommendation recommendation = recommendations.get(i);
 			jdbc.update("""
 					INSERT INTO assessment.assessment_recommendations
-					    (id, tenant_id, assessment_id, position, product_type, currency, suggested_amount, reason)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+					    (id, tenant_id, assessment_id, position, product_type, currency, suggested_amount, reason,
+					     suggested_term_months, reasons)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 					""", UUID.randomUUID(), tenantId, assessmentId, i + 1, recommendation.productType(),
-					recommendation.currency(), recommendation.suggestedAmount(), recommendation.reason());
+					recommendation.currency(), recommendation.suggestedAmount(), recommendation.reason(),
+					recommendation.suggestedTermMonths(), recommendation.reasons() == null ? null
+                        : recommendation.reasons().toArray(String[]::new));
 		}
 	}
 
 	List<AssessmentRecommendation> load(UUID tenantId, UUID assessmentId) {
 		return jdbc.query("""
-				SELECT product_type, currency, suggested_amount, reason
+				SELECT product_type, currency, suggested_amount, reason, suggested_term_months, reasons
 				FROM assessment.assessment_recommendations
 				WHERE tenant_id = ? AND assessment_id = ?
 				ORDER BY position
 				""", (rs, row) -> new AssessmentRecommendation(rs.getString("product_type"), rs.getString("currency"),
-				rs.getBigDecimal("suggested_amount"), rs.getString("reason")), tenantId, assessmentId);
+				rs.getBigDecimal("suggested_amount"), rs.getString("reason"),
+                rs.getObject("suggested_term_months", Integer.class), reasons(rs)), tenantId, assessmentId);
 	}
+
+    private static List<String> reasons(java.sql.ResultSet rs) throws java.sql.SQLException {
+        java.sql.Array array = rs.getArray("reasons");
+        if (array == null) return null;
+        try {
+            return List.of((String[]) array.getArray());
+        } finally {
+            array.free();
+        }
+    }
 
 }

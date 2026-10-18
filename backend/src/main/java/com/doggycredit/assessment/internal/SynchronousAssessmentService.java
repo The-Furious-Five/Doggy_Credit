@@ -26,6 +26,8 @@ import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.IdempotencyKeyReusedException;
 import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.billing.QuotaGuard;
+import com.doggycredit.billing.PlanGate;
+import com.doggycredit.billing.Feature;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistry;
 import com.doggycredit.customer.FinancialProfiles;
@@ -55,12 +57,14 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final PolicyRepository policies;
 	private final AssessmentAnalyticsSnapshot analytics;
 	private final AssessmentRecommendationStore recommendationStore;
+	private final AssessmentEligibilityStore eligibilityStore;
+	private final PlanGate planGate;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			FinancialProfiles profiles, SourceCollector sources, CreditScoring scoring, AuditTrail audit,
 			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events,
 			PolicyRepository policies, AssessmentAnalyticsSnapshot analytics,
-			AssessmentRecommendationStore recommendationStore) {
+			AssessmentRecommendationStore recommendationStore, AssessmentEligibilityStore eligibilityStore, PlanGate planGate) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.profiles = profiles;
@@ -73,6 +77,8 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.policies = policies;
 		this.analytics = analytics;
 		this.recommendationStore = recommendationStore;
+		this.eligibilityStore = eligibilityStore;
+		this.planGate = planGate;
 	}
 
 	@Override
@@ -111,21 +117,25 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		// C-06: la lista completa, en la misma transacción que la evaluación.
 		List<AssessmentRecommendation> recommendations = snapshot.recommendations() == null ? null
 				: snapshot.recommendations().stream()
-					.map(r -> new AssessmentRecommendation(r.productType(), tenant.moneda(), r.amount(), r.reason()))
+					.map(r -> new AssessmentRecommendation(r.productType(), tenant.moneda(), r.amount(), r.reason(),
+                            r.termMonths(), r.reasons()))
 					.toList();
 		if (recommendations != null) {
 			recommendationStore.save(command.tenantId(), assessment.id(), recommendations);
 		}
+		eligibilityStore.save(command.tenantId(), assessment.id(), snapshot.eligibility());
 		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());
 		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
 		events.publishEvent(assessment.completedEvent());
-		return assessment.toResult(recommendations);
+		return assessment.toResult(recommendations, snapshot.eligibility());
 	}
 
 	/** C-06: las recomendaciones guardadas, o null si no se evaluaron (FREE o PARCIAL). */
 	private AssessmentResult withRecommendations(CreditAssessment assessment) {
-		return assessment.toResult(assessment.recommendationsEvaluated()
-				? recommendationStore.load(assessment.tenantId(), assessment.id()) : null);
+		String plan = tenantRegistry.requireById(TenantId.of(assessment.tenantId())).plan();
+		return assessment.toResult(assessment.recommendationsEvaluated() && planGate.isAvailable(plan, Feature.RECOMENDACIONES)
+				? recommendationStore.load(assessment.tenantId(), assessment.id()) : null,
+                eligibilityStore.load(assessment.tenantId(), assessment.id()));
 	}
 
 	/** C-05: las reglas activas del tenant deciden; nunca hay rechazo automático. */
