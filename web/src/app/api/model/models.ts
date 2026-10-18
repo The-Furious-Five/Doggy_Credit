@@ -32,6 +32,7 @@ export * from './integracion';
 export * from './integracionCambio';
 export * from './metricasOperador';
 export * from './miembroEquipo';
+export * from './miembroEquipoNuevo';
 export * from './organizacionTenantPatch';
 export * from './paginaAuditoria';
 export * from './paginaCasosRevision';

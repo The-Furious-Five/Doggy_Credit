@@ -7,6 +7,7 @@ import {
   AuditoriaService,
   TenantActual,
   TenantActualPlanEnum,
+  MiembroEquipoEstadoEnum,
   TenantActualTipoEnum,
   TenantService,
 } from '../api';
@@ -33,8 +34,11 @@ describe('Configuración con datos de la API (E-09)', () => {
     obtenerPreferenciasTenant: vi.fn(),
   };
 
+  const roles = signal(['TENANT_ADMIN']);
+
   beforeEach(() => {
     vi.resetAllMocks();
+    roles.set(['TENANT_ADMIN']);
     api.obtenerTenantActual.mockReturnValue(of(tenant(TenantActualPlanEnum.Free)));
     api.obtenerUsoTenant.mockReturnValue(of({ evaluacionesMes: 120, limiteMensual: 500 }));
     api.listarEquipo.mockReturnValue(of([]));
@@ -48,11 +52,11 @@ describe('Configuración con datos de la API (E-09)', () => {
         {
           provide: AuthSessionService,
           useValue: {
-            session: signal({
+            session: () => ({
               isAuthenticated: true,
               name: 'Admin',
               tenantId: 'tenant-prueba',
-              roles: ['TENANT_ADMIN'],
+              roles: roles(),
             }),
           },
         },
@@ -127,5 +131,40 @@ describe('Configuración con datos de la API (E-09)', () => {
     expect(page(f).textContent).toContain('No se pudo consultar la preferencia');
     // Sin la preferencia guardada se muestra el valor seguro: ocultar.
     expect(page(f).querySelector('[role="switch"]')?.getAttribute('aria-checked')).toBe('true');
+  });
+
+  const team = (f: ComponentFixture<Settings>) =>
+    page(f).querySelector('ds-tab[value="equipo"]') as HTMLElement;
+
+  it('Equipo: distingue la carga, el directorio vacío y el error con reintento (A-10)', async () => {
+    const pending = new Subject<never>();
+    api.listarEquipo.mockReturnValue(pending);
+    let f = await render();
+    expect(team(f).textContent).toContain('Cargando usuarios…');
+
+    api.listarEquipo.mockReturnValue(of([]));
+    f = await render();
+    expect(team(f).querySelector('ds-empty-state')?.textContent).toContain('Todavía no hay usuarios');
+    expect(team(f).querySelector('table')).toBeNull();
+
+    api.listarEquipo.mockReturnValue(failure());
+    f = await render();
+    expect(team(f).textContent).toContain('Equipo no disponible');
+    api.listarEquipo.mockReturnValue(
+      of([{ nombre: 'Rosa Mamani', email: 'rosa@example.test', rol: 'ANALYST', estado: MiembroEquipoEstadoEnum.Invitado }]),
+    );
+    [...team(f).querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Reintentar')!.click();
+    f.detectChanges();
+    expect(team(f).querySelector('tbody')?.textContent).toContain('Rosa Mamani');
+    expect(team(f).querySelector('tbody')?.textContent).toContain('Invitación enviada');
+  });
+
+  it('Equipo: solo el administrador de la institución ve «Invitar»', async () => {
+    let f = await render();
+    expect(team(f).querySelector('dc-team-invite')).not.toBeNull();
+
+    roles.set(['ANALYST']);
+    f = await render();
+    expect(team(f).querySelector('dc-team-invite')).toBeNull();
   });
 });

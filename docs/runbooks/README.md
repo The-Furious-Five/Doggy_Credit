@@ -16,3 +16,4 @@ agrega al cerrar el Sprint 4.
 - [Contrato de E-16: elegibilidad en todos los planes y ranking Pro](contratos-recomendaciones-e16.md)
 - [Operación de E-16: snapshots, capacidad, planes y verificación](productos-elegibles-e16.md)
 - [Contratos del Sprint 4 (A-15): ANA-01, ANA-02, TEN-04, ANA-04 e INT-07](contratos-sprint4-a15.md)
+- [Equipo, roles y enmascarado (A-10): invitaciones, límite de usuarios y enmascarado en el servidor](equipo-enmascarado-a10.md)

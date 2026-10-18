@@ -58,6 +58,7 @@ model/integracion.ts
 model/integracionCambio.ts
 model/metricasOperador.ts
 model/miembroEquipo.ts
+model/miembroEquipoNuevo.ts
 model/models.ts
 model/organizacionTenantPatch.ts
 model/paginaAuditoria.ts

@@ -19,6 +19,8 @@ import com.doggycredit.billing.Feature;
 import com.doggycredit.billing.PlanGate;
 import com.doggycredit.recommendation.NeedCategory;
 import com.doggycredit.shared.ErrorCode;
+import com.doggycredit.shared.SensitiveDataPolicy;
+import com.doggycredit.shared.SensitiveDataPolicy.Masker;
 import com.doggycredit.shared.TenantContext;
 import com.doggycredit.shared.contract.model.AnalyticsModelo;
 import com.doggycredit.shared.contract.model.AnalyticsNecesidad;
@@ -36,13 +38,15 @@ class AnalyticsSummaryService {
     private final TenantRegistry tenants;
     private final PlanGate planGate;
     private final ModelDrift drift;
+    private final SensitiveDataPolicy sensitiveData;
 
     AnalyticsSummaryService(AnalyticsSummaryRepository repository, TenantRegistry tenants,
-            PlanGate planGate, ModelDrift drift) {
+            PlanGate planGate, ModelDrift drift, SensitiveDataPolicy sensitiveData) {
         this.repository = repository;
         this.tenants = tenants;
         this.planGate = planGate;
         this.drift = drift;
+        this.sensitiveData = sensitiveData;
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -73,12 +77,13 @@ class AnalyticsSummaryService {
         if (analyticsAvailable) {
             var premiumRows = repository.premium(tenantId, start, end);
             var premiumTotal = premiumRows.stream().filter(AnalyticsSummaryRepository.Premium::total).findFirst().orElseThrow();
+            Masker mask = sensitiveData.forCurrentUser();
             response.pro(new AnalyticsPro().conversionPorcentaje(percent(premiumTotal.preapproved(), total.evaluations()))
-                    .tiempoDecisionMedianaMs(premiumTotal.medianMs()).montoRecomendado(premiumTotal.amount())
+                    .tiempoDecisionMedianaMs(premiumTotal.medianMs()).montoRecomendado(mask.amount(premiumTotal.amount()))
                     .recomendacionesPorProducto(premiumRows.stream().filter(row -> !row.total() && row.productType() != null)
                             .map(row -> new AnalyticsProducto().tipo(AnalyticsProducto.TipoEnum.fromValue(row.productType()))
                                     .cantidad(row.evaluations()).porcentaje(percent(row.evaluations(), total.recommended()))
-                                    .montoRecomendado(row.amount())).toList())
+                                    .montoRecomendado(mask.amount(row.amount()))).toList())
                     .modelos(drift.latest(tenantId).stream().map(model -> new AnalyticsModelo().version(model.modelVersion())
                             .psi(model.psi()).estado(AnalyticsModelo.EstadoEnum.fromValue(model.level().name()))
                             .desde(model.windowStart().atOffset(ZoneOffset.UTC)).hasta(model.windowEnd().atOffset(ZoneOffset.UTC))

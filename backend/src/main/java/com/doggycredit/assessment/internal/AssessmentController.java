@@ -18,6 +18,8 @@ import com.doggycredit.assessment.AssessmentOperations;
 import com.doggycredit.assessment.AssessmentPage;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentSummary;
+import com.doggycredit.shared.SensitiveDataPolicy;
+import com.doggycredit.shared.SensitiveDataPolicy.Masker;
 import com.doggycredit.shared.contract.api.EvaluacionesApi;
 import com.doggycredit.shared.contract.model.Evaluacion;
 import com.doggycredit.shared.contract.model.EvaluacionNueva;
@@ -31,9 +33,11 @@ import com.doggycredit.shared.contract.model.Recomendacion;
 class AssessmentController implements EvaluacionesApi {
 
 	private final AssessmentOperations assessments;
+	private final SensitiveDataPolicy sensitiveData;
 
-	AssessmentController(AssessmentOperations assessments) {
+	AssessmentController(AssessmentOperations assessments, SensitiveDataPolicy sensitiveData) {
 		this.assessments = assessments;
+		this.sensitiveData = sensitiveData;
 	}
 
 	@Override
@@ -53,8 +57,9 @@ class AssessmentController implements EvaluacionesApi {
 			Integer pagina, Integer tamano) {
 		AssessmentPage page = assessments.list(currentTenantId(), solicitanteId,
 				desde == null ? null : desde.toInstant(), pagina, tamano);
+		Masker mask = sensitiveData.forCurrentUser();
 		return ResponseEntity.ok(new PaginaEvaluaciones(
-				page.items().stream().map(AssessmentController::toContract).toList(), page.total()));
+				page.items().stream().map(item -> toContract(item, mask)).toList(), page.total()));
 	}
 
 	@Override
@@ -67,7 +72,7 @@ class AssessmentController implements EvaluacionesApi {
 		return UUID.fromString(jwt.getClaimAsString("tenant_id"));
 	}
 
-	private static EvaluacionResumen toContract(AssessmentSummary summary) {
+	private static EvaluacionResumen toContract(AssessmentSummary summary, Masker mask) {
 		return new EvaluacionResumen()
 			.id(summary.id())
 			.solicitanteId(summary.applicantId())
@@ -78,7 +83,8 @@ class AssessmentController implements EvaluacionesApi {
 				.orElse(null))
 			.score(summary.score())
 			.banda(EvaluacionResumen.BandaEnum.fromValue(summary.band().name()))
-			.montoSolicitado(summary.requestedAmount() == null ? null : summary.requestedAmount().toPlainString())
+			.montoSolicitado(summary.requestedAmount() == null ? null
+					: mask.amount(summary.requestedAmount().toPlainString()))
 			.plazoMeses(summary.termMonths())
 			.creadoEn(summary.createdAt().atOffset(ZoneOffset.UTC));
 	}

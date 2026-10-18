@@ -694,6 +694,52 @@ paths:
           $ref: '#/components/responses/NoAutenticado'
         "502":
           $ref: '#/components/responses/ErrorNegocio'
+    post:
+      tags: [tenant]
+      operationId: invitarMiembroEquipo
+      summary: Invita a una persona al equipo del tenant actual (solo TENANT_ADMIN)
+      description: >
+        A-10 (LOS-71). Crea la cuenta en Keycloak con el tenant_id del JWT
+        (nunca del cuerpo) y el rol indicado, y le pide definir su contraseña en el primer
+        ingreso (un TENANT_ADMIN, además, configura MFA). Si el realm tiene correo
+        configurado, Keycloak le envía el enlace. El plan limita las cuentas humanas
+        activas del tenant (billing.plans.max_usuarios; FREE = 3): al superarlo responde
+        409 PLAN_LIMIT_REACHED sin crear nada. Queda en audit.access_log.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MiembroEquipoNuevo'
+      responses:
+        "201":
+          description: Invitación creada; el miembro queda en estado INVITADO
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MiembroEquipo'
+        "400":
+          description: VALIDATION_ERROR, nombre, email o rol inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+        "403":
+          description: INSUFFICIENT_ROLE (no es TENANT_ADMIN) o TENANT_SUSPENDED
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        "409":
+          description: PLAN_LIMIT_REACHED (el plan no admite más usuarios) o MEMBER_ALREADY_EXISTS
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        "502":
+          $ref: '#/components/responses/ErrorNegocio'
 
 
   /tenant/actual/preferencias:
@@ -1396,6 +1442,16 @@ components:
       required: [nombre, rol, estado]
 
 
+    MiembroEquipoNuevo:
+      type: object
+      additionalProperties: false
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        rol: { type: string, enum: [ANALYST, TENANT_ADMIN] }
+      required: [nombre, email, rol]
+
+
     ConsentimientoNuevo:
       type: object
       properties:
@@ -1787,7 +1843,7 @@ components:
       properties:
         evaluacionId: { type: string, format: uuid }
         solicitanteId: { type: string, format: uuid }
-        documento: { type: string, description: "Documento del titular; la consola lo enmascara según el rol" }
+        documento: { type: string, description: "Documento del titular; el servidor lo enmascara según el rol y la preferencia del tenant (A-10)" }
         creadoEn: { type: string, format: date-time }
         score: { type: integer }
         banda: { type: string, enum: [A, B, C, D, E] }
