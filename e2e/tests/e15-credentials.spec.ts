@@ -54,6 +54,8 @@ test('E-15: credenciales propias, rotación, foco y eliminación en escritorio y
   await expect(bankDialog.getByLabel('Nueva clave API')).toBeVisible();
   await expect(bankDialog.getByLabel('Nueva clave API')).toHaveValue('');
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await expect(bankDialog).toHaveCSS('color', 'rgb(244, 243, 239)');
+  await expect(bankDialog.locator('label').last()).toHaveCSS('color', 'rgb(244, 243, 239)');
   for (const width of [1440, 375]) {
     await page.setViewportSize({ width, height: 900 });
     const bounds = await bankDialog.boundingBox();
