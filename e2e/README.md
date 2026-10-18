@@ -43,6 +43,24 @@ mientras tanto queda en `test.fixme` (el CI lo informa como omitido); ver
 [e2e-flujos-sprint3.md](../docs/runbooks/e2e-flujos-sprint3.md). Para correrlo
 antes en local: `E2E_DEPENDENCIAS=bandeja npx playwright test`.
 
+## Flujos del Sprint 4 (A-16)
+
+- `tenant-suspension.spec.ts` (RF-TEN-04): el operador suspende la institución
+  Gratis; en la sesión ya abierta del analista la API responde 403
+  `TENANT_SUSPENDED` y la consola lo avisa. Al reactivarla, el analista vuelve a
+  operar sin iniciar sesión. La institución queda activa también si falla.
+- `usage-idempotency.spec.ts` (RF-ANA-01): en Configuración › Plan, una
+  evaluación suma exactamente 1 al consumo; repetirla con la misma
+  `Idempotency-Key` devuelve la misma evaluación y no suma.
+- `portfolio-kpis.spec.ts` (RF-ANA-02): resolver un caso de revisión manual
+  actualiza la tasa de override (Pro); el plan Gratis ve la invitación a Pro.
+- `eligibility-recommendations.spec.ts` (RF-REC-02/03): Gratis ve productos
+  elegibles con criterios ✓/✗ e invitación a Pro; Pro, el ranking con monto y plazo.
+
+Los KPIs y la elegibilidad esperan historias de otros y quedan en `test.fixme`
+hasta que se fusionen; ver
+[e2e-flujos-sprint4.md](../docs/runbooks/e2e-flujos-sprint4.md).
+
 ## MFA de los administradores (A-14)
 
 Los `TENANT_ADMIN` de la semilla deben configurar MFA en su primer inicio de
