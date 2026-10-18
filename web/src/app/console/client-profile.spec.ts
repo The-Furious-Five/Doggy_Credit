@@ -101,7 +101,8 @@ describe('Perfil del cliente (B-09)', () => {
     applicants.obtenerSolicitante.mockReturnValue(of(detail()));
     const f = await render();
     const tabs = [...(f.nativeElement as HTMLElement).querySelectorAll('[role="tab"]')].map((tab) => tab.textContent?.trim());
-    expect(tabs).toEqual(['Resumen', 'Score', 'Fuentes']);
+    // C-06 (LOS-86): Recomendaciones ya sale de la API (la evaluación más reciente), no es relleno.
+    expect(tabs).toEqual(['Resumen', 'Score', 'Recomendaciones', 'Fuentes']);
     expect(text(f)).not.toMatch(/aparecerán aquí|próximamente/i);
   });
 

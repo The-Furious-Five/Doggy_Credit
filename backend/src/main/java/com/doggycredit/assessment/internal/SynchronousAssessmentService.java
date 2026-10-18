@@ -20,6 +20,7 @@ import com.doggycredit.assessment.AssessmentCommand;
 import com.doggycredit.assessment.AssessmentNotFoundException;
 import com.doggycredit.assessment.AssessmentOperations;
 import com.doggycredit.assessment.AssessmentPage;
+import com.doggycredit.assessment.AssessmentRecommendation;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.IdempotencyKeyReusedException;
@@ -53,11 +54,13 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	private final ApplicationEventPublisher events;
 	private final PolicyRepository policies;
 	private final AssessmentAnalyticsSnapshot analytics;
+	private final AssessmentRecommendationStore recommendationStore;
 
 	SynchronousAssessmentService(CreditAssessmentRepository assessments, ApplicantRegistry applicants,
 			FinancialProfiles profiles, SourceCollector sources, CreditScoring scoring, AuditTrail audit,
 			QuotaGuard quotaGuard, TenantRegistry tenantRegistry, ApplicationEventPublisher events,
-			PolicyRepository policies, AssessmentAnalyticsSnapshot analytics) {
+			PolicyRepository policies, AssessmentAnalyticsSnapshot analytics,
+			AssessmentRecommendationStore recommendationStore) {
 		this.assessments = assessments;
 		this.applicants = applicants;
 		this.profiles = profiles;
@@ -69,6 +72,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		this.events = events;
 		this.policies = policies;
 		this.analytics = analytics;
+		this.recommendationStore = recommendationStore;
 	}
 
 	@Override
@@ -81,7 +85,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			if (!replay.get().requestHash().equals(requestHash)) {
 				throw new IdempotencyKeyReusedException();
 			}
-			return replay.get().toResult();
+			return withRecommendations(replay.get());
 		}
 
 		long started = System.nanoTime();
@@ -100,13 +104,28 @@ class SynchronousAssessmentService implements AssessmentOperations {
 		CreditAssessment assessment = new CreditAssessment(command.tenantId(), applicant.id(), command.consentId(),
 				command.idempotencyKey(), requestHash, command.purpose(), command.requestedAmount(),
 				command.termMonths(), status, score, command.correlationId());
-		assessment.captureAnalytics(analytics.capture(command, applicant, collection, score.band(), tenant.moneda()),
+		var snapshot = analytics.capture(command, applicant, collection, score.band(), tenant.moneda(), tenant.plan());
+		assessment.captureAnalytics(snapshot,
 				java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
 		assessments.save(assessment);
+		// C-06: la lista completa, en la misma transacción que la evaluación.
+		List<AssessmentRecommendation> recommendations = snapshot.recommendations() == null ? null
+				: snapshot.recommendations().stream()
+					.map(r -> new AssessmentRecommendation(r.productType(), tenant.moneda(), r.amount(), r.reason()))
+					.toList();
+		if (recommendations != null) {
+			recommendationStore.save(command.tenantId(), assessment.id(), recommendations);
+		}
 		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());
 		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
 		events.publishEvent(assessment.completedEvent());
-		return assessment.toResult();
+		return assessment.toResult(recommendations);
+	}
+
+	/** C-06: las recomendaciones guardadas, o null si no se evaluaron (FREE o PARCIAL). */
+	private AssessmentResult withRecommendations(CreditAssessment assessment) {
+		return assessment.toResult(assessment.recommendationsEvaluated()
+				? recommendationStore.load(assessment.tenantId(), assessment.id()) : null);
 	}
 
 	/** C-05: las reglas activas del tenant deciden; nunca hay rechazo automático. */
@@ -130,7 +149,7 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	@Transactional(readOnly = true)
 	public AssessmentResult get(UUID tenantId, UUID assessmentId) {
 		return assessments.findByIdAndTenantId(assessmentId, tenantId)
-			.map(CreditAssessment::toResult)
+			.map(this::withRecommendations)
 			.orElseThrow(AssessmentNotFoundException::new);
 	}
 
