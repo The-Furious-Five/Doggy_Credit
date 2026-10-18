@@ -18,6 +18,14 @@ export interface TenantActual {
     pais: string;
     moneda: string;
     activo: boolean;
+    /**
+     * Solo en GET /admin/tenants. Evaluaciones del mes calendario UTC; 0 si no hay consumo.
+     */
+    evaluacionesMes?: number;
+    /**
+     * Solo en GET /admin/tenants. Cuota mensual del plan actual; 0 significa sin límite.
+     */
+    limiteMensual?: number;
 }
 export enum TenantActualTipoEnum {
     Imf = 'IMF',

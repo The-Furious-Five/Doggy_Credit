@@ -17,6 +17,7 @@ public enum ErrorCode {
     PROVIDER_UNAVAILABLE("provider-unavailable", 502, "Fuente externa no disponible"),
     IDEMPOTENCY_KEY_REUSED("idempotency-key-reused", 422, "Clave de idempotencia reutilizada con un cuerpo distinto"),
     TENANT_NOT_FOUND("tenant-not-found", 403, "Tenant no registrado"),
+    TENANT_SUSPENDED("tenant-suspended", 403, "Tenant suspendido"),
     UNAUTHENTICATED("unauthenticated", 401, "Autenticación requerida"),
     INVALID_TENANT_CLAIM("invalid-tenant-claim", 403, "Reclamo de tenant inválido"),
     VALIDATION_ERROR("validation-error", 400, "Error de validación"),
