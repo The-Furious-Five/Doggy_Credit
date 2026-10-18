@@ -15,3 +15,4 @@ agrega al cerrar el Sprint 4.
 - [Suspensión y reactivación de tenants (E-14): consumo mensual, RLS y auditoría](suspension-tenants-e14.md)
 - [Contrato de E-16: elegibilidad en todos los planes y ranking Pro](contratos-recomendaciones-e16.md)
 - [Operación de E-16: snapshots, capacidad, planes y verificación](productos-elegibles-e16.md)
+- [Contratos del Sprint 4 (A-15): ANA-01, ANA-02, TEN-04, ANA-04 e INT-07](contratos-sprint4-a15.md)

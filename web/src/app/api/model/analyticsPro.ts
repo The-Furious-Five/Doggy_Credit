@@ -8,9 +8,15 @@
  * Do not edit the class manually.
  */
 import { AnalyticsModelo } from './analyticsModelo';
+import { AnalyticsAceptacionProducto } from './analyticsAceptacionProducto';
+import { AnalyticsOverride } from './analyticsOverride';
+import { AnalyticsBanda } from './analyticsBanda';
 import { AnalyticsProducto } from './analyticsProducto';
 
 
+/**
+ * distribucionBandas, tasaOverride y aceptacionPorProducto son los KPIs de cartera de RF-ANA-02 (C-14). Son opcionales para no romper a los consumidores actuales; desde C-14 el servidor los envía siempre, calculados sobre el mismo intervalo. 
+ */
 export interface AnalyticsPro { 
     /**
      * Evaluaciones PREAPROBADO / total de evaluaciones × 100. No mide desembolsos.
@@ -29,5 +35,14 @@ export interface AnalyticsPro {
      * Último monitoreo semanal D-08 por modelo, independiente del intervalo consultado.
      */
     modelos: Array<AnalyticsModelo>;
+    /**
+     * Siempre las cinco bandas, de A a E y con 0 si no hay casos, sobre las evaluaciones del intervalo que tienen score (las FALLIDA no cuentan). 
+     */
+    distribucionBandas?: Array<AnalyticsBanda>;
+    tasaOverride?: AnalyticsOverride;
+    /**
+     * Un elemento por tipo de producto (MICROCREDITO, VERDE, PYME), con 0 si no hubo recomendaciones.
+     */
+    aceptacionPorProducto?: Array<AnalyticsAceptacionProducto>;
 }
 

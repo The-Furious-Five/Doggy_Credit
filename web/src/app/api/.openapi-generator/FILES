@@ -11,6 +11,7 @@ api/consentimientos.service.ts
 api/credencialesIntegraciones.service.ts
 api/evaluaciones.service.ts
 api/integraciones.service.ts
+api/operador.service.ts
 api/planes.service.ts
 api/politicas.service.ts
 api/productos.service.ts
@@ -23,8 +24,11 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/analyticsAceptacionProducto.ts
+model/analyticsBanda.ts
 model/analyticsModelo.ts
 model/analyticsNecesidad.ts
+model/analyticsOverride.ts
 model/analyticsPro.ts
 model/analyticsProducto.ts
 model/analyticsResumen.ts
@@ -52,6 +56,7 @@ model/fuenteIntegracion.ts
 model/graciaPlan.ts
 model/integracion.ts
 model/integracionCambio.ts
+model/metricasOperador.ts
 model/miembroEquipo.ts
 model/models.ts
 model/organizacionTenantPatch.ts
@@ -81,6 +86,7 @@ model/solicitanteDetalle.ts
 model/solicitanteNuevo.ts
 model/tenantActual.ts
 model/tenantPatch.ts
+model/tenantsPorPlan.ts
 model/usoTenant.ts
 model/webhookCambio.ts
 model/webhookConfiguracion.ts

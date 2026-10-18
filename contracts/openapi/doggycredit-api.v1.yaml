@@ -31,6 +31,11 @@ tags:
   - name: revision-manual
   - name: planes
   - name: reporte-accesos
+  - name: operador
+    description: >
+      RF-ANA-04 (D-14). Métricas agregadas de la plataforma para PLATFORM_ADMIN. Tag propio:
+      con skipDefaultInterface, sumar la operación a AdminApi rompería la compilación de
+      AdminController hasta que D-14 la implemente.
 
 paths:
 
@@ -731,6 +736,11 @@ paths:
       tags: [tenant]
       operationId: obtenerUsoTenant
       summary: Consulta uso de evaluaciones del mes y límite del plan actual
+      description: >
+        RF-ANA-01 (B-12). Cualquier rol del tenant. El mes es el calendario UTC, el mismo de
+        la cuota. integracionesActivas y limiteIntegraciones reflejan el estado actual y el
+        plan vigente (0 = sin límite). Una evaluación repetida con la misma Idempotency-Key
+        no suma consumo.
       responses:
         "200":
           description: Uso mensual actual
@@ -907,6 +917,49 @@ paths:
           description: Sin permisos
         "404":
           description: Tenant no encontrado
+
+
+  # RF-ANA-04 (D-14). Solo agregados: ningún dato individual de un tenant.
+  /operador/metricas:
+    get:
+      tags: [operador]
+      operationId: obtenerMetricasOperador
+      summary: Métricas de negocio de la plataforma para un período (solo PLATFORM_ADMIN)
+      description: >
+        Fechas inclusivas en UTC; por defecto el mes calendario actual. tenantsPorPlan,
+        tenantsActivos y tenantsSuspendidos son una foto al momento de la consulta;
+        tenantsActivados, conversionesFreeAPro y evaluaciones se cuentan dentro del período.
+        Una conversión es un cambio de plan FREE → PRO registrado en audit.access_log. No
+        expone nombres, NIT ni identificadores de tenants. Otros roles reciben 403
+        INSUFFICIENT_ROLE.
+      parameters:
+        - name: desde
+          in: query
+          schema: { type: string, format: date }
+        - name: hasta
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Agregados de la plataforma
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricasOperador"
+        "400":
+          description: VALIDATION_ERROR, `desde` posterior a `hasta` o fecha inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: INSUFFICIENT_ROLE, el usuario no es PLATFORM_ADMIN
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
 
   /api-keys:
     get:
@@ -1192,6 +1245,10 @@ components:
 
     AnalyticsPro:
       type: object
+      description: >
+        distribucionBandas, tasaOverride y aceptacionPorProducto son los KPIs de cartera de
+        RF-ANA-02 (C-14). Son opcionales para no romper a los consumidores actuales; desde
+        C-14 el servidor los envía siempre, calculados sobre el mismo intervalo.
       required: [conversionPorcentaje, montoRecomendado, recomendacionesPorProducto, modelos]
       properties:
         conversionPorcentaje:
@@ -1212,6 +1269,64 @@ components:
           type: array
           description: Último monitoreo semanal D-08 por modelo, independiente del intervalo consultado.
           items: { $ref: "#/components/schemas/AnalyticsModelo" }
+        distribucionBandas:
+          type: array
+          description: >
+            Siempre las cinco bandas, de A a E y con 0 si no hay casos, sobre las evaluaciones
+            del intervalo que tienen score (las FALLIDA no cuentan).
+          items: { $ref: "#/components/schemas/AnalyticsBanda" }
+        tasaOverride:
+          $ref: "#/components/schemas/AnalyticsOverride"
+        aceptacionPorProducto:
+          type: array
+          description: Un elemento por tipo de producto (MICROCREDITO, VERDE, PYME), con 0 si no hubo recomendaciones.
+          items: { $ref: "#/components/schemas/AnalyticsAceptacionProducto" }
+
+    AnalyticsBanda:
+      type: object
+      required: [banda, cantidad, porcentaje]
+      properties:
+        banda: { type: string, enum: [A, B, C, D, E] }
+        cantidad: { type: integer, format: int64, minimum: 0 }
+        porcentaje:
+          type: number
+          format: double
+          description: Evaluaciones de la banda / evaluaciones con score del intervalo × 100. 0 si no hay base.
+
+    AnalyticsOverride:
+      type: object
+      description: >
+        Override = caso de revisión manual resuelto por una persona (POST
+        /revision-manual/{evaluacionId}/resolucion), APROBADO o RECHAZADO. Se cuenta por la
+        fecha de la evaluación, no por la de la resolución.
+      required: [overrides, evaluaciones, porcentaje]
+      properties:
+        overrides: { type: integer, format: int64, minimum: 0 }
+        evaluaciones:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Base del cálculo, las evaluaciones con decisión del intervalo.
+        porcentaje:
+          type: number
+          format: double
+          description: overrides / evaluaciones × 100. 0 si no hay evaluaciones.
+
+    AnalyticsAceptacionProducto:
+      type: object
+      description: >
+        Recomendado = un producto de este tipo fue el primero del ranking C-06. Aceptado = esa
+        evaluación quedó PREAPROBADO o se aprobó en revisión manual con un producto del mismo
+        tipo. No mide desembolsos.
+      required: [tipo, recomendados, aceptados, porcentaje]
+      properties:
+        tipo: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        recomendados: { type: integer, format: int64, minimum: 0 }
+        aceptados: { type: integer, format: int64, minimum: 0 }
+        porcentaje:
+          type: number
+          format: double
+          description: aceptados / recomendados × 100. 0 si no hubo recomendaciones.
 
     AnalyticsProducto:
       type: object
@@ -1562,7 +1677,53 @@ components:
       properties:
         evaluacionesMes: { type: integer, minimum: 0 }
         limiteMensual: { type: integer, minimum: 0, description: 0 means unlimited }
+        integracionesActivas:
+          type: integer
+          minimum: 0
+          description: RF-ANA-01. Integraciones en estado CONECTADO hoy, el buró incluido.
+        limiteIntegraciones:
+          type: integer
+          minimum: 0
+          description: RF-ANA-01. Máximo de integraciones activas del plan vigente; 0 significa sin límite.
       required: [evaluacionesMes, limiteMensual]
+
+
+    MetricasOperador:
+      type: object
+      description: RF-ANA-04 (D-14). Solo agregados de la plataforma, sin datos de tenants individuales.
+      properties:
+        desde: { type: string, format: date }
+        hasta: { type: string, format: date }
+        tenantsPorPlan:
+          type: array
+          description: Un elemento por plan (FREE, PRO, ENTERPRISE), con 0 si no hay tenants.
+          items: { $ref: "#/components/schemas/TenantsPorPlan" }
+        tenantsActivos: { type: integer, format: int64, minimum: 0 }
+        tenantsSuspendidos: { type: integer, format: int64, minimum: 0 }
+        tenantsActivados:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Tenants dados de alta o reactivados dentro del período.
+        conversionesFreeAPro:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Cambios de plan FREE → PRO dentro del período.
+        evaluaciones:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Evaluaciones de toda la plataforma dentro del período.
+      required: [desde, hasta, tenantsPorPlan, tenantsActivos, tenantsSuspendidos, tenantsActivados, conversionesFreeAPro, evaluaciones]
+
+
+    TenantsPorPlan:
+      type: object
+      properties:
+        plan: { $ref: "#/components/schemas/CodigoPlan" }
+        cantidad: { type: integer, format: int64, minimum: 0 }
+      required: [plan, cantidad]
 
 
     OrganizacionTenantPatch:
