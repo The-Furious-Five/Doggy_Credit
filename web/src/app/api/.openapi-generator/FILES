@@ -37,7 +37,9 @@ model/claveApiNueva.ts
 model/codigoPlan.ts
 model/consentimiento.ts
 model/consentimientoNuevo.ts
+model/criterioElegibilidad.ts
 model/dinero.ts
+model/elegibilidadProducto.ts
 model/estadoPlan.ts
 model/evaluacion.ts
 model/evaluacionNueva.ts

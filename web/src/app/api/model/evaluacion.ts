@@ -8,6 +8,7 @@
  * Do not edit the class manually.
  */
 import { Recomendacion } from './recomendacion';
+import { ElegibilidadProducto } from './elegibilidadProducto';
 
 
 export interface Evaluacion { 
@@ -23,6 +24,10 @@ export interface Evaluacion {
     modelVersion?: string;
     simulado?: boolean;
     correlationId?: string;
+    /**
+     * RF-REC-02 (E-16): snapshot de todos los productos activos del tenant al evaluar, disponible en todos los planes. Cada producto indica los seis criterios y si cumple todos. Se evalúa el monto propuesto tras ajustar RF-NEC-01 y el máximo del producto, y el plazo solicitado o el predeterminado de la necesidad. Las monedas diferentes y la capacidad no verificable no califican. Ausente en evaluaciones históricas anteriores a E-16; vacío si no había productos activos. Nunca se recalcula al consultar el perfil. 
+     */
+    elegibilidad?: Array<ElegibilidadProducto>;
     /**
      * C-06: productos del catálogo del tenant para los que el titular es elegible, del más adecuado al menos, cada uno con su razón. Solo en los planes con recomendaciones (PRO y ENTERPRISE). Ausente si el plan no las incluye o si el resultado es PARCIAL (no se recomienda con fuentes fallidas); vacío si ningún producto aplica. 
      */
