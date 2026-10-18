@@ -11,6 +11,7 @@ agrega al cerrar el Sprint 4.
 - [Release de sprint en la VM (E-13): versión en línea, smoke test y checklist de la review](release-sprint.md)
 - [Bandeja de revisión manual (E-10): contrato propuesto DEC-03, integración con D-10/C-10](bandeja-revision-e10.md)
 - [E2E de los flujos del Sprint 3 (E-12): bandeja y cambio de plan, qué necesitan C-10 y A-11](e2e-flujos-sprint3.md)
+- [E2E de los flujos del Sprint 4 (A-16): suspensión, KPIs, consumo y elegibilidad](e2e-flujos-sprint4.md)
 - [Contratos del Sprint 3 (D-10): DEC-03, PLN-04/05 y CON-03, qué implementa cada historia](contratos-sprint3-d10.md)
 - [Suspensión y reactivación de tenants (E-14): consumo mensual, RLS y auditoría](suspension-tenants-e14.md)
 - [Contrato de E-16: elegibilidad en todos los planes y ranking Pro](contratos-recomendaciones-e16.md)
