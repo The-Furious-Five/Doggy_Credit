@@ -35,6 +35,8 @@ import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantNotFoundException;
 import com.doggycredit.tenancy.TenantRegistry;
 import com.doggycredit.audit.AuditTrail;
+import com.doggycredit.billing.Entitlements;
+import com.doggycredit.billing.Feature;
 import com.doggycredit.billing.PlanInfo;
 import com.doggycredit.shared.contract.model.PreferenciasTenant;
 import com.doggycredit.shared.contract.model.OrganizacionTenantPatch;
@@ -67,6 +69,9 @@ class TenantControllerTests {
     @MockitoBean
     AuditTrail audit;
 
+    @MockitoBean
+    Entitlements entitlements;
+
     @TestConfiguration(proxyBeanMethods = false)
     static class DecoderFixture {
         @Bean
@@ -89,9 +94,10 @@ class TenantControllerTests {
     static class ControllerFixture {
         @Bean
         TenantController tenantController(TenantRegistry registry, TenantPreferencesService preferences,
-                PlanCatalog plans, UsageMeter usage, KeycloakClients keycloak, AuditTrail audit) {
+                PlanCatalog plans, UsageMeter usage, KeycloakClients keycloak, AuditTrail audit,
+                Entitlements entitlements) {
             return new TenantController(registry, preferences, plans, usage, keycloak,
-                    new TeamInvitationService(registry, plans, keycloak, audit));
+                    new TeamInvitationService(registry, plans, keycloak, audit), entitlements);
         }
     }
 
@@ -107,10 +113,21 @@ class TenantControllerTests {
         TenantInfo info = new TenantInfo(tenantId, "Mi Fintech", "1234567", "FINTECH", "PRO", "BO", "BOB", true);
         
         when(tenantRegistry.requireById(TenantId.of(tenantId))).thenReturn(info);
+        when(entitlements.of(tenantId)).thenReturn(new Entitlements.Granted("PRO", "Pro", 0, 50, 0,
+                java.util.Set.of(Feature.WEBHOOKS, Feature.ANALYTICS)));
+        when(usageMeter.currentMonthEvaluations(tenantId)).thenReturn(342);
 
         mvc.perform(get("/tenant/actual")
                 .header("Authorization", "Bearer valid"))
                 .andExpect(status().isOk())
+                // A-01 (LOS-64): límites, uso del mes y funciones del plan vigente.
+                .andExpect(jsonPath("$.evaluacionesMes").value(342))
+                .andExpect(jsonPath("$.limiteMensual").value(0))
+                .andExpect(jsonPath("$.limiteUsuarios").value(50))
+                .andExpect(jsonPath("$.limiteIntegraciones").value(0))
+                .andExpect(jsonPath("$.funcionalidades.length()").value(2))
+                .andExpect(jsonPath("$.funcionalidades[0]").value("WEBHOOKS"))
+                .andExpect(jsonPath("$.funcionalidades[1]").value("ANALYTICS"))
                 .andExpect(jsonPath("$.id").value(tenantId.toString()))
                 .andExpect(jsonPath("$.nombre").value("Mi Fintech"))
                 .andExpect(jsonPath("$.nit").value("1234567"))

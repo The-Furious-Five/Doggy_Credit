@@ -8,6 +8,7 @@ import {
   TenantActual,
   TenantActualPlanEnum,
   MiembroEquipoEstadoEnum,
+  TenantActualFuncionalidadesEnum,
   TenantActualTipoEnum,
   TenantService,
 } from '../api';
@@ -166,5 +167,32 @@ describe('Configuración con datos de la API (E-09)', () => {
     roles.set(['ANALYST']);
     f = await render();
     expect(team(f).querySelector('dc-team-invite')).toBeNull();
+  });
+
+  it('Plan: muestra límites y qué funciones incluye o bloquea el plan, según la API (A-09)', async () => {
+    api.obtenerTenantActual.mockReturnValue(
+      of({ ...tenant(TenantActualPlanEnum.Free), limiteUsuarios: 3, limiteIntegraciones: 1, funcionalidades: [] }),
+    );
+    let f = await render();
+    expect(plan(f).textContent).toContain('Hasta 3');
+    expect(plan(f).textContent).toContain('Hasta 1');
+    const rows = () =>
+      [...plan(f).querySelectorAll('tbody tr')].map((row) =>
+        [...row.children].map((cell) => cell.textContent?.trim()).join(' '),
+      );
+    expect(rows()).toContain('Analítica de cartera Requiere plan Pro');
+    expect(rows().every((row) => row?.endsWith('Requiere plan Pro'))).toBe(true);
+
+    api.obtenerTenantActual.mockReturnValue(
+      of({
+        ...tenant(TenantActualPlanEnum.Pro),
+        limiteUsuarios: 50,
+        limiteIntegraciones: 0,
+        funcionalidades: Object.values(TenantActualFuncionalidadesEnum),
+      }),
+    );
+    f = await render();
+    expect(plan(f).textContent).toContain('Sin límite');
+    expect(rows().every((row) => row?.endsWith('Incluida'))).toBe(true);
   });
 });

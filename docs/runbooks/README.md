@@ -18,3 +18,5 @@ agrega al cerrar el Sprint 4.
 - [Operación de E-16: snapshots, capacidad, planes y verificación](productos-elegibles-e16.md)
 - [Contratos del Sprint 4 (A-15): ANA-01, ANA-02, TEN-04, ANA-04 e INT-07](contratos-sprint4-a15.md)
 - [Equipo, roles y enmascarado (A-10): invitaciones, límite de usuarios y enmascarado en el servidor](equipo-enmascarado-a10.md)
+- [Administración de tenants por API (A-08): listar, cambiar plan y verificar la auditoría](administracion-tenants-a08.md)
+- [Planes, entitlements y aislamiento (A-01, A-02, A-04, A-05, A-09)](planes-entitlements-a02.md)

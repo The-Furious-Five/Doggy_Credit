@@ -20,7 +20,7 @@ import {
   DsTabs,
   DsToastService,
 } from '../design-system';
-import { MiembroEquipo, TenantActualPlanEnum, TenantService } from '../api';
+import { MiembroEquipo, TenantActualFuncionalidadesEnum, TenantActualPlanEnum, TenantService } from '../api';
 import { AuthSessionService } from '../auth/session.service';
 import { AuditLog } from './audit-log';
 import { TeamInvite } from './team-invite';
@@ -31,6 +31,15 @@ const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
   [TenantActualPlanEnum.Pro]: 'Pro',
   [TenantActualPlanEnum.Enterprise]: 'Enterprise',
 };
+
+/** A-09 (LOS-70): nombres de las funciones que controla el plan (billing.Feature). */
+const FEATURES: { id: TenantActualFuncionalidadesEnum; label: string }[] = [
+  { id: TenantActualFuncionalidadesEnum.ScoringAvanzado, label: 'Scoring avanzado y explicable' },
+  { id: TenantActualFuncionalidadesEnum.Recomendaciones, label: 'Recomendaciones de productos' },
+  { id: TenantActualFuncionalidadesEnum.Analytics, label: 'Analítica de cartera' },
+  { id: TenantActualFuncionalidadesEnum.Webhooks, label: 'Webhooks' },
+  { id: TenantActualFuncionalidadesEnum.ApiProduccion, label: 'API de producción' },
+];
 
 @Component({
   selector: 'dc-settings',
@@ -147,6 +156,34 @@ const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
               } @else {
                 <ds-spinner label="Cargando uso mensual…" />
               }
+              @if (current.funcionalidades; as included) {
+                <dl class="ds-stack-sm">
+                  <dt class="ds-caption">Usuarios</dt>
+                  <dd>{{ limit(current.limiteUsuarios, 'Hasta ') }}</dd>
+                  <dt class="ds-caption">Integraciones activas</dt>
+                  <dd>{{ limit(current.limiteIntegraciones, 'Hasta ') }}</dd>
+                </dl>
+                <div class="ds-table-scroll" tabindex="0" aria-label="Funciones del plan">
+                  <table dsTable>
+                    <caption>Funciones del plan</caption>
+                    <thead><tr><th scope="col">Función</th><th scope="col">Estado</th></tr></thead>
+                    <tbody>
+                      @for (feature of features; track feature.id) {
+                        <tr>
+                          <th scope="row">{{ feature.label }}</th>
+                          <td>
+                            @if (included.includes(feature.id)) {
+                              <ds-badge tone="success">Incluida</ds-badge>
+                            } @else {
+                              <ds-badge>Requiere plan Pro</ds-badge>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
               <p class="ds-muted">El equipo de DoggyCredit activa los cambios de plan de tu institución.</p>
               <div class="ds-actions">
                 <a dsLink appearance="secondary" routerLink="/" fragment="planes">Comparar planes</a>
@@ -215,6 +252,7 @@ export class Settings {
   readonly maskData = linkedSignal(() => this.preferences()?.enmascararDatos ?? true);
 
   readonly planNames = PLAN_NAMES;
+  readonly features = FEATURES;
   readonly org = linkedSignal(() => this.tenant()?.nombre ?? '');
   savingOrganization = false;
   savingPreferences = false;
@@ -232,6 +270,11 @@ export class Settings {
       next: (members) => this.team.set(members),
       error: () => this.teamError.set(true),
     });
+  }
+
+  /** 0 en la API significa sin límite. */
+  limit(value: number | undefined, prefix: string): string {
+    return value === undefined ? '—' : value === 0 ? 'Sin límite' : `${prefix}${value}`;
   }
 
   tenantStatus(): string {

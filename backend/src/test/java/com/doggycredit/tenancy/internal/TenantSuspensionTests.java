@@ -139,8 +139,10 @@ class TenantSuspensionTests {
         for (String token : List.of("person", "tenant-admin", "api-key")) {
             mvc.perform(get("/tenant/actual").header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.activo").value(true))
-                    .andExpect(jsonPath("$.evaluacionesMes").doesNotExist())
-                    .andExpect(jsonPath("$.limiteMensual").doesNotExist());
+                    // A-01 (LOS-64): /tenant/actual también publica el consumo y la cuota del mes;
+                    // la suspensión y la reactivación no los tocan.
+                    .andExpect(jsonPath("$.evaluacionesMes").value(17))
+                    .andExpect(jsonPath("$.limiteMensual").value(500));
         }
         var audit = scoped(target, () -> jdbc.queryForList("""
                 select action, actor, resource_type, resource_id, correlation_id
