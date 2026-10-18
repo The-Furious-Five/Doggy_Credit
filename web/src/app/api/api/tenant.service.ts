@@ -353,6 +353,7 @@ export class TenantService extends BaseService {
 
     /**
      * Consulta uso de evaluaciones del mes y límite del plan actual
+     * RF-ANA-01 (B-12). Cualquier rol del tenant. El mes es el calendario UTC, el mismo de la cuota. integracionesActivas y limiteIntegraciones reflejan el estado actual y el plan vigente (0 &#x3D; sin límite). Una evaluación repetida con la misma Idempotency-Key no suma consumo. 
      * @endpoint get /tenant/actual/uso
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.

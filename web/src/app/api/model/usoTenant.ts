@@ -15,5 +15,13 @@ export interface UsoTenant {
      * 0 means unlimited
      */
     limiteMensual: number;
+    /**
+     * RF-ANA-01. Integraciones en estado CONECTADO hoy, el buró incluido.
+     */
+    integracionesActivas?: number;
+    /**
+     * RF-ANA-01. Máximo de integraciones activas del plan vigente; 0 significa sin límite.
+     */
+    limiteIntegraciones?: number;
 }
 
