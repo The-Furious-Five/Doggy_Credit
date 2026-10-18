@@ -23,6 +23,14 @@ export interface Recomendacion {
      * Por qué aplica, en lenguaje legible
      */
     razon: string;
+    /**
+     * RF-REC-03: plazo dentro del rango del producto. Opcional para snapshots anteriores a E-16.
+     */
+    plazoSugeridoMeses?: number;
+    /**
+     * RF-REC-03: al menos dos razones del ajuste. Opcional para snapshots anteriores a E-16; razon se conserva por compatibilidad.
+     */
+    razones?: Array<string>;
 }
 export enum RecomendacionTipoProductoEnum {
     Microcredito = 'MICROCREDITO',

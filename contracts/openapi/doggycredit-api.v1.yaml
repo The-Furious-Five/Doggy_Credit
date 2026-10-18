@@ -1405,6 +1405,18 @@ components:
         modelVersion: { type: string }
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
+        elegibilidad:
+          type: array
+          description: >
+            RF-REC-02 (E-16): snapshot de todos los productos activos del tenant al evaluar,
+            disponible en todos los planes. Cada producto indica los seis criterios y si
+            cumple todos. Se evalúa el monto propuesto tras ajustar RF-NEC-01 y el máximo
+            del producto, y el plazo solicitado o el predeterminado de la necesidad.
+            Las monedas diferentes y la capacidad no verificable no califican.
+            Ausente en evaluaciones históricas anteriores a E-16; vacío si no había
+            productos activos. Nunca se recalcula al consultar el perfil.
+          items:
+            $ref: "#/components/schemas/ElegibilidadProducto"
         recomendaciones:
           type: array
           description: >
@@ -1778,4 +1790,40 @@ components:
         moneda: { type: string, enum: [BOB, USD] }
         montoSugerido: { type: string, description: "Decimal como string: monto ajustado a la capacidad de pago y al rango del producto" }
         razon: { type: string, description: "Por qué aplica, en lenguaje legible" }
+        plazoSugeridoMeses:
+          type: integer
+          minimum: 1
+          maximum: 360
+          description: "RF-REC-03: plazo dentro del rango del producto. Opcional para snapshots anteriores a E-16."
+        razones:
+          type: array
+          minItems: 2
+          items: { type: string, minLength: 1 }
+          description: "RF-REC-03: al menos dos razones del ajuste. Opcional para snapshots anteriores a E-16; razon se conserva por compatibilidad."
       required: [tipoProducto, moneda, montoSugerido, razon]
+
+    ElegibilidadProducto:
+      type: object
+      description: Producto activo al evaluar, con los criterios del snapshot. Una recomendación no implica aprobación.
+      properties:
+        productoId: { type: string, format: uuid }
+        tipoProducto: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        moneda: { type: string, enum: [BOB, USD] }
+        elegible: { type: boolean }
+        criterios:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items:
+            $ref: "#/components/schemas/CriterioElegibilidad"
+      required: [productoId, tipoProducto, moneda, elegible, criterios]
+
+    CriterioElegibilidad:
+      type: object
+      properties:
+        codigo:
+          type: string
+          enum: [BANDA_MINIMA, RANGO_MONTO, RANGO_PLAZO, TIPO_TITULAR, DESTINO, CAPACIDAD_PAGO]
+        cumple: { type: boolean }
+        detalle: { type: string, minLength: 1 }
+      required: [codigo, cumple, detalle]
