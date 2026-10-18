@@ -18,6 +18,7 @@ import com.doggycredit.recommendation.CreditNeeds.CreditNeed;
 import com.doggycredit.recommendation.CreditNeeds.HolderType;
 import com.doggycredit.recommendation.NeedCategory;
 import com.doggycredit.recommendation.ProductRecommendations;
+import com.doggycredit.recommendation.ProductRecommendations.Recommendation;
 import com.doggycredit.shared.TenantContext;
 import com.doggycredit.scoring.ScoreBand;
 
@@ -42,6 +43,23 @@ class ProductRecommendationServiceTests {
                     need(NeedCategory.EFICIENCIA_ENERGETICA, "3000.00", "1000.00", 12)).orElseThrow();
             assertThat(green.productType()).isEqualTo("VERDE");
             assertThat(green.amount()).isEqualByComparingTo("3000.00");
+        });
+    }
+
+    @Test
+    void rankDevuelveTodasLasElegiblesEnOrdenConSuRazon() throws Exception {
+        // C-06: con destino verde aplican VERDE y MICROCREDITO; el verde va primero.
+        UUID tenant = UUID.randomUUID();
+        product(tenant, "MICROCREDITO", true, "BOB");
+        product(tenant, "VERDE", true, "BOB");
+        asTenant(tenant, () -> {
+            var ranked = recommendations.rank(tenant, "BOB", ScoreBand.B, HolderType.PERSONA,
+                    need(NeedCategory.EFICIENCIA_ENERGETICA, "3000.00", "1000.00", 12));
+            assertThat(ranked).extracting(Recommendation::productType).containsExactly("VERDE", "MICROCREDITO");
+            assertThat(ranked).allSatisfy(r -> assertThat(r.reason()).isNotBlank());
+            assertThat(recommendations.first(tenant, "BOB", ScoreBand.B, HolderType.PERSONA,
+                    need(NeedCategory.EFICIENCIA_ENERGETICA, "3000.00", "1000.00", 12)))
+                .contains(ranked.getFirst());
         });
     }
 

@@ -13,6 +13,8 @@ import {
   FuenteIntegracion,
   IntegracionEstadoEnum,
   IntegracionesService,
+  RecomendacionMonedaEnum,
+  RecomendacionTipoProductoEnum,
   SolicitantesService,
 } from '../api';
 import { AuthSession, AuthSessionService } from '../auth/session.service';
@@ -213,6 +215,33 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
       a.textContent?.includes('Ver perfil completo'),
     ) as HTMLAnchorElement;
     expect(link.getAttribute('href')).toBe(`/app/clientes/${APPLICANT_ID}`);
+  });
+
+  it('muestra los productos recomendados (C-06) y, sin ellos, que son del plan Pro', async () => {
+    assessments.crearEvaluacion.mockReturnValue(
+      of(
+        result({
+          recomendaciones: [
+            {
+              tipoProducto: RecomendacionTipoProductoEnum.Microcredito,
+              moneda: RecomendacionMonedaEnum.Bob,
+              montoSugerido: '3000.00',
+              razon: 'Banda A cumple la mínima C',
+            },
+          ],
+        }),
+      ),
+    );
+    const f = render();
+    await goToResult(f);
+    expect(text(f)).toContain('Productos recomendados');
+    expect(text(f)).toContain('Microcrédito');
+    expect(text(f)).toContain('Banda A cumple la mínima C');
+
+    f.componentInstance.restart();
+    assessments.crearEvaluacion.mockReturnValue(of(result()));
+    await goToResult(f);
+    expect(text(f)).toContain('disponibles en el plan Pro');
   });
 
   it('PARCIAL: avisa que faltó una fuente y que no se preaprueba', async () => {

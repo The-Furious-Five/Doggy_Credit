@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { Recomendacion } from './recomendacion';
 
 
 export interface Evaluacion { 
@@ -22,6 +23,10 @@ export interface Evaluacion {
     modelVersion?: string;
     simulado?: boolean;
     correlationId?: string;
+    /**
+     * C-06: productos del catálogo del tenant para los que el titular es elegible, del más adecuado al menos, cada uno con su razón. Solo en los planes con recomendaciones (PRO y ENTERPRISE). Ausente si el plan no las incluye o si el resultado es PARCIAL (no se recomienda con fuentes fallidas); vacío si ningún producto aplica. 
+     */
+    recomendaciones?: Array<Recomendacion>;
 }
 export enum EvaluacionEstadoEnum {
     Pendiente = 'PENDIENTE',

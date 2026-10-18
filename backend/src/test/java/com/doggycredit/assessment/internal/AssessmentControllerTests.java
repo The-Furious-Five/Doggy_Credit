@@ -135,12 +135,14 @@ class AssessmentControllerTests {
 		assertThat(comoTenant(() -> jdbc.queryForObject(
 				"select decision_time_ms from assessment.credit_assessments where id = ?", Long.class, id)))
 				.isNotNegative();
+		// A-06: este tenant es FREE, que no incluye recomendaciones (el camino PRO está en
+		// AssessmentRecommendationsTests). Antes esperaba MICROCREDITO y pasaba o fallaba según el orden.
 		assertThat(comoTenant(() -> jdbc.queryForObject(
 				"select recommended_product_type from assessment.credit_assessments where id = ?", String.class, id)))
-				.isEqualTo("MICROCREDITO");
+				.isNull();
 		assertThat(comoTenant(() -> jdbc.queryForObject(
-				"select recommended_amount from assessment.credit_assessments where id = ?", BigDecimal.class, id)))
-				.isEqualByComparingTo("3000.00");
+				"select recommendations_evaluated from assessment.credit_assessments where id = ?", Boolean.class, id)))
+				.isFalse();
 		assertThat(comoTenant(() -> jdbc.queryForObject(
 				"select count(*) from assessment.credit_assessments where idempotency_key = ?", Integer.class, key)))
 				.isEqualTo(1);
