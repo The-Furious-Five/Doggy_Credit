@@ -8,7 +8,7 @@ import com.doggycredit.scoring.ScoreBand;
 
 /** Un producto del catálogo del tenant (tabla recommendation.products, C-02). */
 record CreditProduct(UUID id, Type type, BigDecimal minAmount, BigDecimal maxAmount, int minTermMonths,
-		int maxTermMonths, BigDecimal annualRate, ScoreBand minBand, boolean active) {
+		int maxTermMonths, BigDecimal annualRate, ScoreBand minBand, boolean active, String currency) {
 
 	enum Type {
 		MICROCREDITO("Microcrédito"), VERDE("Crédito ecológico"), PYME("Crédito PYME");
@@ -29,6 +29,7 @@ record CreditProduct(UUID id, Type type, BigDecimal minAmount, BigDecimal maxAmo
 		Objects.requireNonNull(minAmount, "minAmount");
 		Objects.requireNonNull(maxAmount, "maxAmount");
 		Objects.requireNonNull(minBand, "minBand");
+		Objects.requireNonNull(currency, "currency");
 	}
 
 }

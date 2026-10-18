@@ -21,20 +21,21 @@ import com.doggycredit.scoring.ScoreBand;
  * <p>
  * Orden por ajuste (informe de arquitectura): primero los elegibles; entre ellos,
  * coincidencia del destino (destino verde → crédito ecológico) y luego cercanía del monto
- * pedido al centro del rango del producto. La holgura de la carga financiera, el tercer
- * criterio del informe, necesita los flujos de banco y billetera (B-04): queda fuera.
+ * pedido al centro del rango del producto. E-16 agrega la capacidad de pago de RF-NEC-01:
+ * una cuota mayor al máximo o una capacidad desconocida nunca califica.
  */
 @Component
 class EligibilityEngine {
 
-	/** Solicitud a evaluar: banda del score, monto y plazo pedidos, tipo de titular y destino. */
+	/** Banda, monto propuesto, plazo elegido, titular, destino y capacidad de RF-NEC-01 (null = desconocida). */
 	record Request(ScoreBand band, BigDecimal requestedAmount, int termMonths, HolderType holderType,
-			boolean greenDestination) {
+			boolean greenDestination, String currency, BigDecimal maxInstallment) {
 
 		Request {
 			Objects.requireNonNull(band, "band");
 			Objects.requireNonNull(requestedAmount, "requestedAmount");
 			Objects.requireNonNull(holderType, "holderType");
+			Objects.requireNonNull(currency, "currency");
 		}
 	}
 
@@ -46,7 +47,7 @@ class EligibilityEngine {
 	record Criterion(Code code, boolean met, String description) {
 
 		enum Code {
-			BAND, AMOUNT, TERM, HOLDER_TYPE, DESTINATION
+			BAND, AMOUNT, TERM, HOLDER_TYPE, DESTINATION, PAYMENT_CAPACITY
 		}
 	}
 
@@ -64,7 +65,7 @@ class EligibilityEngine {
 
 	private Evaluation evaluate(Request request, CreditProduct product) {
 		List<Criterion> criteria = List.of(band(request, product), amount(request, product),
-				term(request, product), holderType(request, product), destination(request, product));
+				term(request, product), holderType(request, product), destination(request, product), capacity(request, product));
 		boolean eligible = criteria.stream().allMatch(Criterion::met);
 		String reason = eligible ? eligibleReason(request, product)
 				: criteria.stream().filter(criterion -> !criterion.met())
@@ -79,7 +80,8 @@ class EligibilityEngine {
 	 * crédito ecológico sin destino verde no aplica aunque el monto encaje.
 	 */
 	private static final List<Criterion.Code> REASON_PRIORITY = List.of(Criterion.Code.HOLDER_TYPE,
-			Criterion.Code.DESTINATION, Criterion.Code.BAND, Criterion.Code.AMOUNT, Criterion.Code.TERM);
+			Criterion.Code.DESTINATION, Criterion.Code.BAND, Criterion.Code.AMOUNT, Criterion.Code.TERM,
+			Criterion.Code.PAYMENT_CAPACITY);
 
 	// --- criterios ---------------------------------------------------------------
 
@@ -92,11 +94,33 @@ class EligibilityEngine {
 	}
 
 	private static Criterion amount(Request request, CreditProduct product) {
+		if (!request.currency().equals(product.currency())) {
+			return new Criterion(Criterion.Code.AMOUNT, false,
+					"Moneda " + product.currency() + " distinta de " + request.currency() + "; sin conversión de divisas");
+		}
 		boolean met = request.requestedAmount().compareTo(product.minAmount()) >= 0
 				&& request.requestedAmount().compareTo(product.maxAmount()) <= 0;
-		String range = "Bs " + money(product.minAmount()) + " – " + money(product.maxAmount());
-		return new Criterion(Criterion.Code.AMOUNT, met, "Monto Bs " + money(request.requestedAmount())
+		String denomination = "BOB".equals(product.currency()) ? "Bs " : product.currency() + " ";
+		String range = denomination + money(product.minAmount()) + " – " + money(product.maxAmount());
+		return new Criterion(Criterion.Code.AMOUNT, met, "Monto " + denomination + money(request.requestedAmount())
 				+ (met ? " dentro del rango " : " fuera del rango ") + range);
+	}
+
+	private static Criterion capacity(Request request, CreditProduct product) {
+		if (request.maxInstallment() == null || !request.currency().equals(product.currency())) {
+			return new Criterion(Criterion.Code.PAYMENT_CAPACITY, false,
+					"Capacidad de pago no verificable: fuentes incompletas o moneda diferente");
+		}
+		if (request.termMonths() <= 0 || request.requestedAmount().signum() <= 0) {
+			return new Criterion(Criterion.Code.PAYMENT_CAPACITY, false,
+					"Sin capacidad de pago para un monto y plazo positivos");
+		}
+		BigDecimal payment = LoanPayments.installment(request.requestedAmount(), product.annualRate(), request.termMonths());
+		boolean met = payment.compareTo(request.maxInstallment()) <= 0;
+		return new Criterion(Criterion.Code.PAYMENT_CAPACITY, met,
+				"Cuota " + product.currency() + " " + money(payment)
+				+ (met ? " no supera " : " supera ") + "la capacidad mensual "
+				+ product.currency() + " " + money(request.maxInstallment()) + " (RF-NEC-01)");
 	}
 
 	private static Criterion term(Request request, CreditProduct product) {
@@ -138,7 +162,7 @@ class EligibilityEngine {
 		return "Elegible: cumple banda, monto y plazo";
 	}
 
-	private static Comparator<Evaluation> byFit(Request request) {
+	static Comparator<Evaluation> byFit(Request request) {
 		return Comparator.comparing((Evaluation evaluation) -> !evaluation.eligible())
 			.thenComparing(evaluation -> !destinationMatches(request, evaluation.product()))
 			.thenComparing(evaluation -> distanceToRangeCenter(request, evaluation.product()))

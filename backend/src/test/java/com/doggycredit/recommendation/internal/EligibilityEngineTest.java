@@ -23,7 +23,7 @@ class EligibilityEngineTest {
 	@Test
 	void personaConCapitalDeTrabajoSoloCalificaAlMicrocredito() {
 		List<Evaluation> result = engine.evaluate(
-				new Request(ScoreBand.B, new BigDecimal("5000"), 12, HolderType.PERSONA, false), catalogo());
+				request(ScoreBand.B, new BigDecimal("5000"), 12, HolderType.PERSONA, false), catalogo());
 
 		assertThat(elegibles(result)).containsExactly(Type.MICROCREDITO);
 		assertThat(evaluacion(result, Type.MICROCREDITO).reason()).isEqualTo("Elegible: cumple banda, monto y plazo");
@@ -35,7 +35,7 @@ class EligibilityEngineTest {
 	@Test
 	void empresaConBandaBCalificaAlCreditoPyme() {
 		List<Evaluation> result = engine.evaluate(
-				new Request(ScoreBand.B, new BigDecimal("100000"), 36, HolderType.EMPRESA, false), catalogo());
+				request(ScoreBand.B, new BigDecimal("100000"), 36, HolderType.EMPRESA, false), catalogo());
 
 		assertThat(elegibles(result)).containsExactly(Type.PYME);
 		assertThat(criterio(evaluacion(result, Type.MICROCREDITO), Criterion.Code.HOLDER_TYPE).met()).isFalse();
@@ -44,7 +44,7 @@ class EligibilityEngineTest {
 	@Test
 	void destinoVerdeRecomiendaPrimeroElCreditoEcologico() {
 		List<Evaluation> result = engine.evaluate(
-				new Request(ScoreBand.C, new BigDecimal("15000"), 24, HolderType.PERSONA, true), catalogo());
+				request(ScoreBand.C, new BigDecimal("15000"), 24, HolderType.PERSONA, true), catalogo());
 
 		assertThat(elegibles(result)).containsExactly(Type.VERDE, Type.MICROCREDITO);
 		assertThat(result.get(0).reason()).startsWith("Recomendado: financia el destino verde");
@@ -53,7 +53,7 @@ class EligibilityEngineTest {
 	@Test
 	void empresaConDestinoVerdeCalificaAEcologicoYPyme() {
 		List<Evaluation> result = engine.evaluate(
-				new Request(ScoreBand.A, new BigDecimal("120000"), 48, HolderType.EMPRESA, true), catalogo());
+				request(ScoreBand.A, new BigDecimal("120000"), 48, HolderType.EMPRESA, true), catalogo());
 
 		assertThat(elegibles(result)).containsExactly(Type.VERDE, Type.PYME);
 	}
@@ -61,7 +61,7 @@ class EligibilityEngineTest {
 	@Test
 	void ningunProductoAplicaYCadaUnoDiceElPorQue() {
 		List<Evaluation> result = engine.evaluate(
-				new Request(ScoreBand.D, new BigDecimal("5000"), 12, HolderType.PERSONA, false), catalogo());
+				request(ScoreBand.D, new BigDecimal("5000"), 12, HolderType.PERSONA, false), catalogo());
 
 		assertThat(elegibles(result)).isEmpty();
 		assertThat(result).hasSize(3).allSatisfy(evaluation -> assertThat(evaluation.reason()).isNotBlank());
@@ -74,7 +74,7 @@ class EligibilityEngineTest {
 				producto(Type.PYME, "50000", "700000", 6, 84, ScoreBand.B, false));
 
 		List<Evaluation> result = engine.evaluate(
-				new Request(ScoreBand.A, new BigDecimal("60000"), 24, HolderType.EMPRESA, false), catalogo);
+				request(ScoreBand.A, new BigDecimal("60000"), 24, HolderType.EMPRESA, false), catalogo);
 
 		assertThat(result).extracting(evaluation -> evaluation.product().type()).containsExactly(Type.MICROCREDITO);
 	}
@@ -86,29 +86,52 @@ class EligibilityEngineTest {
 				producto(Type.VERDE, "10000", "20000", 3, 24, ScoreBand.C, true));
 
 		List<Evaluation> result = engine.evaluate(
-				new Request(ScoreBand.B, new BigDecimal("15000"), 12, HolderType.PERSONA, true), catalogo);
+				request(ScoreBand.B, new BigDecimal("15000"), 12, HolderType.PERSONA, true), catalogo);
 
 		// El verde gana por destino; sin destino verde, gana el monto más centrado.
 		assertThat(elegibles(result)).containsExactly(Type.VERDE, Type.MICROCREDITO);
 		List<Evaluation> sinVerde = engine.evaluate(
-				new Request(ScoreBand.B, new BigDecimal("15000"), 12, HolderType.PERSONA, false),
+				request(ScoreBand.B, new BigDecimal("15000"), 12, HolderType.PERSONA, false),
 				List.of(catalogo.get(0), producto(Type.MICROCREDITO, "10000", "20000", 3, 24, ScoreBand.C, true)));
 		assertThat(sinVerde.get(0).product().maxAmount()).isEqualByComparingTo("20000");
 	}
 
 	@Test
-	void cadaProductoTraeLosCincoCriteriosConSuTexto() {
+	void cadaProductoTraeLosSeisCriteriosConSuTexto() {
 		Evaluation micro = evaluacion(engine.evaluate(
-				new Request(ScoreBand.B, new BigDecimal("25000"), 12, HolderType.PERSONA, false), catalogo()),
+				request(ScoreBand.B, new BigDecimal("25000"), 12, HolderType.PERSONA, false), catalogo()),
 				Type.MICROCREDITO);
 
 		assertThat(micro.eligible()).isFalse();
 		assertThat(micro.criteria()).extracting(Criterion::code).containsExactly(Criterion.Code.BAND,
-				Criterion.Code.AMOUNT, Criterion.Code.TERM, Criterion.Code.HOLDER_TYPE, Criterion.Code.DESTINATION);
+				Criterion.Code.AMOUNT, Criterion.Code.TERM, Criterion.Code.HOLDER_TYPE, Criterion.Code.DESTINATION,
+                Criterion.Code.PAYMENT_CAPACITY);
 		assertThat(criterio(micro, Criterion.Code.AMOUNT).description())
 			.isEqualTo("Monto Bs 25.000 fuera del rango Bs 1.000 – 20.000");
 		assertThat(criterio(micro, Criterion.Code.BAND).met()).isTrue();
 	}
+
+    @Test
+    void sinCapacidadOConCuotaSuperiorNoCalificaAunqueCumplaLosOtrosCriterios() {
+        for (BigDecimal capacity : java.util.Arrays.asList(null, BigDecimal.ZERO, new BigDecimal("100"))) {
+            var result = engine.evaluate(new Request(ScoreBand.B, new BigDecimal("5000"), 12,
+                    HolderType.PERSONA, false, "BOB", capacity), catalogo());
+            var micro = evaluacion(result, Type.MICROCREDITO);
+            assertThat(micro.eligible()).isFalse();
+            assertThat(criterio(micro, Criterion.Code.PAYMENT_CAPACITY).met()).isFalse();
+            assertThat(micro.criteria().stream().filter(c -> c.code() != Criterion.Code.PAYMENT_CAPACITY))
+                    .allMatch(Criterion::met);
+        }
+    }
+
+    @Test
+    void laMonedaDiferenteNoSeMezclaConLaCapacidadDelTitular() {
+        var result = engine.evaluate(new Request(ScoreBand.B, new BigDecimal("5000"), 12,
+                HolderType.PERSONA, false, "USD", new BigDecimal("1000000")), catalogo());
+        assertThat(result).noneMatch(Evaluation::eligible);
+        assertThat(criterio(evaluacion(result, Type.MICROCREDITO), Criterion.Code.AMOUNT).description())
+                .contains("sin conversión");
+    }
 
 	// --- utilidades ------------------------------------------------------------
 
@@ -122,8 +145,12 @@ class EligibilityEngineTest {
 	private static CreditProduct producto(Type type, String min, String max, int minTerm, int maxTerm,
 			ScoreBand minBand, boolean active) {
 		return new CreditProduct(UUID.randomUUID(), type, new BigDecimal(min), new BigDecimal(max), minTerm, maxTerm,
-				new BigDecimal("11.50"), minBand, active);
+				new BigDecimal("11.50"), minBand, active, "BOB");
 	}
+
+    private static Request request(ScoreBand band, BigDecimal amount, int term, HolderType holder, boolean green) {
+        return new Request(band, amount, term, holder, green, "BOB", new BigDecimal("1000000"));
+    }
 
 	private static List<Type> elegibles(List<Evaluation> result) {
 		return result.stream().filter(Evaluation::eligible).map(evaluation -> evaluation.product().type()).toList();

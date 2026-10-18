@@ -23,6 +23,8 @@ import com.doggycredit.shared.contract.model.Evaluacion;
 import com.doggycredit.shared.contract.model.EvaluacionNueva;
 import com.doggycredit.shared.contract.model.EvaluacionResumen;
 import com.doggycredit.shared.contract.model.PaginaEvaluaciones;
+import com.doggycredit.shared.contract.model.ElegibilidadProducto;
+import com.doggycredit.shared.contract.model.CriterioElegibilidad;
 import com.doggycredit.shared.contract.model.Recomendacion;
 
 @RestController
@@ -94,13 +96,25 @@ class AssessmentController implements EvaluacionesApi {
 			.modelVersion(result.modelVersion())
 			.simulado(result.simulated())
 			.correlationId(result.correlationId())
+            .elegibilidad(result.eligibility() == null ? null : result.eligibility().stream()
+                .map(p -> new ElegibilidadProducto()
+                    .productoId(p.productId())
+                    .tipoProducto(ElegibilidadProducto.TipoProductoEnum.fromValue(p.productType()))
+                    .moneda(ElegibilidadProducto.MonedaEnum.fromValue(p.currency()))
+                    .elegible(p.eligible())
+                    .criterios(p.criteria().stream().map(c -> new CriterioElegibilidad()
+                        .codigo(CriterioElegibilidad.CodigoEnum.fromValue(c.code().name()))
+                        .cumple(c.met()).detalle(c.detail())).toList()))
+                .toList())
 			// C-06: ausente si no corresponden (plan sin la función o PARCIAL); [] si ninguna aplica.
 			.recomendaciones(result.recommendations() == null ? null : result.recommendations().stream()
 				.map(r -> new Recomendacion()
 					.tipoProducto(Recomendacion.TipoProductoEnum.fromValue(r.productType()))
 					.moneda(Recomendacion.MonedaEnum.fromValue(r.currency()))
 					.montoSugerido(r.suggestedAmount().toPlainString())
-					.razon(r.reason()))
+					.razon(r.reason())
+                    .plazoSugeridoMeses(r.suggestedTermMonths())
+                    .razones(r.reasons()))
 				.toList());
 	}
 

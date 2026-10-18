@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.doggycredit.scoring.ScoreBand;
+import com.doggycredit.recommendation.ProductEligibility;
 
 /**
  * @param recommendations C-06: productos recomendados en orden; {@code null} si no corresponden
@@ -11,5 +12,5 @@ import com.doggycredit.scoring.ScoreBand;
  */
 public record AssessmentResult(UUID id, AssessmentStatus status, int score, ScoreBand band,
 		List<String> reasons, String modelVersion, boolean simulated, String correlationId,
-		List<AssessmentRecommendation> recommendations) {
+		List<AssessmentRecommendation> recommendations, List<ProductEligibility> eligibility) {
 }

@@ -13,6 +13,7 @@ import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.AssessmentSummary;
 import com.doggycredit.assessment.CreditAssessmentCompleted;
+import com.doggycredit.recommendation.ProductEligibility;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.ScoreBand;
 
@@ -167,9 +168,9 @@ class CreditAssessment {
 	}
 
 	/** @param recommendations las guardadas, o null si no se evaluaron (ver recommendationsEvaluated). */
-	AssessmentResult toResult(List<AssessmentRecommendation> recommendations) {
+	AssessmentResult toResult(List<AssessmentRecommendation> recommendations, List<ProductEligibility> eligibility) {
 		return new AssessmentResult(id, AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band),
-				List.of(reasons), modelVersion, simulated, correlationId, recommendations);
+				List.of(reasons), modelVersion, simulated, correlationId, recommendations, eligibility);
 	}
 
 }
