@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.internal.ManualReviewResolution.Decision;
 import com.doggycredit.shared.RoleGuard;
+import com.doggycredit.shared.SensitiveDataPolicy;
+import com.doggycredit.shared.SensitiveDataPolicy.Masker;
 import com.doggycredit.shared.contract.api.RevisionManualApi;
 import com.doggycredit.shared.contract.model.CasoRevision;
 import com.doggycredit.shared.contract.model.PaginaCasosRevision;
@@ -26,17 +28,20 @@ class ManualReviewController implements RevisionManualApi {
 	static final String[] ALLOWED_ROLES = { "ANALYST", "TENANT_ADMIN" };
 
 	private final ManualReviewService reviews;
+	private final SensitiveDataPolicy sensitiveData;
 
-	ManualReviewController(ManualReviewService reviews) {
+	ManualReviewController(ManualReviewService reviews, SensitiveDataPolicy sensitiveData) {
 		this.reviews = reviews;
+		this.sensitiveData = sensitiveData;
 	}
 
 	@Override
 	public ResponseEntity<PaginaCasosRevision> listarCasosRevision(Integer pagina, Integer tamano) {
 		var jwt = RoleGuard.requireAnyJwt(ALLOWED_ROLES);
 		ManualReviewService.Inbox inbox = reviews.inbox(tenantId(jwt), pagina, tamano);
+		Masker mask = sensitiveData.forCurrentUser();
 		return ResponseEntity.ok(new PaginaCasosRevision()
-			.items(inbox.items().stream().map(ManualReviewController::toContract).toList())
+			.items(inbox.items().stream().map(item -> toContract(item, mask)).toList())
 			.total(inbox.total())
 			.productos(inbox.products()));
 	}
@@ -56,7 +61,7 @@ class ManualReviewController implements RevisionManualApi {
 			.resueltoEn(resolution.resolvedAt().atOffset(ZoneOffset.UTC)));
 	}
 
-	private static CasoRevision toContract(ManualReviewService.Item item) {
+	private static CasoRevision toContract(ManualReviewService.Item item, Masker mask) {
 		var reviewCase = item.reviewCase();
 		// El enum v1 del contrato no lleva PARCIAL: un PARCIAL queda en revisión manual (RN-15).
 		var motivo = reviewCase.status() == AssessmentStatus.SOLICITAR_DATOS ? CasoRevision.MotivoEnum.SOLICITAR_DATOS
@@ -64,14 +69,15 @@ class ManualReviewController implements RevisionManualApi {
 		return new CasoRevision()
 			.evaluacionId(reviewCase.id())
 			.solicitanteId(reviewCase.applicantId())
-			.documento(item.document())
+			.documento(mask.document(item.document()))
 			.creadoEn(reviewCase.createdAt().atOffset(ZoneOffset.UTC))
 			.score(reviewCase.score())
 			.banda(CasoRevision.BandaEnum.fromValue(reviewCase.band().name()))
 			.motivo(motivo)
 			.resultadoParcial(reviewCase.status() == AssessmentStatus.PARCIAL)
 			.razones(reviewCase.reasons())
-			.montoSolicitado(reviewCase.requestedAmount() == null ? null : reviewCase.requestedAmount().toPlainString())
+			.montoSolicitado(reviewCase.requestedAmount() == null ? null
+					: mask.amount(reviewCase.requestedAmount().toPlainString()))
 			.plazoMeses(reviewCase.termMonths())
 			.proposito(reviewCase.purpose());
 	}

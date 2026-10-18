@@ -8,6 +8,7 @@ import {
   DsBadge,
   DsButton,
   DsCard,
+  DsEmptyState,
   DsField,
   DsInput,
   DsLink,
@@ -19,8 +20,10 @@ import {
   DsTabs,
   DsToastService,
 } from '../design-system';
-import { TenantActualPlanEnum, TenantService } from '../api';
+import { MiembroEquipo, TenantActualPlanEnum, TenantService } from '../api';
+import { AuthSessionService } from '../auth/session.service';
 import { AuditLog } from './audit-log';
+import { TeamInvite } from './team-invite';
 import { TenantUsageService } from './tenant-usage.service';
 
 const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
@@ -35,10 +38,12 @@ const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
     FormsModule,
     RouterLink,
     AuditLog,
+    TeamInvite,
     DsAlert,
     DsBadge,
     DsButton,
     DsCard,
+    DsEmptyState,
     DsField,
     DsInput,
     DsLink,
@@ -82,18 +87,30 @@ const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
         <ds-card>
           <div class="card-head">
             <h2>Usuarios con acceso</h2>
+            @if (isTenantAdmin()) {
+              <dc-team-invite (invited)="loadTeam()" />
+            }
           </div>
           @if (teamError()) {
             <ds-alert heading="Equipo no disponible" tone="warning">
-              No se pudo consultar el directorio de identidad. Recarga la página o revisa la conexión de Keycloak.
+              No se pudo consultar el directorio de identidad. Revisa la conexión de Keycloak e inténtalo de nuevo.
+              <button dsButton variant="secondary" (click)="loadTeam()">Reintentar</button>
             </ds-alert>
+          } @else if (team() === undefined) {
+            <ds-spinner label="Cargando usuarios…" />
+          } @else if (team()!.length === 0) {
+            <ds-empty-state
+              icon="users"
+              heading="Todavía no hay usuarios"
+              description="Las personas que invites aparecerán aquí con su rol y su estado."
+            />
           } @else {
             <div class="ds-table-scroll" tabindex="0" aria-label="Usuarios">
               <table dsTable>
                 <caption class="ds-sr-only">Usuarios de la institución</caption>
                 <thead><tr><th scope="col">Nombre</th><th scope="col">Rol</th><th scope="col">Estado</th></tr></thead>
                 <tbody>
-                  @for (member of team(); track member.email ?? member.nombre) {
+                  @for (member of team()!; track member.email ?? member.nombre) {
                     <tr>
                       <th scope="row">{{ member.nombre }}@if (member.email) { <span class="ds-caption"> · {{ member.email }}</span> }</th>
                       <td>{{ member.rol }}</td>
@@ -185,11 +202,11 @@ export class Settings {
     this.tenantUnavailable.set(true);
     return of(null);
   })));
+  private readonly session = inject(AuthSessionService).session;
+  readonly isTenantAdmin = computed(() => this.session().roles.includes('TENANT_ADMIN'));
   readonly teamError = signal(false);
-  readonly team = toSignal(this.tenantService.listarEquipo().pipe(catchError(() => {
-    this.teamError.set(true);
-    return of([]);
-  })), { initialValue: [] });
+  /** undefined mientras carga; la lista vacía es un estado propio. */
+  readonly team = signal<MiembroEquipo[] | undefined>(undefined);
   readonly preferencesUnavailable = signal(false);
   readonly preferences = toSignal(this.tenantService.obtenerPreferenciasTenant().pipe(catchError(() => {
     this.preferencesUnavailable.set(true);
@@ -205,6 +222,16 @@ export class Settings {
   constructor() {
     // Si la consola ya lo había consultado, la pestaña Plan muestra el uso al día.
     if (this.usage() !== undefined) this.usageService.refresh();
+    this.loadTeam();
+  }
+
+  loadTeam(): void {
+    this.teamError.set(false);
+    this.team.set(undefined);
+    this.tenantService.listarEquipo().subscribe({
+      next: (members) => this.team.set(members),
+      error: () => this.teamError.set(true),
+    });
   }
 
   tenantStatus(): string {

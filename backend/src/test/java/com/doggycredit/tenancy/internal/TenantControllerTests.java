@@ -17,10 +17,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.doggycredit.billing.PlanCatalog;
 import com.doggycredit.billing.UsageMeter;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.doggycredit.shared.internal.IdentitySecurityConfiguration;
@@ -31,6 +34,7 @@ import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantNotFoundException;
 import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.billing.PlanInfo;
 import com.doggycredit.shared.contract.model.PreferenciasTenant;
 import com.doggycredit.shared.contract.model.OrganizacionTenantPatch;
@@ -60,6 +64,9 @@ class TenantControllerTests {
     @MockitoBean
     KeycloakClients keycloak;
 
+    @MockitoBean
+    AuditTrail audit;
+
     @TestConfiguration(proxyBeanMethods = false)
     static class DecoderFixture {
         @Bean
@@ -82,8 +89,9 @@ class TenantControllerTests {
     static class ControllerFixture {
         @Bean
         TenantController tenantController(TenantRegistry registry, TenantPreferencesService preferences,
-                PlanCatalog plans, UsageMeter usage, KeycloakClients keycloak) {
-            return new TenantController(registry, preferences, plans, usage, keycloak);
+                PlanCatalog plans, UsageMeter usage, KeycloakClients keycloak, AuditTrail audit) {
+            return new TenantController(registry, preferences, plans, usage, keycloak,
+                    new TeamInvitationService(registry, plans, keycloak, audit));
         }
     }
 
@@ -174,8 +182,8 @@ class TenantControllerTests {
     void teamListComesFromKeycloakForTheTenantInTheToken() throws Exception {
         UUID tenantId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         when(keycloak.listTeamMembers(tenantId)).thenReturn(List.of(
-                new KeycloakClients.TeamMember("Ana Pérez", "ana@example.test", "TENANT_ADMIN", true),
-                new KeycloakClients.TeamMember("Luis Rojas", "luis@example.test", "ANALYST", false)));
+                new KeycloakClients.TeamMember("Ana Pérez", "ana@example.test", "TENANT_ADMIN", true, false),
+                new KeycloakClients.TeamMember("Luis Rojas", "luis@example.test", "ANALYST", false, false)));
 
         mvc.perform(get("/tenant/actual/equipo").header("Authorization", "Bearer valid"))
                 .andExpect(status().isOk())
@@ -183,5 +191,89 @@ class TenantControllerTests {
                 .andExpect(jsonPath("$[0].rol").value("TENANT_ADMIN"))
                 .andExpect(jsonPath("$[1].estado").value("DESACTIVADO"));
         verify(keycloak).listTeamMembers(tenantId);
+    }
+
+    private static final UUID TENANT = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final String INVITE = """
+            {"nombre": "Rosa Mamani", "email": "rosa@example.test", "rol": "ANALYST"}""";
+
+    private void freeTenantWithMembers(int members) {
+        when(tenantRegistry.requireById(TenantId.of(TENANT)))
+                .thenReturn(new TenantInfo(TENANT, "Mi Fintech", "1234567", "FINTECH", "FREE", "BO", "BOB", true));
+        when(planCatalog.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false, false));
+        when(keycloak.listTeamMembers(TENANT)).thenReturn(java.util.stream.IntStream.range(0, members)
+                .mapToObj(i -> new KeycloakClients.TeamMember("Persona " + i, i + "@example.test", "ANALYST", true, false))
+                .toList());
+    }
+
+    @Test
+    void tenantAdminInvitesIntoTheTenantOfTheTokenAndTheMemberStartsAsInvited() throws Exception {
+        freeTenantWithMembers(2);
+        when(keycloak.invite(any(), any())).thenReturn(
+                new KeycloakClients.TeamMember("Rosa Mamani", "rosa@example.test", "ANALYST", true, true));
+
+        mvc.perform(post("/tenant/actual/equipo").contentType(MediaType.APPLICATION_JSON).content(INVITE)
+                .header("Authorization", "Bearer tenant-admin"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("rosa@example.test"))
+                .andExpect(jsonPath("$.estado").value("INVITADO"));
+        verify(keycloak).invite(TENANT, new KeycloakClients.NewMember("Rosa Mamani", "rosa@example.test", "ANALYST"));
+        verify(audit).record(TENANT, "TEAM_MEMBER_INVITED", "TENANT", TENANT);
+    }
+
+    @Test
+    void theFreePlanRejectsAFourthUserWithoutCreatingIt() throws Exception {
+        freeTenantWithMembers(3);
+
+        mvc.perform(post("/tenant/actual/equipo").contentType(MediaType.APPLICATION_JSON).content(INVITE)
+                .header("Authorization", "Bearer tenant-admin"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PLAN_LIMIT_REACHED"));
+        verify(keycloak, never()).invite(any(), any());
+    }
+
+    @Test
+    void disabledAccountsDoNotTakeAPlaceInThePlan() throws Exception {
+        freeTenantWithMembers(2);
+        when(keycloak.listTeamMembers(TENANT)).thenReturn(List.of(
+                new KeycloakClients.TeamMember("Ana", "ana@example.test", "TENANT_ADMIN", true, false),
+                new KeycloakClients.TeamMember("Luis", "luis@example.test", "ANALYST", true, false),
+                new KeycloakClients.TeamMember("Baja", "baja@example.test", "ANALYST", false, false)));
+        when(keycloak.invite(any(), any())).thenReturn(
+                new KeycloakClients.TeamMember("Rosa Mamani", "rosa@example.test", "ANALYST", true, true));
+
+        mvc.perform(post("/tenant/actual/equipo").contentType(MediaType.APPLICATION_JSON).content(INVITE)
+                .header("Authorization", "Bearer tenant-admin"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void anAnalystCannotInvite() throws Exception {
+        mvc.perform(post("/tenant/actual/equipo").contentType(MediaType.APPLICATION_JSON).content(INVITE)
+                .header("Authorization", "Bearer valid"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("INSUFFICIENT_ROLE"));
+        verify(keycloak, never()).invite(any(), any());
+    }
+
+    @Test
+    void anExistingAccountIsAConflict() throws Exception {
+        freeTenantWithMembers(1);
+        when(keycloak.invite(any(), any())).thenThrow(new KeycloakClients.MemberAlreadyExistsException());
+
+        mvc.perform(post("/tenant/actual/equipo").contentType(MediaType.APPLICATION_JSON).content(INVITE)
+                .header("Authorization", "Bearer tenant-admin"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("MEMBER_ALREADY_EXISTS"));
+    }
+
+    @Test
+    void pendingInvitationsAreListedAsInvited() throws Exception {
+        when(keycloak.listTeamMembers(TENANT)).thenReturn(List.of(
+                new KeycloakClients.TeamMember("Rosa Mamani", "rosa@example.test", "ANALYST", true, true)));
+
+        mvc.perform(get("/tenant/actual/equipo").header("Authorization", "Bearer valid"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].estado").value("INVITADO"));
     }
 }

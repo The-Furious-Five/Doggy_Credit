@@ -34,6 +34,7 @@ import org.springframework.web.client.RestClientException;
 class KeycloakAdminClients implements KeycloakClients {
 
 	private static final Duration TOKEN_MARGIN = Duration.ofSeconds(30);
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(KeycloakAdminClients.class);
 	private static final java.util.Set<String> TEAM_ROLES = java.util.Set.of("TENANT_ADMIN", "ANALYST", "PLATFORM_ADMIN");
 
 	private final Properties properties;
@@ -140,6 +141,96 @@ class KeycloakAdminClients implements KeycloakClients {
 		}
 	}
 
+	@Override
+	public TeamMember invite(UUID tenantId, NewMember member) {
+		String[] names = member.nombre().strip().split("\\s+", 2);
+		List<String> actions = "TENANT_ADMIN".equals(member.rol())
+				? List.of("UPDATE_PASSWORD", "CONFIGURE_TOTP") : List.of("UPDATE_PASSWORD");
+		String email = member.email().strip().toLowerCase(java.util.Locale.ROOT);
+		Map<String, Object> representation = Map.of(
+				"username", email,
+				"email", email,
+				"emailVerified", false,
+				"enabled", true,
+				"firstName", names[0],
+				"lastName", names.length > 1 ? names[1] : "",
+				"attributes", Map.of("tenant_id", List.of(tenantId.toString())),
+				"requiredActions", actions);
+		UUID userId;
+		try {
+			URI location = http.post()
+				.uri("/admin/realms/{realm}/users", properties.realm())
+				.headers(h -> h.setBearerAuth(token()))
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(representation)
+				.retrieve()
+				.toBodilessEntity()
+				.getHeaders()
+				.getLocation();
+			if (location == null) {
+				throw new KeycloakUnavailableException("Keycloak no devolvió la ubicación del usuario creado", null);
+			}
+			String path = location.getPath();
+			userId = UUID.fromString(path.substring(path.lastIndexOf('/') + 1));
+		}
+		catch (HttpClientErrorException.Conflict exists) {
+			throw new MemberAlreadyExistsException();
+		}
+		catch (RestClientException | IllegalArgumentException e) {
+			throw new KeycloakUnavailableException("No se pudo crear el usuario en Keycloak", e);
+		}
+		try {
+			Map<?, ?> role = http.get()
+				.uri("/admin/realms/{realm}/roles/{role}", properties.realm(), member.rol())
+				.headers(h -> h.setBearerAuth(token()))
+				.retrieve()
+				.body(Map.class);
+			http.post()
+				.uri("/admin/realms/{realm}/users/{user}/role-mappings/realm", properties.realm(), userId)
+				.headers(h -> h.setBearerAuth(token()))
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(List.of(Map.of("id", role.get("id"), "name", role.get("name"))))
+				.retrieve()
+				.toBodilessEntity();
+		}
+		catch (RestClientException | NullPointerException e) {
+			// Compensación: sin rol la cuenta no sirve y ocuparía un lugar del plan.
+			deleteUser(userId);
+			throw new KeycloakUnavailableException("No se pudo asignar el rol " + member.rol(), e);
+		}
+		sendActionsEmail(userId, actions);
+		return new TeamMember(member.nombre().strip(), email, member.rol(), true, true);
+	}
+
+	/** Sin SMTP en el realm Keycloak responde error: la cuenta queda creada y el runbook explica la alternativa. */
+	private void sendActionsEmail(UUID userId, List<String> actions) {
+		try {
+			http.put()
+				.uri("/admin/realms/{realm}/users/{user}/execute-actions-email", properties.realm(), userId)
+				.headers(h -> h.setBearerAuth(token()))
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(actions)
+				.retrieve()
+				.toBodilessEntity();
+		}
+		catch (RestClientException e) {
+			log.warn("Keycloak no envió el correo de invitación del usuario {}: {}", userId, e.getMessage());
+		}
+	}
+
+	private void deleteUser(UUID userId) {
+		try {
+			http.delete()
+				.uri("/admin/realms/{realm}/users/{user}", properties.realm(), userId)
+				.headers(h -> h.setBearerAuth(token()))
+				.retrieve()
+				.toBodilessEntity();
+		}
+		catch (RestClientException e) {
+			log.error("No se pudo borrar el usuario {} tras fallar la asignación de rol", userId, e);
+		}
+	}
+
 	private TeamMember toTeamMember(Map<?, ?> user) {
 		String userId = String.valueOf(user.get("id"));
 		String firstName = stringValue(user.get("firstName"));
@@ -162,8 +253,10 @@ class KeycloakAdminClients implements KeycloakClients {
 			.filter(TEAM_ROLES::contains)
 			.sorted()
 			.collect(java.util.stream.Collectors.joining(", "));
+		boolean invited = user.get("requiredActions") instanceof Collection<?> actions
+				&& actions.contains("UPDATE_PASSWORD");
 		return new TeamMember(name, stringValue(user.get("email")), roles.isBlank() ? "SIN_ROL" : roles,
-				Boolean.TRUE.equals(user.get("enabled")));
+				Boolean.TRUE.equals(user.get("enabled")), invited);
 	}
 
 	private static boolean belongsToTenant(Map<?, ?> user, UUID tenantId) {

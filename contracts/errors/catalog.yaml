@@ -41,7 +41,7 @@ errors:
     type: plan-limit-reached
     status: 409
     title: "Límite del plan alcanzado"
-    detail_template: "El plan {plan} permite un máximo de {limite} integraciones activas."
+    detail_template: "El plan {plan} permite un máximo de {limite} {recurso} (integraciones activas o usuarios)."
 
   - code: PROVIDER_UNAVAILABLE
     type: provider-unavailable
@@ -150,3 +150,9 @@ errors:
     status: 409
     title: "Cambio de plan no permitido"
     detail_template: "El plan {planDestino} no es inferior al plan actual {plan}."
+
+  - code: MEMBER_ALREADY_EXISTS
+    type: member-already-exists
+    status: 409
+    title: "La persona ya tiene una cuenta"
+    detail_template: "Ya existe una cuenta con el email {email}."

@@ -31,7 +31,8 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND("product-not-found", 404, "Producto no encontrado"),
     POLICY_NOT_FOUND("policy-not-found", 404, "Regla no encontrada"),
     CONCURRENT_UPDATE("concurrent-update", 409, "Cambio simultáneo"),
-    PLAN_CHANGE_NOT_ALLOWED("plan-change-not-allowed", 409, "Cambio de plan no permitido");
+    PLAN_CHANGE_NOT_ALLOWED("plan-change-not-allowed", 409, "Cambio de plan no permitido"),
+    MEMBER_ALREADY_EXISTS("member-already-exists", 409, "La persona ya tiene una cuenta");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
 

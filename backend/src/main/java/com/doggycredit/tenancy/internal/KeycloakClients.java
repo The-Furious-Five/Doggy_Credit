@@ -25,6 +25,14 @@ interface KeycloakClients {
 	/** Lista las cuentas humanas vinculadas al tenant y sus roles de realm. */
 	List<TeamMember> listTeamMembers(UUID tenantId);
 
+	/**
+	 * A-10: crea la cuenta humana con el {@code tenant_id} y el rol, y le pide definir
+	 * su contraseña en el primer ingreso. El correo con el enlace es de mejor esfuerzo.
+	 * @throws MemberAlreadyExistsException si ya hay una cuenta con ese email
+	 * @throws KeycloakUnavailableException si Keycloak no responde; no queda una cuenta a medias
+	 */
+	TeamMember invite(UUID tenantId, NewMember member);
+
 	/** Borra el cliente; si ya no existe, no hace nada. */
 	void delete(UUID keycloakId);
 
@@ -34,7 +42,20 @@ interface KeycloakClients {
 	record NewClient(String clientId, String secret, UUID tenantId, ApiKey.Environment environment, String name) {
 	}
 
-	record TeamMember(String nombre, String email, String rol, boolean enabled) {
+	record TeamMember(String nombre, String email, String rol, boolean enabled, boolean invited) {
+	}
+
+	record NewMember(String nombre, String email, String rol) {
+	}
+
+	/** 409 MEMBER_ALREADY_EXISTS: Keycloak ya tiene una cuenta con ese email o usuario. */
+	class MemberAlreadyExistsException extends ErrorResponseException {
+
+		MemberAlreadyExistsException() {
+			super(HttpStatus.CONFLICT, ErrorCode.MEMBER_ALREADY_EXISTS.toProblemDetail(
+					"Ya existe una cuenta con ese email."), null);
+		}
+
 	}
 
 	/** 502 PROVIDER_UNAVAILABLE: la clave no cambió y se puede reintentar. */
