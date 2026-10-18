@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -29,11 +30,19 @@ import com.doggycredit.shared.DocumentNumber;
 public class BankDosConnector implements SourceConnector<Optional<BankReport>> {
 
 	private final RestClient http;
+	private final ConnectorCredentials credentials;
 
+	@Autowired
 	BankDosConnector(@Value("${doggycredit.integration.bank-dos.url}") String url,
 			@Value("${doggycredit.integration.bank-dos.connect-timeout}") Duration connectTimeout,
-			@Value("${doggycredit.integration.bank-dos.read-timeout}") Duration readTimeout) {
+			@Value("${doggycredit.integration.bank-dos.read-timeout}") Duration readTimeout,
+			ConnectorCredentials credentials) {
+		this.credentials = credentials;
 		this.http = ConnectorHttp.client(url, connectTimeout, readTimeout);
+	}
+
+	BankDosConnector(String url, Duration connectTimeout, Duration readTimeout) {
+		this(url, connectTimeout, readTimeout, (tenant, provider) -> "");
 	}
 
 	@Override
@@ -48,6 +57,7 @@ public class BankDosConnector implements SourceConnector<Optional<BankReport>> {
 			throw new IllegalArgumentException("documento vacío");
 		}
 		return ConnectorHttp.get(http, Source.BANCO, "/bank-dos/v1/cuentas/{doc}", doc,
+				credentials.apiKey(tenantId, ConnectorCredentials.Provider.BANCO_DOS),
 				body -> BankDosJson.toReport(body, doc, Instant.now()), body -> BankDosJson.isNotFound(body, doc));
 	}
 

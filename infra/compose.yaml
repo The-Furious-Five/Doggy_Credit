@@ -73,7 +73,7 @@ services:
 
   wiremock-bureau:
     image: wiremock/wiremock:3.9.1
-    command: ["--global-response-templating", "--verbose"]
+    command: ["--global-response-templating", "--disable-request-logging", "--no-request-journal"]
     volumes:
       - ../simulators/wiremock/bureau:/home/wiremock
     ports:
@@ -95,7 +95,7 @@ services:
   # wallet.v1.yaml). Mismo patrón que el buró, incluido el calentamiento del 404.
   wiremock-bank:
     image: wiremock/wiremock:3.9.1
-    command: ["--global-response-templating", "--verbose"]
+    command: ["--global-response-templating", "--disable-request-logging", "--no-request-journal"]
     volumes:
       - ../simulators/wiremock/bank:/home/wiremock
     ports:
@@ -112,7 +112,7 @@ services:
   # proveedor del mismo Source.BANCO. Mismo patrón que wiremock-bank.
   wiremock-bank-dos:
     image: wiremock/wiremock:3.9.1
-    command: ["--global-response-templating", "--verbose"]
+    command: ["--global-response-templating", "--disable-request-logging", "--no-request-journal"]
     volumes:
       - ../simulators/wiremock/bank-dos:/home/wiremock
     ports:
@@ -127,7 +127,7 @@ services:
 
   wiremock-wallet:
     image: wiremock/wiremock:3.9.1
-    command: ["--global-response-templating", "--verbose"]
+    command: ["--global-response-templating", "--disable-request-logging", "--no-request-journal"]
     volumes:
       - ../simulators/wiremock/wallet:/home/wiremock
     ports:
@@ -167,9 +167,13 @@ services:
       DC_KEYCLOAK_ISSUER_URI: ${DC_KEYCLOAK_ISSUER_URI:-https://localhost/auth/realms/doggycredit}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/doggycredit/protocol/openid-connect/certs
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: doggycredit-api
+      DC_INTEGRATION_BUREAU_API_KEY: ${DC_INTEGRATION_BUREAU_API_KEY:-}
       DC_INTEGRATION_BUREAU_URL: http://wiremock-bureau:8080
+      DC_INTEGRATION_BANK_API_KEY: ${DC_INTEGRATION_BANK_API_KEY:-}
       DC_INTEGRATION_BANK_URL: http://wiremock-bank:8080
+      DC_INTEGRATION_BANK_DOS_API_KEY: ${DC_INTEGRATION_BANK_DOS_API_KEY:-}
       DC_INTEGRATION_BANK_DOS_URL: http://wiremock-bank-dos:8080
+      DC_INTEGRATION_WALLET_API_KEY: ${DC_INTEGRATION_WALLET_API_KEY:-}
       DC_INTEGRATION_WALLET_URL: http://wiremock-wallet:8080
       # D-09: la API administra los clientes de las claves de API por la red interna.
       DC_KEYCLOAK_ADMIN_URL: http://keycloak:8080/auth

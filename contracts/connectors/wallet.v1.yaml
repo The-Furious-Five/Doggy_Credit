@@ -33,6 +33,14 @@ paths:
         pruebas: `CI-DEMO-0009503` responde 503; `CI-DEMO-0009504` responde
         200 recién a los 15 s (prueba de timeout).
       parameters:
+        - name: X-API-Key
+          in: header
+          required: false
+          description: >
+            RF-INT-07. El conector envía la clave propia del tenant o la de DoggyCredit.
+            Ausente si ninguna está configurada; los simuladores de demo no exigen autenticación.
+            Nunca se envía en URL ni se registra en logs.
+          schema: { type: string, writeOnly: true }
         - name: documento
           in: path
           required: true
