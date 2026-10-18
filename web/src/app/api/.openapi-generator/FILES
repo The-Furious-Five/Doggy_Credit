@@ -8,6 +8,7 @@ api/api.ts
 api/auditoria.service.ts
 api/clavesApi.service.ts
 api/consentimientos.service.ts
+api/credencialesIntegraciones.service.ts
 api/evaluaciones.service.ts
 api/integraciones.service.ts
 api/planes.service.ts
@@ -37,9 +38,11 @@ model/claveApiNueva.ts
 model/codigoPlan.ts
 model/consentimiento.ts
 model/consentimientoNuevo.ts
+model/credencialesIntegracionNuevas.ts
 model/criterioElegibilidad.ts
 model/dinero.ts
 model/elegibilidadProducto.ts
+model/estadoCredencialesIntegracion.ts
 model/estadoPlan.ts
 model/evaluacion.ts
 model/evaluacionNueva.ts
@@ -65,6 +68,7 @@ model/preferenciasTenant.ts
 model/problemDetail.ts
 model/producto.ts
 model/productoCambios.ts
+model/proveedorCredenciales.ts
 model/recomendacion.ts
 model/registroAcceso.ts
 model/registroAuditoria.ts

@@ -37,10 +37,14 @@ public final class ConnectorHttp {
 		return RestClient.builder().baseUrl(url).requestFactory(factory).build();
 	}
 
-	public static <T> Optional<T> get(RestClient http, Source source, String uri, String documento,
+	public static <T> Optional<T> get(RestClient http, Source source, String uri, String documento, String apiKey,
 			Function<byte[], T> onOk, Predicate<byte[]> isNotFound) {
 		try {
-			return http.get().uri(uri, documento).exchange((request, response) -> {
+			var requestSpec = http.get().uri(uri, documento);
+			if (!apiKey.isEmpty()) {
+				requestSpec.header("X-API-Key", apiKey);
+			}
+			return requestSpec.exchange((request, response) -> {
 				byte[] body = response.getBody().readAllBytes();
 				int status = response.getStatusCode().value();
 				if (status == 200) {
@@ -54,7 +58,8 @@ public final class ConnectorHttp {
 			});
 		}
 		catch (RestClientException e) {
-			throw new SourceUnavailableException(source, e.getMessage(), e);
+			// No retener excepciones de transporte que puedan incluir headers sensibles.
+			throw new SourceUnavailableException(source, "error de transporte", null);
 		}
 	}
 

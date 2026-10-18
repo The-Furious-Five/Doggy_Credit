@@ -67,6 +67,7 @@ doggycredit:
     # Conector del buró (RF-INT-02.1, contracts/connectors/bureau.v1.yaml). Sin modo local:
     # siempre HTTP. read-timeout muy por debajo del presupuesto de 2 s de la evaluación (HAB-04).
     bureau:
+      api-key: ${DC_INTEGRATION_BUREAU_API_KEY:}
       url: ${DC_INTEGRATION_BUREAU_URL:http://localhost:8089}
       connect-timeout: ${DC_INTEGRATION_BUREAU_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_BUREAU_READ_TIMEOUT:1500ms}
@@ -74,15 +75,18 @@ doggycredit:
     # provider: "uno" (BankConnector, por defecto) o "dos" (BankDosConnector, B-10) — nunca
     # los dos activos a la vez, es el mismo Source.BANCO con otro proveedor.
     bank:
+      api-key: ${DC_INTEGRATION_BANK_API_KEY:}
       provider: ${DC_INTEGRATION_BANK_PROVIDER:uno}
       url: ${DC_INTEGRATION_BANK_URL:http://localhost:8090}
       connect-timeout: ${DC_INTEGRATION_BANK_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_BANK_READ_TIMEOUT:1500ms}
     bank-dos:
+      api-key: ${DC_INTEGRATION_BANK_DOS_API_KEY:}
       url: ${DC_INTEGRATION_BANK_DOS_URL:http://localhost:8092}
       connect-timeout: ${DC_INTEGRATION_BANK_DOS_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_BANK_DOS_READ_TIMEOUT:1500ms}
     wallet:
+      api-key: ${DC_INTEGRATION_WALLET_API_KEY:}
       url: ${DC_INTEGRATION_WALLET_URL:http://localhost:8091}
       connect-timeout: ${DC_INTEGRATION_WALLET_CONNECT_TIMEOUT:500ms}
       read-timeout: ${DC_INTEGRATION_WALLET_READ_TIMEOUT:1500ms}

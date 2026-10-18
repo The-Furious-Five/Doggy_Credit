@@ -19,6 +19,7 @@ tags:
   - name: solicitantes
   - name: evaluaciones
   - name: integraciones
+  - name: credenciales-integraciones
   - name: auditoria
   - name: tenant
   - name: admin
@@ -316,6 +317,62 @@ paths:
         "409":
           $ref: "#/components/responses/ErrorNegocio"
 
+
+  /integraciones/{fuente}/credenciales:
+    parameters:
+      - name: fuente
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/ProveedorCredenciales" }
+    get:
+      tags: [credenciales-integraciones]
+      operationId: obtenerCredencialesIntegracion
+      summary: Estado de las credenciales propias del tenant
+      description: >
+        RF-INT-07. Solo TENANT_ADMIN del tenant del JWT. Devuelve únicamente si
+        están configuradas y los últimos cuatro caracteres; nunca el secreto.
+        BANCO_DOS identifica al proveedor alternativo de BANCO, no otra fuente activa.
+      responses:
+        "200":
+          description: Metadatos seguros, incluso si no hay credenciales propias
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EstadoCredencialesIntegracion" }
+        "400": { $ref: "#/components/responses/ErrorNegocio" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/ErrorNegocio" }
+    put:
+      tags: [credenciales-integraciones]
+      operationId: guardarCredencialesIntegracion
+      summary: Registra o reemplaza la clave propia para este proveedor
+      description: >
+        Solo TENANT_ADMIN. Cifrado con la DEK del tenant (RF-SEG-05), aislamiento
+        RLS y auditoría sin secretos. Se envía como X-API-Key al conector elegido.
+        No activa fuentes ni modifica límites del plan o consentimientos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CredencialesIntegracionNuevas" }
+      responses:
+        "200":
+          description: Metadatos seguros de la clave guardada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EstadoCredencialesIntegracion" }
+        "400": { $ref: "#/components/responses/ErrorNegocio" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/ErrorNegocio" }
+    delete:
+      tags: [credenciales-integraciones]
+      operationId: eliminarCredencialesIntegracion
+      summary: Elimina la clave propia y vuelve a las credenciales de DoggyCredit
+      description: Solo TENANT_ADMIN. Idempotente; el secreto no se devuelve ni se audita.
+      responses:
+        "204": { description: Sin credenciales propias para este proveedor }
+        "400": { $ref: "#/components/responses/ErrorNegocio" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/ErrorNegocio" }
 
   /credit-assessments:
     get:
@@ -1351,6 +1408,34 @@ components:
     FuenteIntegracion:
       type: string
       enum: [BURO, BANCO, WALLET, OPEN_BANKING, FACTURACION, GARANTIAS]
+
+    ProveedorCredenciales:
+      type: string
+      enum: [BURO, BANCO, BANCO_DOS, WALLET]
+
+    CredencialesIntegracionNuevas:
+      type: object
+      additionalProperties: false
+      required: [clave]
+      properties:
+        clave:
+          type: string
+          writeOnly: true
+          minLength: 8
+          maxLength: 2048
+          pattern: '^[!-~]{8,2048}$'
+          description: Clave API de caracteres ASCII visibles, sin espacios ni saltos de línea.
+
+    EstadoCredencialesIntegracion:
+      type: object
+      additionalProperties: false
+      required: [configuradas, ultimosCuatro]
+      properties:
+        configuradas: { type: boolean }
+        ultimosCuatro:
+          type: string
+          pattern: '^([!-~]{4})?$'
+          description: Últimos cuatro caracteres si configuradas; cadena vacía en caso contrario.
 
 
     Integracion:
