@@ -123,6 +123,23 @@ describe('Perfil del cliente (B-09)', () => {
     expect(text(f)).not.toContain('Exportar');
   });
 
+  it('con discrepancia de ingreso muestra la alerta con ambos montos (B-11)', async () => {
+    const d = detail();
+    d.perfil!.ingresoDeclarado = bob('5000.00');
+    d.perfil!.discrepanciaIngreso = true;
+    applicants.obtenerSolicitante.mockReturnValue(of(d));
+    const f = await render();
+    expect(text(f)).toContain('Ingreso declarado distinto del observado');
+    expect(text(f)).toContain('Declarado Bs 5.000');
+    expect(text(f)).toContain('Observado Bs 9.500');
+  });
+
+  it('sin discrepancia de ingreso no muestra la alerta', async () => {
+    applicants.obtenerSolicitante.mockReturnValue(of(detail()));
+    const f = await render();
+    expect(text(f)).not.toContain('Ingreso declarado distinto del observado');
+  });
+
   it('sin perfil consolidado invita a evaluar', async () => {
     applicants.obtenerSolicitante.mockReturnValue(of(detail(false)));
     const f = await render();

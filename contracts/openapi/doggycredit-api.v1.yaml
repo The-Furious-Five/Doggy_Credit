@@ -793,6 +793,7 @@ paths:
       tags: [admin]
       operationId: listarTenants
       summary: Lista todos los tenants (solo PLATFORM_ADMIN)
+      description: Incluye evaluacionesMes del mes calendario UTC y limiteMensual del plan (0 = sin límite).
       responses:
         "200":
           description: OK
@@ -812,7 +813,7 @@ paths:
     patch:
       tags: [admin]
       operationId: actualizarTenant
-      summary: Activa o desactiva un tenant, o cambia su plan (solo PLATFORM_ADMIN)
+      summary: Suspende o reactiva un tenant, o cambia su plan (solo PLATFORM_ADMIN)
       description: >
         RF-PLN-04: el operador sube el plan en el momento (pago simulado en el MVP). El cambio
         es efectivo en ≤ 1 min sin volver a iniciar sesión, porque los entitlements se leen
@@ -821,6 +822,10 @@ paths:
         sentidos: es la herramienta del operador (y del E2E para restaurar el plan). La bajada
         que pide el tenant va por PUT /tenant/actual/plan/bajada, al cierre del período.
         Todo cambio de plan queda en audit.access_log.
+        RF-TEN-04: activo=false bloquea toda petición autenticada del tenant con 403
+        TENANT_SUSPENDED (RFC 9457), tanto de personas como de claves de API, excepto
+        PLATFORM_ADMIN. Reactivar recupera el acceso en ≤ 1 min con el mismo token.
+        No se borra ningún dato. Suspender y reactivar se auditan con X-Correlation-Id.
       parameters:
         - name: id
           in: path
@@ -1198,6 +1203,14 @@ components:
         pais: { type: string }
         moneda: { type: string }
         activo: { type: boolean }
+        evaluacionesMes:
+          type: integer
+          minimum: 0
+          description: Solo en GET /admin/tenants. Evaluaciones del mes calendario UTC; 0 si no hay consumo.
+        limiteMensual:
+          type: integer
+          minimum: 0
+          description: Solo en GET /admin/tenants. Cuota mensual del plan actual; 0 significa sin límite.
       required: [id, nombre, nit, tipo, plan, pais, moneda, activo]
 
 
@@ -1308,6 +1321,12 @@ components:
         creadoEn: { type: string, format: date-time }
         ingresoMensual: { $ref: "#/components/schemas/Dinero" }
         origenIngreso: { type: string, enum: [BANCO, WALLET, DECLARADO] }
+        ingresoDeclarado: { $ref: "#/components/schemas/Dinero" }
+        discrepanciaIngreso:
+          type: boolean
+          description: >
+            RF-PER-06: declarado y observado difieren en más de 30 %. Ausente
+            si no hay observado con que comparar (origenIngreso DECLARADO).
         deudaVigente: { $ref: "#/components/schemas/Dinero" }
         obligaciones: { type: integer, minimum: 0 }
         cuotaMensual: { $ref: "#/components/schemas/Dinero" }

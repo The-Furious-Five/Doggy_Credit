@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <application android:name=".DoggyCreditApplication" android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules" android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name" android:supportsRtl="true" android:usesCleartextTraffic="false"
+        android:theme="@style/Theme.DoggyCredit">
+        <activity android:name=".MainActivity" android:exported="true" android:theme="@style/Theme.DoggyCredit"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- AppAuth recibe el callback en una AppCompatActivity, fuera de Compose. -->
+        <activity android:name="net.openid.appauth.RedirectUriReceiverActivity" android:exported="true"
+            android:theme="@style/Theme.AppCompat.Translucent.NoTitleBar" tools:node="replace">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="doggycredit" android:host="oauth" android:path="/callback" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

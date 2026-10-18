@@ -28,6 +28,19 @@ services:
         bind:
           create_host_path: false
 
+  wiremock-bank-dos:
+    <<: *restart
+    ports: !reset []
+    # Segundo proveedor del core bancario (B-10); inactivo salvo que
+    # DC_INTEGRATION_BANK_PROVIDER=dos.
+    volumes:
+      - type: bind
+        source: ../simulators/wiremock/bank-dos
+        target: /home/wiremock
+        read_only: true
+        bind:
+          create_host_path: false
+
   wiremock-wallet:
     <<: *restart
     ports: !reset []
