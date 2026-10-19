@@ -25,11 +25,15 @@ import com.doggycredit.shared.Money;
  *                                 ingreso − cuotas del buró; nunca negativa
  * @param financialSeniorityMonths antigüedad en el sistema financiero (buró)
  * @param sources                  una fila por fuente, siempre BURO, BANCO y WALLET (pestaña Fuentes)
+ * @param declaredMonthlyIncome    ingreso mensual declarado por el solicitante al alta (B-11)
+ * @param incomeDiscrepancy        B-11 (RF-PER-06): {@code true} si el declarado difiere en más de
+ *                                 30 % del observado (banco o billetera); {@code null} si no hay
+ *                                 observado con que compararlo ({@code incomeOrigin} es DECLARADO)
  */
 public record FinancialProfile360(UUID id, UUID applicantId, Instant createdAt, String hash, Money monthlyIncome,
 		IncomeOrigin incomeOrigin, Money currentDebt, Integer obligations, Money monthlyInstallment,
 		BigDecimal debtToIncomePercent, Money paymentCapacity, Integer financialSeniorityMonths,
-		List<SourceLineage> sources) {
+		List<SourceLineage> sources, Money declaredMonthlyIncome, Boolean incomeDiscrepancy) {
 
 	public FinancialProfile360 {
 		sources = List.copyOf(sources);

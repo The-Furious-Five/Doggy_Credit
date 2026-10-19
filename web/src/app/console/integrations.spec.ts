@@ -3,6 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BASE_PATH, FuenteIntegracion, Integracion, IntegracionEstadoEnum } from '../api';
 import { DsToastService } from '../design-system';
+import { AuthSessionService } from '../auth/session.service';
+import { signal } from '@angular/core';
 import { Integrations } from './integrations';
 
 const catalog = (): Integracion[] => [
@@ -20,11 +22,14 @@ describe('Integraciones conectadas al contrato B-06 (E-03)', () => {
   let page: HTMLElement;
   const toast = { show: vi.fn() };
   const url = '/api/v1/integraciones';
+  const roles = signal<string[]>(['TENANT_ADMIN']);
 
   beforeEach(() => {
     toast.show.mockReset();
+    roles.set(['TENANT_ADMIN']);
     TestBed.configureTestingModule({
       providers: [
+        { provide: AuthSessionService, useValue: { session: () => ({ roles: roles() }) } },
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: BASE_PATH, useValue: '/api/v1' },
@@ -266,6 +271,18 @@ describe('Integraciones conectadas al contrato B-06 (E-03)', () => {
     load(data);
     expect(page.textContent).not.toContain('no pudimos actualizar el catálogo');
     expect(action('Core bancario').disabled).toBe(false);
+  });
+
+  it('ofrece credenciales solo en los tres conectores implementados y para administradores', () => {
+    load();
+    expect(page.querySelectorAll('dc-integration-credentials')).toHaveLength(3);
+    roles.set(['ANALYST']);
+    update();
+    expect(page.querySelectorAll('dc-integration-credentials')).toHaveLength(0);
+    roles.set(['PLATFORM_ADMIN']);
+    update();
+    expect(page.querySelectorAll('dc-integration-credentials')).toHaveLength(0);
+    requests.expectNone((request) => request.url.endsWith('/credenciales'));
   });
 
   it('cancela las peticiones cuando se abandona la vista', () => {

@@ -13,10 +13,12 @@ import com.doggycredit.shared.contract.model.TenantActual;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.billing.Entitlements;
 import com.doggycredit.billing.PlanCatalog;
 import com.doggycredit.billing.UsageMeter;
 import java.util.List;
 import com.doggycredit.shared.contract.model.MiembroEquipo;
+import com.doggycredit.shared.contract.model.MiembroEquipoNuevo;
 import com.doggycredit.shared.contract.model.PreferenciasTenant;
 import com.doggycredit.shared.contract.model.UsoTenant;
 import com.doggycredit.shared.contract.model.OrganizacionTenantPatch;
@@ -28,14 +30,19 @@ public class TenantController implements TenantApi {
     private final PlanCatalog planCatalog;
     private final UsageMeter usageMeter;
     private final KeycloakClients keycloak;
+    private final TeamInvitationService invitations;
+    private final Entitlements entitlements;
 
     TenantController(TenantRegistry tenantRegistry, TenantPreferencesService preferences,
-            PlanCatalog planCatalog, UsageMeter usageMeter, KeycloakClients keycloak) {
+            PlanCatalog planCatalog, UsageMeter usageMeter, KeycloakClients keycloak,
+            TeamInvitationService invitations, Entitlements entitlements) {
         this.tenantRegistry = tenantRegistry;
         this.preferences = preferences;
         this.planCatalog = planCatalog;
         this.usageMeter = usageMeter;
         this.keycloak = keycloak;
+        this.invitations = invitations;
+        this.entitlements = entitlements;
     }
 
     @Override
@@ -54,7 +61,14 @@ public class TenantController implements TenantApi {
                 .pais(tenantInfo.pais())
                 .moneda(tenantInfo.moneda())
                 .activo(tenantInfo.activo());
-                
+        // A-01 (LOS-64): límites, funciones y uso del mes del plan vigente, leídos en cada petición.
+        Entitlements.Granted granted = entitlements.of(tenantId);
+        tenantActual.evaluacionesMes(usageMeter.currentMonthEvaluations(tenantId))
+                .limiteMensual(granted.evaluacionesMes())
+                .limiteUsuarios(granted.maxUsuarios())
+                .limiteIntegraciones(granted.maxIntegraciones())
+                .funcionalidades(granted.features().stream().sorted()
+                        .map(feature -> TenantActual.FuncionalidadesEnum.fromValue(feature.name())).toList());
         return ResponseEntity.ok(tenantActual);
     }
 
@@ -62,10 +76,31 @@ public class TenantController implements TenantApi {
     public ResponseEntity<List<MiembroEquipo>> listarEquipo() {
         UUID tenantId = currentTenantId();
         List<MiembroEquipo> members = keycloak.listTeamMembers(tenantId).stream()
-                .map(member -> new MiembroEquipo().nombre(member.nombre()).email(member.email()).rol(member.rol())
-                        .estado(member.enabled() ? MiembroEquipo.EstadoEnum.ACTIVO : MiembroEquipo.EstadoEnum.DESACTIVADO))
+                .map(TenantController::toContract)
                 .toList();
         return ResponseEntity.ok(members);
+    }
+
+    /** A-10 (LOS-71): el tenant sale del JWT; el cuerpo solo trae a la persona y su rol. */
+    @Override
+    public ResponseEntity<MiembroEquipo> invitarMiembroEquipo(@Valid @RequestBody MiembroEquipoNuevo body) {
+        RoleGuard.require("TENANT_ADMIN");
+        String nombre = body.getNombre() == null ? "" : body.getNombre().strip();
+        String email = body.getEmail() == null ? "" : body.getEmail().strip();
+        if (nombre.length() < 2 || nombre.length() > 100 || !email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")
+                || body.getRol() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "nombre, email y rol son obligatorios y válidos");
+        }
+        var invited = invitations.invite(currentTenantId(),
+                new KeycloakClients.NewMember(nombre, email, body.getRol().getValue()));
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(toContract(invited));
+    }
+
+    private static MiembroEquipo toContract(KeycloakClients.TeamMember member) {
+        MiembroEquipo.EstadoEnum estado = !member.enabled() ? MiembroEquipo.EstadoEnum.DESACTIVADO
+                : member.invited() ? MiembroEquipo.EstadoEnum.INVITADO : MiembroEquipo.EstadoEnum.ACTIVO;
+        return new MiembroEquipo().nombre(member.nombre()).email(member.email()).rol(member.rol()).estado(estado);
     }
 
     @Override

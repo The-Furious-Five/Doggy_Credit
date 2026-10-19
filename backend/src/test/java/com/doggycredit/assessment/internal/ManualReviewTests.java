@@ -80,11 +80,24 @@ class ManualReviewTests {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].resultadoParcial".formatted(caso)).value(true))
 			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].motivo".formatted(caso)).value("REVISION_MANUAL"))
-			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].documento".formatted(caso)).value(DOCUMENT))
+			// A-10: con la preferencia por defecto el servidor enmascara documento y monto al analista.
+			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].documento".formatted(caso))
+				.value("•".repeat(DOCUMENT.length() - 4) + DOCUMENT.substring(DOCUMENT.length() - 4)))
+			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].montoSolicitado".formatted(caso)).value("••••••"))
 			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].razones[*]".formatted(caso)).isNotEmpty())
 			.andExpect(jsonPath("$.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
 			.andExpect(jsonPath("$.productos").isNotEmpty())
 			.andExpect(jsonPath("$.productos[*].activo").value(not(hasItem(false))));
+	}
+
+	@Test
+	void elAdministradorDelTenantVeElDocumentoYElMontoCompletos() throws Exception {
+		UUID caso = casoParcial(TENANT_A);
+
+		bandeja(TENANT_A, "TENANT_ADMIN")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].documento".formatted(caso)).value(DOCUMENT))
+			.andExpect(jsonPath("$.items[?(@.evaluacionId == '%s')].montoSolicitado".formatted(caso)).value("3000.00"));
 	}
 
 	@Test

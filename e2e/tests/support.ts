@@ -75,6 +75,12 @@ const merged = {
   bandeja: true,
   /** A-11 (LOS-115): seed/tenants.yaml siembra un operador PLATFORM_ADMIN (y su contraseña en .env.example). */
   cambioDePlan: true,
+  /** B-13 (LOS-132): la vista del operador pide confirmación antes de suspender o reactivar. */
+  vistaOperador: false,
+  /** C-14 (LOS-130) y D-13 (LOS-133): KPIs de cartera en AnalyticsPro y su vista en Analítica. */
+  kpisCartera: false,
+  /** E-16: productos elegibles con sus criterios (✓/✗) y ranking con monto y plazo en el resultado. */
+  elegibilidad: false,
 };
 const enabled = new Set((process.env['E2E_DEPENDENCIAS'] ?? '').split(',').map((name) => name.trim()));
 
@@ -151,6 +157,21 @@ export async function login(page: Page, admin: DemoUser): Promise<void> {
     }
     await challenge.fill(await nextTotp(page, key, saved.secret));
     await page.locator('#kc-login').click();
+    // Un código rechazado en el borde de una ventana de 30 s se reintenta una vez con el
+    // del paso siguiente (nextTotp espera a que sea válido) en lugar de colgar la prueba.
+    const rejected = page.getByText('El código de autenticación no es válido.');
+    const wasRejected = await rejected
+      .or(page.getByRole('navigation', { name: 'Consola' }))
+      .first()
+      .waitFor({ timeout: 15_000 })
+      .then(
+        () => rejected.isVisible(),
+        () => false,
+      );
+    if (wasRejected) {
+      await challenge.fill(await nextTotp(page, key, saved.secret));
+      await page.locator('#kc-login').click();
+    }
   }
 
   await expect(page).toHaveURL(/\/app\/resumen$/);
@@ -215,6 +236,69 @@ export async function changePlan(page: Page, tenant: string, plan: 'Gratis' | 'P
   await page.getByRole('option', { name: plan, exact: true }).click();
   await row.getByRole('button', { name: 'Guardar plan' }).click();
   await expect(toast(page, 'Plan actualizado.')).toBeVisible();
+}
+
+/** Fila de una institución en Administración de tenants (vista del operador). */
+function tenantRow(page: Page, tenant: string) {
+  return page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: tenant, exact: true }) });
+}
+
+const SUSPEND = /^(Desactivar|Suspender) institución$/;
+const REACTIVATE = /^(Activar|Reactivar) institución$/;
+
+/**
+ * RF-TEN-04: suspende o reactiva una institución desde Administración de tenants. Si ya
+ * está en ese estado no hace nada, para poder usarlo en un `finally`. Con B-13 la vista
+ * pide confirmación en un diálogo.
+ */
+export async function setTenantActive(page: Page, tenant: string, active: boolean): Promise<void> {
+  await page.goto('/app/admin/tenants');
+  const row = tenantRow(page, tenant);
+  const toggle = row.getByRole('button', { name: active ? REACTIVATE : SUSPEND });
+  const done = row.getByRole('button', { name: active ? SUSPEND : REACTIVATE });
+  await expect(toggle.or(done)).toBeVisible();
+  if (await done.isVisible()) return;
+  await toggle.click();
+  if (ready('vistaOperador')) {
+    await page.getByRole('dialog').getByRole('button', { name: active ? /^(Activar|Reactivar)/ : /^(Desactivar|Suspender)/ }).click();
+  }
+  // El botón cambia cuando la API devolvió el tenant actualizado.
+  await expect(done).toBeVisible();
+}
+
+/** Navegaciones de la página al login de Keycloak desde ahora (deben quedar en cero). */
+export function keycloakLogins(page: Page): string[] {
+  const logins: string[] = [];
+  page.on('framenavigated', (frame) => {
+    if (frame === page.mainFrame() && frame.url().includes('/auth/realms/')) logins.push(frame.url());
+  });
+  return logins;
+}
+
+/**
+ * Cuerpos JSON de las respuestas de la API que cumplen `keep`. Se leen antes de entregar
+ * la respuesta al navegador: Chromium puede descartar el buffer cuando la SPA ya la usó.
+ */
+export async function captureApi(
+  page: Page,
+  keep: (status: number, method: string, url: string) => boolean,
+): Promise<{ status: number; method: string; path: string; body: unknown }[]> {
+  const captured: { status: number; method: string; path: string; body: unknown }[] = [];
+  await page.route('**/api/v1/**', async (route) => {
+    const upstream = await route.fetch();
+    const request = route.request();
+    if (keep(upstream.status(), request.method(), request.url())) {
+      const text = await upstream.text();
+      captured.push({
+        status: upstream.status(),
+        method: request.method(),
+        path: new URL(request.url()).pathname,
+        body: text ? (JSON.parse(text) as unknown) : null,
+      });
+    }
+    await route.fulfill({ response: upstream });
+  });
+  return captured;
 }
 
 /** Respuestas 5xx/429 de la API vistas por una página. */

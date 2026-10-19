@@ -8,8 +8,10 @@ api/api.ts
 api/auditoria.service.ts
 api/clavesApi.service.ts
 api/consentimientos.service.ts
+api/credencialesIntegraciones.service.ts
 api/evaluaciones.service.ts
 api/integraciones.service.ts
+api/operador.service.ts
 api/planes.service.ts
 api/politicas.service.ts
 api/productos.service.ts
@@ -22,8 +24,11 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/analyticsAceptacionProducto.ts
+model/analyticsBanda.ts
 model/analyticsModelo.ts
 model/analyticsNecesidad.ts
+model/analyticsOverride.ts
 model/analyticsPro.ts
 model/analyticsProducto.ts
 model/analyticsResumen.ts
@@ -37,7 +42,11 @@ model/claveApiNueva.ts
 model/codigoPlan.ts
 model/consentimiento.ts
 model/consentimientoNuevo.ts
+model/credencialesIntegracionNuevas.ts
+model/criterioElegibilidad.ts
 model/dinero.ts
+model/elegibilidadProducto.ts
+model/estadoCredencialesIntegracion.ts
 model/estadoPlan.ts
 model/evaluacion.ts
 model/evaluacionNueva.ts
@@ -47,7 +56,9 @@ model/fuenteIntegracion.ts
 model/graciaPlan.ts
 model/integracion.ts
 model/integracionCambio.ts
+model/metricasOperador.ts
 model/miembroEquipo.ts
+model/miembroEquipoNuevo.ts
 model/models.ts
 model/organizacionTenantPatch.ts
 model/paginaAuditoria.ts
@@ -63,6 +74,8 @@ model/preferenciasTenant.ts
 model/problemDetail.ts
 model/producto.ts
 model/productoCambios.ts
+model/proveedorCredenciales.ts
+model/recomendacion.ts
 model/registroAcceso.ts
 model/registroAuditoria.ts
 model/reporteAccesos.ts
@@ -74,6 +87,7 @@ model/solicitanteDetalle.ts
 model/solicitanteNuevo.ts
 model/tenantActual.ts
 model/tenantPatch.ts
+model/tenantsPorPlan.ts
 model/usoTenant.ts
 model/webhookCambio.ts
 model/webhookConfiguracion.ts

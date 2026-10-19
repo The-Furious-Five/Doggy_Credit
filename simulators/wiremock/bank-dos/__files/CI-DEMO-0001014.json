@@ -1,0 +1,42 @@
+{
+  "documentoCliente": "CI-DEMO-0001014",
+  "corte": "2026-09-01",
+  "cuenta": {
+    "tipoProducto": "AHORRO",
+    "moneda": "BOB",
+    "fechaDesde": "2012-10-01",
+    "saldoPromedio3Meses": "4370.00"
+  },
+  "movimientos": [
+    {
+      "mes": "2026-03",
+      "creditos": "9520.00",
+      "debitos": "7270.00"
+    },
+    {
+      "mes": "2026-04",
+      "creditos": "9560.00",
+      "debitos": "7530.00"
+    },
+    {
+      "mes": "2026-05",
+      "creditos": "8770.00",
+      "debitos": "7260.00"
+    },
+    {
+      "mes": "2026-06",
+      "creditos": "9340.00",
+      "debitos": "6960.00"
+    },
+    {
+      "mes": "2026-07",
+      "creditos": "8150.00",
+      "debitos": "7250.00"
+    },
+    {
+      "mes": "2026-08",
+      "creditos": "8900.00",
+      "debitos": "7140.00"
+    }
+  ]
+}

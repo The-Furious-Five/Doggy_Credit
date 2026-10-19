@@ -2,6 +2,8 @@ package com.doggycredit.tenancy.internal;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.stream.Collectors;
 
 import jakarta.validation.Valid;
@@ -17,22 +19,37 @@ import com.doggycredit.shared.RoleGuard;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantRegistry;
+import com.doggycredit.billing.OperatorUsageQuery;
+import com.doggycredit.billing.PlanCatalog;
 
 @RestController
 public class AdminController implements AdminApi {
     private final TenantRegistry registry;
     private final PlanChangeService planChanges;
+    private final TenantStatusService statuses;
+    private final OperatorUsageQuery usage;
+    private final PlanCatalog plans;
 
-    AdminController(TenantRegistry registry, PlanChangeService planChanges) {
+    AdminController(TenantRegistry registry, PlanChangeService planChanges, TenantStatusService statuses,
+            OperatorUsageQuery usage, PlanCatalog plans) {
         this.registry = registry;
         this.planChanges = planChanges;
+        this.statuses = statuses;
+        this.usage = usage;
+        this.plans = plans;
     }
 
     @Override
     public ResponseEntity<List<TenantActual>> listarTenants() {
         RoleGuard.require("PLATFORM_ADMIN");
+        var evaluations = usage.evaluationsForMonth(YearMonth.now(ZoneOffset.UTC));
         List<TenantActual> response = registry.findAll().stream()
-                .map(this::toDto)
+                .map(info -> {
+                    TenantActual dto = toDto(info);
+                    dto.setEvaluacionesMes(evaluations.getOrDefault(info.id(), 0));
+                    dto.setLimiteMensual(plans.requireById(info.plan()).evaluacionesMes());
+                    return dto;
+                })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
@@ -49,7 +66,7 @@ public class AdminController implements AdminApi {
             planChanges.changeNow(id, body.getPlan().getValue());
         }
         TenantInfo updated = body.getActivo() != null
-                ? registry.update(new TenantId(id), null, body.getActivo())
+                ? statuses.setActive(id, body.getActivo())
                 : registry.requireById(new TenantId(id));
         return ResponseEntity.ok(toDto(updated));
     }

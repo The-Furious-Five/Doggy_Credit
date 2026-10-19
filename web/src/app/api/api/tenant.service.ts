@@ -19,6 +19,8 @@ import { OpenApiHttpParams, QueryParamStyle } from '../query.params';
 // @ts-ignore
 import { MiembroEquipo } from '../model/miembroEquipo';
 // @ts-ignore
+import { MiembroEquipoNuevo } from '../model/miembroEquipoNuevo';
+// @ts-ignore
 import { OrganizacionTenantPatch } from '../model/organizacionTenantPatch';
 // @ts-ignore
 import { PreferenciasTenant } from '../model/preferenciasTenant';
@@ -173,6 +175,77 @@ export class TenantService extends BaseService {
             {
                 context: localVarHttpContext,
                 body: preferenciasTenant,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Invita a una persona al equipo del tenant actual (solo TENANT_ADMIN)
+     * A-10 (LOS-71). Crea la cuenta en Keycloak con el tenant_id del JWT (nunca del cuerpo) y el rol indicado, y le pide definir su contraseña en el primer ingreso (un TENANT_ADMIN, además, configura MFA). Si el realm tiene correo configurado, Keycloak le envía el enlace. El plan limita las cuentas humanas activas del tenant (billing.plans.max_usuarios; FREE &#x3D; 3): al superarlo responde 409 PLAN_LIMIT_REACHED sin crear nada. Queda en audit.access_log. 
+     * @endpoint post /tenant/actual/equipo
+     * @param miembroEquipoNuevo 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     * @param options additional options
+     */
+    public invitarMiembroEquipo(miembroEquipoNuevo: MiembroEquipoNuevo, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<MiembroEquipo>;
+    public invitarMiembroEquipo(miembroEquipoNuevo: MiembroEquipoNuevo, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<MiembroEquipo>>;
+    public invitarMiembroEquipo(miembroEquipoNuevo: MiembroEquipoNuevo, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<MiembroEquipo>>;
+    public invitarMiembroEquipo(miembroEquipoNuevo: MiembroEquipoNuevo, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json' | 'application/problem+json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (miembroEquipoNuevo === null || miembroEquipoNuevo === undefined) {
+            throw new Error('Required parameter miembroEquipoNuevo was null or undefined when calling invitarMiembroEquipo.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json',
+            'application/problem+json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/tenant/actual/equipo`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<MiembroEquipo>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: miembroEquipoNuevo,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
@@ -353,6 +426,7 @@ export class TenantService extends BaseService {
 
     /**
      * Consulta uso de evaluaciones del mes y límite del plan actual
+     * RF-ANA-01 (B-12). Cualquier rol del tenant. El mes es el calendario UTC, el mismo de la cuota. integracionesActivas y limiteIntegraciones reflejan el estado actual y el plan vigente (0 &#x3D; sin límite). Una evaluación repetida con la misma Idempotency-Key no suma consumo. 
      * @endpoint get /tenant/actual/uso
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.

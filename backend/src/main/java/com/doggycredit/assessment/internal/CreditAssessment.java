@@ -8,11 +8,13 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.doggycredit.assessment.AssessmentRecommendation;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.audit.AccessSubject;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.AssessmentSummary;
 import com.doggycredit.assessment.CreditAssessmentCompleted;
+import com.doggycredit.recommendation.ProductEligibility;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.ScoreBand;
 
@@ -91,6 +93,10 @@ class CreditAssessment {
 	@Column(name = "decision_time_ms")
 	private Long decisionTimeMs;
 
+	/** C-06: true si se evaluaron recomendaciones (aunque ninguna aplique). */
+	@Column(name = "recommendations_evaluated", nullable = false)
+	private boolean recommendationsEvaluated;
+
 	protected CreditAssessment() {
 	}
 
@@ -130,6 +136,15 @@ class CreditAssessment {
 		this.recommendedProductType = snapshot.productType();
 		this.recommendedAmount = snapshot.recommendedAmount();
 		this.decisionTimeMs = elapsedMs;
+		this.recommendationsEvaluated = snapshot.recommendations() != null;
+	}
+
+	UUID tenantId() {
+		return tenantId;
+	}
+
+	boolean recommendationsEvaluated() {
+		return recommendationsEvaluated;
 	}
 
 	String requestHash() {
@@ -158,9 +173,10 @@ class CreditAssessment {
 				requestedAmount, termMonths, createdAt);
 	}
 
-	AssessmentResult toResult() {
+	/** @param recommendations las guardadas, o null si no se evaluaron (ver recommendationsEvaluated). */
+	AssessmentResult toResult(List<AssessmentRecommendation> recommendations, List<ProductEligibility> eligibility) {
 		return new AssessmentResult(id, AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band),
-				List.of(reasons), modelVersion, simulated, correlationId);
+				List.of(reasons), modelVersion, simulated, correlationId, recommendations, eligibility);
 	}
 
 }

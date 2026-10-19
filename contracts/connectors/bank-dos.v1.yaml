@@ -1,0 +1,125 @@
+openapi: 3.1.0
+info:
+  title: Segundo core bancario (simulado) — cuenta del cliente
+  version: "1.0.0"
+  description: >
+    Contrato del proveedor EXTERNO de un segundo core bancario tal como lo
+    expone su simulador (simulators/wiremock/bank-dos, generado por
+    seed/generate_synthetic.py a partir de las mismas 50 personas que el
+    primer banco). No es API de DoggyCredit: documenta lo que consume
+    `integration.BankDosConnector` (B-10). Su vocabulario y forma son
+    deliberadamente distintos de `bank.v1.yaml` (otro proveedor, otro
+    contrato de cable); la capa anticorrupción
+    `integration.internal.BankDosJson` los traduce al mismo fragmento
+    canónico `BankReport` que el primer banco (Perfil Financiero 360 v1).
+    Así se prueba que el conector estándar (`SourceConnector`) admite un
+    proveedor nuevo sin tocar nada fuera del módulo `integration` (FF-15).
+
+    Verificado por `BankDosConnectorContractTests` contra el simulador real
+    (imagen wiremock/wiremock:3.9.1, la misma de infra/compose.yaml).
+
+    Tiempos: toda respuesta 200 llega tras ~300 ms. El conector corta a los
+    1500 ms (`DC_INTEGRATION_BANK_DOS_READ_TIMEOUT`).
+servers:
+  - url: http://localhost:8092
+    description: Simulador en Compose, publicado al host (DC_WIREMOCK_BANK_DOS_HOST_PORT)
+  - url: http://wiremock-bank-dos:8080
+    description: Simulador dentro de la red de Compose
+
+paths:
+  /bank-dos/v1/cuentas/{documento}:
+    get:
+      operationId: obtenerCuentaCliente
+      summary: Cuenta, saldo trimestral y movimientos de los últimos 6 meses de un cliente
+      description: >
+        Match exacto de URL: el simulador responde solo al documento
+        normalizado (`shared.DocumentNumber`). Documentos especiales para
+        pruebas: `CI-DEMO-0009503` responde 503; `CI-DEMO-0009504` responde
+        200 recién a los 15 s (prueba de timeout).
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: false
+          description: >
+            RF-INT-07. El conector envía la clave propia del tenant o la de DoggyCredit.
+            Ausente si ninguna está configurada; los simuladores de demo no exigen autenticación.
+            Nunca se envía en URL ni se registra en logs.
+          schema: { type: string, writeOnly: true }
+        - name: documento
+          in: path
+          required: true
+          schema:
+            type: string
+            examples: [CI-DEMO-0001001, NIT-DEMO-9001001]
+      responses:
+        "200":
+          description: Cuenta del cliente (tras ~300 ms).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CuentaCliente" }
+              example:
+                documentoCliente: CI-DEMO-0001001
+                corte: "2026-09-01"
+                cuenta: { tipoProducto: AHORRO, moneda: BOB, fechaDesde: "2022-09-01", saldoPromedio3Meses: "8700.00" }
+                movimientos:
+                  - { mes: "2026-03", creditos: "9940.00", debitos: "6470.00" }
+        "404":
+          description: >
+            El banco no tiene al documento como cliente (`CLIENTE_INEXISTENTE`).
+            Resultado válido ("sin cuenta en el banco"), distinto de una caída.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBancoDos" }
+              example: { codigo: CLIENTE_INEXISTENTE, documentoCliente: CI-DEMO-0009999 }
+        "503":
+          description: Servicio no disponible.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBancoDos" }
+              example: { codigo: SERVICIO_NO_DISPONIBLE }
+
+components:
+  schemas:
+    Monto:
+      type: string
+      description: Decimal con 2 cifras, como string.
+      pattern: '^\d+\.\d{2}$'
+
+    CuentaCliente:
+      type: object
+      required: [documentoCliente, corte, cuenta, movimientos]
+      properties:
+        documentoCliente:
+          type: string
+          description: Documento normalizado; siempre igual al pedido.
+        corte: { type: string, format: date }
+        cuenta:
+          type: object
+          required: [tipoProducto, moneda, fechaDesde, saldoPromedio3Meses]
+          properties:
+            tipoProducto: { type: string, enum: [AHORRO, CORRIENTE] }
+            moneda: { type: string, enum: [BOB, USD] }
+            fechaDesde: { type: string, format: date }
+            saldoPromedio3Meses: { $ref: "#/components/schemas/Monto" }
+        movimientos:
+          type: array
+          description: Últimos meses cerrados antes del corte, del más antiguo al más reciente (máx. 12).
+          maxItems: 12
+          items:
+            type: object
+            required: [mes, creditos, debitos]
+            properties:
+              mes: { type: string, pattern: '^\d{4}-\d{2}$' }
+              creditos: { $ref: "#/components/schemas/Monto" }
+              debitos: { $ref: "#/components/schemas/Monto" }
+
+    ErrorBancoDos:
+      type: object
+      required: [codigo]
+      properties:
+        codigo:
+          type: string
+          enum: [CLIENTE_INEXISTENTE, SERVICIO_NO_DISPONIBLE]
+        documentoCliente:
+          type: string
+          description: Solo en CLIENTE_INEXISTENTE; el documento pedido.

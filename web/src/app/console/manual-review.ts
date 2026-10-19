@@ -31,7 +31,7 @@ import {
   DsTone,
 } from '../design-system';
 import { HANDLED_PROBLEMS } from '../http/api-error.interceptor';
-import { day, money } from './client-format';
+import { day, isMasked, money } from './client-format';
 import { productNames } from './product-format';
 import { SensitiveDataService } from './sensitive-data.service';
 
@@ -374,9 +374,10 @@ export class ManualReview {
 
   /** La evaluación guarda el monto sin moneda: se muestra el número, sin inventar el símbolo. */
   amount(item: CasoRevision): string {
-    return item.montoSolicitado
-      ? this.sensitive.amount(AMOUNT.format(Number(item.montoSolicitado)))
-      : '—';
+    if (!item.montoSolicitado) return '—';
+    return isMasked(item.montoSolicitado)
+      ? item.montoSolicitado
+      : this.sensitive.amount(AMOUNT.format(Number(item.montoSolicitado)));
   }
 
   open(item: CasoRevision): void {

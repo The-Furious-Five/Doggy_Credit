@@ -8,6 +8,8 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 import com.doggycredit.assessment.AssessmentCommand;
+import com.doggycredit.billing.Feature;
+import com.doggycredit.billing.PlanGate;
 import com.doggycredit.consent.Source;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantSegment;
@@ -17,6 +19,7 @@ import com.doggycredit.integration.WalletReport;
 import com.doggycredit.recommendation.CreditNeeds;
 import com.doggycredit.recommendation.CreditNeeds.HolderType;
 import com.doggycredit.recommendation.ProductRecommendations;
+import com.doggycredit.recommendation.ProductEligibility;
 import com.doggycredit.scoring.ScoreBand;
 
 /** Captura D-06/C-03 una vez; analítica nunca recalcula el histórico. */
@@ -25,14 +28,16 @@ class AssessmentAnalyticsSnapshot {
 
     private final CreditNeeds needs;
     private final ProductRecommendations recommendations;
+    private final PlanGate planGate;
 
-    AssessmentAnalyticsSnapshot(CreditNeeds needs, ProductRecommendations recommendations) {
+    AssessmentAnalyticsSnapshot(CreditNeeds needs, ProductRecommendations recommendations, PlanGate planGate) {
         this.needs = needs;
         this.recommendations = recommendations;
+        this.planGate = planGate;
     }
 
     Snapshot capture(AssessmentCommand command, ApplicantProfile applicant, SourceCollection collection,
-            ScoreBand band, String currency) {
+            ScoreBand band, String currency, String planId) {
         var bureau = SynchronousAssessmentService.bureauReport(collection);
         HolderType type = applicant.segment() == ApplicantSegment.PYME
                 || bureau.map(report -> report.tipo() == BureauReport.TipoTitular.PYME).orElse(false)
@@ -46,11 +51,17 @@ class AssessmentAnalyticsSnapshot {
                 bureau.map(report -> report.endeudamiento().size()).orElse(null),
                 command.requestedAmount(), command.termMonths()));
         // No mezclar monedas ni emitir una recomendación con fuentes fallidas.
-        var recommendation = collection.partial() || !currency.equals(applicant.monthlyIncome().currency().getCurrencyCode())
-                ? Optional.<ProductRecommendations.Recommendation>empty()
-                : recommendations.first(command.tenantId(), currency, band, type, need);
+        boolean capacityKnown = !collection.partial()
+                && currency.equals(applicant.monthlyIncome().currency().getCurrencyCode());
+        var products = recommendations.assess(command.tenantId(), currency, band, type, need, capacityKnown);
+        boolean available = capacityKnown && planGate.isAvailable(planId, Feature.RECOMENDACIONES);
+        // C-06: la lista completa (null si no corresponde); analítica guarda solo la primera.
+        List<ProductRecommendations.Recommendation> ranked = available
+                ? products.recommendations() : null;
+        var recommendation = ranked == null ? Optional.<ProductRecommendations.Recommendation>empty()
+                : ranked.stream().findFirst();
         return new Snapshot(need.category().name(), recommendation.map(ProductRecommendations.Recommendation::productType).orElse(null),
-                recommendation.map(ProductRecommendations.Recommendation::amount).orElse(null));
+                recommendation.map(ProductRecommendations.Recommendation::amount).orElse(null), ranked, products.eligibility());
     }
 
     private List<BigDecimal> observedFlows(SourceCollection collection) {
@@ -70,5 +81,7 @@ class AssessmentAnalyticsSnapshot {
                 .orElse(List.of());
     }
 
-    record Snapshot(String needCategory, String productType, BigDecimal recommendedAmount) { }
+    /** @param recommendations C-06: todas las elegibles en orden; null si no corresponden. */
+    record Snapshot(String needCategory, String productType, BigDecimal recommendedAmount,
+            List<ProductRecommendations.Recommendation> recommendations, List<ProductEligibility> eligibility) { }
 }

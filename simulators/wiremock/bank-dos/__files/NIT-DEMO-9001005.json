@@ -1,0 +1,42 @@
+{
+  "documentoCliente": "NIT-DEMO-9001005",
+  "corte": "2026-09-01",
+  "cuenta": {
+    "tipoProducto": "CORRIENTE",
+    "moneda": "BOB",
+    "fechaDesde": "2016-08-01",
+    "saldoPromedio3Meses": "18070.00"
+  },
+  "movimientos": [
+    {
+      "mes": "2026-03",
+      "creditos": "20400.00",
+      "debitos": "20480.00"
+    },
+    {
+      "mes": "2026-04",
+      "creditos": "18560.00",
+      "debitos": "20580.00"
+    },
+    {
+      "mes": "2026-05",
+      "creditos": "22330.00",
+      "debitos": "16930.00"
+    },
+    {
+      "mes": "2026-06",
+      "creditos": "21460.00",
+      "debitos": "20380.00"
+    },
+    {
+      "mes": "2026-07",
+      "creditos": "18590.00",
+      "debitos": "17020.00"
+    },
+    {
+      "mes": "2026-08",
+      "creditos": "18610.00",
+      "debitos": "18030.00"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import {
   DsBadge,
   DsButton,
   DsCard,
+  DsEmptyState,
   DsField,
   DsInput,
   DsLink,
@@ -19,8 +20,10 @@ import {
   DsTabs,
   DsToastService,
 } from '../design-system';
-import { TenantActualPlanEnum, TenantService } from '../api';
+import { MiembroEquipo, TenantActualFuncionalidadesEnum, TenantActualPlanEnum, TenantService } from '../api';
+import { AuthSessionService } from '../auth/session.service';
 import { AuditLog } from './audit-log';
+import { TeamInvite } from './team-invite';
 import { TenantUsageService } from './tenant-usage.service';
 
 const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
@@ -29,16 +32,27 @@ const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
   [TenantActualPlanEnum.Enterprise]: 'Enterprise',
 };
 
+/** A-09 (LOS-70): nombres de las funciones que controla el plan (billing.Feature). */
+const FEATURES: { id: TenantActualFuncionalidadesEnum; label: string }[] = [
+  { id: TenantActualFuncionalidadesEnum.ScoringAvanzado, label: 'Scoring avanzado y explicable' },
+  { id: TenantActualFuncionalidadesEnum.Recomendaciones, label: 'Recomendaciones de productos' },
+  { id: TenantActualFuncionalidadesEnum.Analytics, label: 'Analítica de cartera' },
+  { id: TenantActualFuncionalidadesEnum.Webhooks, label: 'Webhooks' },
+  { id: TenantActualFuncionalidadesEnum.ApiProduccion, label: 'API de producción' },
+];
+
 @Component({
   selector: 'dc-settings',
   imports: [
     FormsModule,
     RouterLink,
     AuditLog,
+    TeamInvite,
     DsAlert,
     DsBadge,
     DsButton,
     DsCard,
+    DsEmptyState,
     DsField,
     DsInput,
     DsLink,
@@ -82,18 +96,30 @@ const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
         <ds-card>
           <div class="card-head">
             <h2>Usuarios con acceso</h2>
+            @if (isTenantAdmin()) {
+              <dc-team-invite (invited)="loadTeam()" />
+            }
           </div>
           @if (teamError()) {
             <ds-alert heading="Equipo no disponible" tone="warning">
-              No se pudo consultar el directorio de identidad. Recarga la página o revisa la conexión de Keycloak.
+              No se pudo consultar el directorio de identidad. Revisa la conexión de Keycloak e inténtalo de nuevo.
+              <button dsButton variant="secondary" (click)="loadTeam()">Reintentar</button>
             </ds-alert>
+          } @else if (team() === undefined) {
+            <ds-spinner label="Cargando usuarios…" />
+          } @else if (team()!.length === 0) {
+            <ds-empty-state
+              icon="users"
+              heading="Todavía no hay usuarios"
+              description="Las personas que invites aparecerán aquí con su rol y su estado."
+            />
           } @else {
             <div class="ds-table-scroll" tabindex="0" aria-label="Usuarios">
               <table dsTable>
                 <caption class="ds-sr-only">Usuarios de la institución</caption>
                 <thead><tr><th scope="col">Nombre</th><th scope="col">Rol</th><th scope="col">Estado</th></tr></thead>
                 <tbody>
-                  @for (member of team(); track member.email ?? member.nombre) {
+                  @for (member of team()!; track member.email ?? member.nombre) {
                     <tr>
                       <th scope="row">{{ member.nombre }}@if (member.email) { <span class="ds-caption"> · {{ member.email }}</span> }</th>
                       <td>{{ member.rol }}</td>
@@ -129,6 +155,34 @@ const PLAN_NAMES: Record<TenantActualPlanEnum, string> = {
                 </ds-alert>
               } @else {
                 <ds-spinner label="Cargando uso mensual…" />
+              }
+              @if (current.funcionalidades; as included) {
+                <dl class="ds-stack-sm">
+                  <dt class="ds-caption">Usuarios</dt>
+                  <dd>{{ limit(current.limiteUsuarios, 'Hasta ') }}</dd>
+                  <dt class="ds-caption">Integraciones activas</dt>
+                  <dd>{{ limit(current.limiteIntegraciones, 'Hasta ') }}</dd>
+                </dl>
+                <div class="ds-table-scroll" tabindex="0" aria-label="Funciones del plan">
+                  <table dsTable>
+                    <caption>Funciones del plan</caption>
+                    <thead><tr><th scope="col">Función</th><th scope="col">Estado</th></tr></thead>
+                    <tbody>
+                      @for (feature of features; track feature.id) {
+                        <tr>
+                          <th scope="row">{{ feature.label }}</th>
+                          <td>
+                            @if (included.includes(feature.id)) {
+                              <ds-badge tone="success">Incluida</ds-badge>
+                            } @else {
+                              <ds-badge>Requiere plan Pro</ds-badge>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
               }
               <p class="ds-muted">El equipo de DoggyCredit activa los cambios de plan de tu institución.</p>
               <div class="ds-actions">
@@ -185,11 +239,11 @@ export class Settings {
     this.tenantUnavailable.set(true);
     return of(null);
   })));
+  private readonly session = inject(AuthSessionService).session;
+  readonly isTenantAdmin = computed(() => this.session().roles.includes('TENANT_ADMIN'));
   readonly teamError = signal(false);
-  readonly team = toSignal(this.tenantService.listarEquipo().pipe(catchError(() => {
-    this.teamError.set(true);
-    return of([]);
-  })), { initialValue: [] });
+  /** undefined mientras carga; la lista vacía es un estado propio. */
+  readonly team = signal<MiembroEquipo[] | undefined>(undefined);
   readonly preferencesUnavailable = signal(false);
   readonly preferences = toSignal(this.tenantService.obtenerPreferenciasTenant().pipe(catchError(() => {
     this.preferencesUnavailable.set(true);
@@ -198,6 +252,7 @@ export class Settings {
   readonly maskData = linkedSignal(() => this.preferences()?.enmascararDatos ?? true);
 
   readonly planNames = PLAN_NAMES;
+  readonly features = FEATURES;
   readonly org = linkedSignal(() => this.tenant()?.nombre ?? '');
   savingOrganization = false;
   savingPreferences = false;
@@ -205,6 +260,21 @@ export class Settings {
   constructor() {
     // Si la consola ya lo había consultado, la pestaña Plan muestra el uso al día.
     if (this.usage() !== undefined) this.usageService.refresh();
+    this.loadTeam();
+  }
+
+  loadTeam(): void {
+    this.teamError.set(false);
+    this.team.set(undefined);
+    this.tenantService.listarEquipo().subscribe({
+      next: (members) => this.team.set(members),
+      error: () => this.teamError.set(true),
+    });
+  }
+
+  /** 0 en la API significa sin límite. */
+  limit(value: number | undefined, prefix: string): string {
+    return value === undefined ? '—' : value === 0 ? 'Sin límite' : `${prefix}${value}`;
   }
 
   tenantStatus(): string {
