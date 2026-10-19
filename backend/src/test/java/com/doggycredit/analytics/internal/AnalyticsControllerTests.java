@@ -97,7 +97,8 @@ class AnalyticsControllerTests {
             response.andExpect(jsonPath("$.analiticaAvanzada").value(false))
                     .andExpect(jsonPath("$.pro").doesNotExist());
             assertThat(response.andReturn().getResponse().getContentAsString())
-                    .doesNotContain("conversionPorcentaje", "modelos", "recomendacionesPorProducto", "12000");
+                    .doesNotContain("conversionPorcentaje", "modelos", "recomendacionesPorProducto", "12000",
+                            "distribucionBandas", "tasaOverride", "aceptacionPorProducto");
         } else {
             response.andExpect(jsonPath("$.analiticaAvanzada").value(true))
                     .andExpect(jsonPath("$.pro.conversionPorcentaje").value(50))
@@ -111,6 +112,45 @@ class AnalyticsControllerTests {
         }
     }
 
+    /**
+     * C-14 (LOS-130): cada cifra de los KPIs de cartera se puede calcular a mano. Base de bandas y
+     * override = evaluaciones del intervalo sin FALLIDA ni PENDIENTE (7).
+     */
+    @Test
+    void calculaBandasOverrideYAceptacionPorProducto() throws Exception {
+        UUID tenant = tenant("PRO");
+        // Aceptadas sin bandeja: PREAPROBADO con su producto recomendado.
+        portfolio(tenant, DATE, "A", "PREAPROBADO", "MICROCREDITO");
+        portfolio(tenant, DATE, "B", "PREAPROBADO", "MICROCREDITO");
+        // Bandeja: aprobada con el mismo tipo (aceptada), con otro tipo (no), rechazada y una vieja sin tipo.
+        resolution(tenant, portfolio(tenant, DATE, "C", "REVISION_MANUAL", "PYME"), "APROBADO", "PYME");
+        resolution(tenant, portfolio(tenant, DATE, "D", "REVISION_MANUAL", "PYME"), "APROBADO", "MICROCREDITO");
+        resolution(tenant, portfolio(tenant, DATE, "E", "PARCIAL", null), "RECHAZADO", null);
+        resolution(tenant, portfolio(tenant, DATE, "B", "REVISION_MANUAL", "VERDE"), "APROBADO", null);
+        // Pendiente en la bandeja: cuenta en la base y como recomendada, sin override.
+        portfolio(tenant, DATE, "C", "REVISION_MANUAL", "VERDE");
+        // Fuera de la base: FALLIDA, y una evaluación de noviembre resuelta.
+        portfolio(tenant, DATE, "E", "FALLIDA", null);
+        resolution(tenant, portfolio(tenant, Instant.parse("2026-11-05T12:00:00Z"), "A", "REVISION_MANUAL", "PYME"),
+                "APROBADO", "PYME");
+
+        request(tenant).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pro.distribucionBandas.length()").value(5))
+                .andExpect(jsonPath("$.pro.distribucionBandas[*].banda").value(org.hamcrest.Matchers.contains("A", "B", "C", "D", "E")))
+                .andExpect(jsonPath("$.pro.distribucionBandas[*].cantidad").value(org.hamcrest.Matchers.contains(1, 2, 2, 1, 1)))
+                .andExpect(jsonPath("$.pro.distribucionBandas[*].porcentaje")
+                        .value(org.hamcrest.Matchers.contains(14.29, 28.57, 28.57, 14.29, 14.29)))
+                .andExpect(jsonPath("$.pro.tasaOverride.overrides").value(4))
+                .andExpect(jsonPath("$.pro.tasaOverride.evaluaciones").value(7))
+                .andExpect(jsonPath("$.pro.tasaOverride.porcentaje").value(57.14))
+                .andExpect(jsonPath("$.pro.aceptacionPorProducto[*].tipo")
+                        .value(org.hamcrest.Matchers.contains("MICROCREDITO", "VERDE", "PYME")))
+                .andExpect(jsonPath("$.pro.aceptacionPorProducto[*].recomendados").value(org.hamcrest.Matchers.contains(2, 2, 2)))
+                .andExpect(jsonPath("$.pro.aceptacionPorProducto[*].aceptados").value(org.hamcrest.Matchers.contains(2, 0, 1)))
+                .andExpect(jsonPath("$.pro.aceptacionPorProducto[*].porcentaje")
+                        .value(org.hamcrest.Matchers.contains(100.0, 0.0, 50.0)));
+    }
+
     @Test
     void aislaTodoIncluidasVistasSinPredicadoYParametrosManipulados() throws Exception {
         UUID a = tenant("PRO"), b = tenant("PRO");
@@ -119,6 +159,8 @@ class AnalyticsControllerTests {
         integration(b, "BANCO", true);
         model(a, "modelo-a", "2026-10-12T04:00:00Z", 0.01);
         model(b, "modelo-secreto-b", "2026-10-12T04:00:00Z", 0.8);
+        UUID c = tenant("PRO");
+        resolution(c, portfolio(c, DATE, "D", "REVISION_MANUAL", "PYME"), "APROBADO", "PYME");
         mvc.perform(get("/analytics/resumen").param("desde", "2026-10-01").param("hasta", "2026-10-31")
                 .param("tenant_id", b.toString()).param("tenantId", b.toString()).param("plan", "FREE")
                 .with(jwt().jwt(token -> token.subject("a").claim("tenant_id", a.toString()))))
@@ -126,9 +168,21 @@ class AnalyticsControllerTests {
                 .andExpect(jsonPath("$.scorePromedio").value(800))
                 .andExpect(jsonPath("$.integracionesActivas").value(1))
                 .andExpect(jsonPath("$.pro.montoRecomendado").value("2000.00"))
-                .andExpect(jsonPath("$.pro.modelos[0].version").value("modelo-a"));
+                .andExpect(jsonPath("$.pro.modelos[0].version").value("modelo-a"))
+                // C-14: la resolución y la banda D de C no aparecen en los KPIs de cartera de A.
+                .andExpect(jsonPath("$.pro.tasaOverride.overrides").value(0))
+                .andExpect(jsonPath("$.pro.tasaOverride.evaluaciones").value(1))
+                .andExpect(jsonPath("$.pro.distribucionBandas[3].cantidad").value(0))
+                .andExpect(jsonPath("$.pro.aceptacionPorProducto[2].recomendados").value(0));
         request(b).andExpect(jsonPath("$.scorePromedio").value(200))
                 .andExpect(jsonPath("$.pro.montoRecomendado").value("99999.00"));
+        request(c).andExpect(jsonPath("$.pro.tasaOverride.overrides").value(1))
+                .andExpect(jsonPath("$.pro.distribucionBandas[3].cantidad").value(1));
+        assertThat(asTenant(a, () -> jdbc.queryForObject("SELECT count(*) FROM assessment.analytics_resolutions_v1", Integer.class)))
+                .isZero();
+        assertThat(asTenant(c, () -> jdbc.queryForList("SELECT DISTINCT tenant_id FROM assessment.analytics_resolutions_v1", UUID.class)))
+                .containsExactly(c);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM assessment.analytics_resolutions_v1", Integer.class)).isZero();
         assertThat(asTenant(a, () -> jdbc.queryForList("SELECT DISTINCT tenant_id FROM assessment.analytics_evaluations_v1", UUID.class)))
                 .containsExactly(a);
         assertThat(asTenant(a, () -> jdbc.queryForList("SELECT tenant_id FROM integration.analytics_active_v1", UUID.class)))
@@ -164,7 +218,16 @@ class AnalyticsControllerTests {
                 .andExpect(jsonPath("$.pro.conversionPorcentaje").value(0))
                 .andExpect(jsonPath("$.pro.tiempoDecisionMedianaMs").isEmpty())
                 .andExpect(jsonPath("$.pro.montoRecomendado").value("0.00"))
-                .andExpect(jsonPath("$.pro.modelos").isEmpty());
+                .andExpect(jsonPath("$.pro.modelos").isEmpty())
+                // C-14: siempre las cinco bandas y los tres tipos, en cero y sin dividir por cero.
+                .andExpect(jsonPath("$.pro.distribucionBandas.length()").value(5))
+                .andExpect(jsonPath("$.pro.distribucionBandas[*].cantidad").value(org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.is(0))))
+                .andExpect(jsonPath("$.pro.tasaOverride.overrides").value(0))
+                .andExpect(jsonPath("$.pro.tasaOverride.porcentaje").value(0))
+                .andExpect(jsonPath("$.pro.aceptacionPorProducto.length()").value(3))
+                .andExpect(jsonPath("$.pro.aceptacionPorProducto[*].porcentaje").value(org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.is(0.0))));
     }
 
     @Test
@@ -241,6 +304,29 @@ class AnalyticsControllerTests {
 
     private void insert(UUID tenant, Instant at, int score, String status, String need, String product, String amount, Long duration) {
         asTenant(tenant, () -> jdbc.update(INSERT, values(tenant, at, score, status, need, product, amount, duration)));
+    }
+
+    /** C-14: una evaluación con banda y estado propios; devuelve su id para resolverla en la bandeja. */
+    private UUID portfolio(UUID tenant, Instant at, String band, String status, String product) {
+        UUID id = UUID.randomUUID();
+        asTenant(tenant, () -> jdbc.update("""
+                INSERT INTO assessment.credit_assessments (id, tenant_id, applicant_id, consent_id,
+                  idempotency_key, request_hash, status, score, band, reasons, model_version, correlation_id,
+                  created_at, recommended_product_type, recommended_amount)
+                VALUES (?, ?, ?, ?, ?, 'demo', ?, 500, ?, '{A,B,C}'::text[], 'scoring-v2', 'c14-test', ?, ?, ?)
+                """, id, tenant, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID().toString(), status, band,
+                Timestamp.from(at), product, product == null ? null : new BigDecimal("1000.00")));
+        return id;
+    }
+
+    /** C-14: resolución de la bandeja; productType null en APROBADO simula una resolución previa a C-14. */
+    private void resolution(UUID tenant, UUID assessment, String decision, String productType) {
+        asTenant(tenant, () -> jdbc.update("""
+                INSERT INTO assessment.manual_review_resolutions (id, tenant_id, assessment_id, decision, product_id,
+                  product_type, justification, resolved_by, resolved_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'Resolución sintética de prueba C-14', 'analista', now())
+                """, UUID.randomUUID(), tenant, assessment, decision,
+                "APROBADO".equals(decision) ? UUID.randomUUID() : null, productType));
     }
 
     private void integration(UUID tenant, String source, boolean active) {

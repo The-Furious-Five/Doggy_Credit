@@ -2,6 +2,7 @@ package com.doggycredit.recommendation.internal;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -40,9 +41,9 @@ class ProductCatalogService implements ProductCatalog {
 
 	@Override
 	@Transactional(readOnly = true)
-	public boolean isActive(UUID productId) {
+	public Optional<String> activeProductType(UUID productId) {
 		// Un producto de otro tenant no se ve (RLS + @TenantId): cuenta como inexistente.
-		return products.findById(productId).map(Product::active).orElse(false);
+		return products.findById(productId).filter(Product::active).map(Product::productType);
 	}
 
 	/**
