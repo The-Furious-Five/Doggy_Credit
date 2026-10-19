@@ -21,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import com.doggycredit.shared.TenantContext;
+import com.doggycredit.shared.TenantAccessPolicy;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,7 +51,9 @@ public class IdentitySecurityConfiguration {
     @Bean
     SecurityFilterChain identitySecurity(HttpSecurity http,
             ProblemDetailAuthenticationEntryPoint entryPoint,
-            ProblemDetailAccessDeniedHandler accessDeniedHandler) throws Exception {
+            ProblemDetailAccessDeniedHandler accessDeniedHandler,
+            List<TenantAccessPolicy> tenantAccessPolicies,
+            SecurityProblemDetailWriter problemWriter) throws Exception {
         var converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             List<GrantedAuthority> roles = new ArrayList<>();
@@ -72,7 +75,7 @@ public class IdentitySecurityConfiguration {
                 // defecto (sin cuerpo RFC 9457); este lo reemplaza explícitamente.
                 o.authenticationEntryPoint(entryPoint);
             })
-            .addFilterBefore(new TenantClaimFilter(), AuthorizationFilter.class).build();
+            .addFilterBefore(new TenantClaimFilter(tenantAccessPolicies, problemWriter), AuthorizationFilter.class).build();
     }
 
     @Bean
@@ -86,6 +89,14 @@ public class IdentitySecurityConfiguration {
     }
 
     private static class TenantClaimFilter extends OncePerRequestFilter {
+        private final List<TenantAccessPolicy> policies;
+        private final SecurityProblemDetailWriter writer;
+
+        TenantClaimFilter(List<TenantAccessPolicy> policies, SecurityProblemDetailWriter writer) {
+            this.policies = policies;
+            this.writer = writer;
+        }
+
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                 FilterChain chain) throws ServletException, IOException {
@@ -107,6 +118,17 @@ public class IdentitySecurityConfiguration {
                 TenantContext.set(UUID.fromString(tenant));
             }
             try {
+                if (auth instanceof JwtAuthenticationToken && auth.getAuthorities().stream()
+                        .noneMatch(a -> a.getAuthority().equals("ROLE_PLATFORM_ADMIN"))) {
+                    for (TenantAccessPolicy policy : policies) {
+                        var rejection = policy.rejectionFor(TenantContext.currentOrNone());
+                        if (rejection.isPresent()) {
+                            var code = rejection.get();
+                            writer.write(response, code, code.title());
+                            return;
+                        }
+                    }
+                }
                 chain.doFilter(request, response);
             } finally {
                 TenantContext.clear();

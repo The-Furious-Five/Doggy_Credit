@@ -7,7 +7,10 @@ import {
   Integracion,
   IntegracionEstadoEnum,
   IntegracionesService,
+  ProveedorCredenciales,
 } from '../api';
+import { AuthSessionService } from '../auth/session.service';
+import { IntegrationCredentials } from './integration-credentials';
 import {
   DsAlert,
   DsBadge,
@@ -80,6 +83,7 @@ const STATUS: Record<IntegracionEstadoEnum, { label: string; tone: DsTone }> = {
   selector: 'dc-integrations',
   imports: [
     FormsModule,
+    IntegrationCredentials,
     DsAlert,
     DsBadge,
     DsButton,
@@ -188,6 +192,12 @@ const STATUS: Record<IntegracionEstadoEnum, { label: string; tone: DsTone }> = {
                   >
                     {{ actionLabel(connector) }}
                   </button>
+                  @if (canManageCredentials() && credentialSource(connector); as source) {
+                    <dc-integration-credentials
+                      [source]="source"
+                      [name]="presentation(connector).name"
+                    />
+                  }
                 </div>
               </ds-card>
             }
@@ -201,6 +211,24 @@ export class Integrations {
   private readonly api = inject(IntegracionesService);
   private readonly toast = inject(DsToastService);
   private readonly destroyRef = inject(DestroyRef);
+
+  private readonly session = inject(AuthSessionService);
+  readonly canManageCredentials = computed(() =>
+    this.session.session().roles.includes('TENANT_ADMIN'),
+  );
+
+  credentialSource(connector: Integracion): ProveedorCredenciales | null {
+    switch (connector.fuente) {
+      case FuenteIntegracion.Buro:
+        return ProveedorCredenciales.Buro;
+      case FuenteIntegracion.Banco:
+        return ProveedorCredenciales.Banco;
+      case FuenteIntegracion.Wallet:
+        return ProveedorCredenciales.Wallet;
+      default:
+        return null;
+    }
+  }
 
   readonly status = STATUS;
   readonly mandatorySource = FuenteIntegracion.Buro;

@@ -18,19 +18,26 @@ import com.doggycredit.assessment.AssessmentOperations;
 import com.doggycredit.assessment.AssessmentPage;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentSummary;
+import com.doggycredit.shared.SensitiveDataPolicy;
+import com.doggycredit.shared.SensitiveDataPolicy.Masker;
 import com.doggycredit.shared.contract.api.EvaluacionesApi;
 import com.doggycredit.shared.contract.model.Evaluacion;
 import com.doggycredit.shared.contract.model.EvaluacionNueva;
 import com.doggycredit.shared.contract.model.EvaluacionResumen;
 import com.doggycredit.shared.contract.model.PaginaEvaluaciones;
+import com.doggycredit.shared.contract.model.ElegibilidadProducto;
+import com.doggycredit.shared.contract.model.CriterioElegibilidad;
+import com.doggycredit.shared.contract.model.Recomendacion;
 
 @RestController
 class AssessmentController implements EvaluacionesApi {
 
 	private final AssessmentOperations assessments;
+	private final SensitiveDataPolicy sensitiveData;
 
-	AssessmentController(AssessmentOperations assessments) {
+	AssessmentController(AssessmentOperations assessments, SensitiveDataPolicy sensitiveData) {
 		this.assessments = assessments;
+		this.sensitiveData = sensitiveData;
 	}
 
 	@Override
@@ -50,8 +57,9 @@ class AssessmentController implements EvaluacionesApi {
 			Integer pagina, Integer tamano) {
 		AssessmentPage page = assessments.list(currentTenantId(), solicitanteId,
 				desde == null ? null : desde.toInstant(), pagina, tamano);
+		Masker mask = sensitiveData.forCurrentUser();
 		return ResponseEntity.ok(new PaginaEvaluaciones(
-				page.items().stream().map(AssessmentController::toContract).toList(), page.total()));
+				page.items().stream().map(item -> toContract(item, mask)).toList(), page.total()));
 	}
 
 	@Override
@@ -64,7 +72,7 @@ class AssessmentController implements EvaluacionesApi {
 		return UUID.fromString(jwt.getClaimAsString("tenant_id"));
 	}
 
-	private static EvaluacionResumen toContract(AssessmentSummary summary) {
+	private static EvaluacionResumen toContract(AssessmentSummary summary, Masker mask) {
 		return new EvaluacionResumen()
 			.id(summary.id())
 			.solicitanteId(summary.applicantId())
@@ -75,7 +83,8 @@ class AssessmentController implements EvaluacionesApi {
 				.orElse(null))
 			.score(summary.score())
 			.banda(EvaluacionResumen.BandaEnum.fromValue(summary.band().name()))
-			.montoSolicitado(summary.requestedAmount() == null ? null : summary.requestedAmount().toPlainString())
+			.montoSolicitado(summary.requestedAmount() == null ? null
+					: mask.amount(summary.requestedAmount().toPlainString()))
 			.plazoMeses(summary.termMonths())
 			.creadoEn(summary.createdAt().atOffset(ZoneOffset.UTC));
 	}
@@ -92,7 +101,27 @@ class AssessmentController implements EvaluacionesApi {
 			.razones(result.reasons())
 			.modelVersion(result.modelVersion())
 			.simulado(result.simulated())
-			.correlationId(result.correlationId());
+			.correlationId(result.correlationId())
+            .elegibilidad(result.eligibility() == null ? null : result.eligibility().stream()
+                .map(p -> new ElegibilidadProducto()
+                    .productoId(p.productId())
+                    .tipoProducto(ElegibilidadProducto.TipoProductoEnum.fromValue(p.productType()))
+                    .moneda(ElegibilidadProducto.MonedaEnum.fromValue(p.currency()))
+                    .elegible(p.eligible())
+                    .criterios(p.criteria().stream().map(c -> new CriterioElegibilidad()
+                        .codigo(CriterioElegibilidad.CodigoEnum.fromValue(c.code().name()))
+                        .cumple(c.met()).detalle(c.detail())).toList()))
+                .toList())
+			// C-06: ausente si no corresponden (plan sin la función o PARCIAL); [] si ninguna aplica.
+			.recomendaciones(result.recommendations() == null ? null : result.recommendations().stream()
+				.map(r -> new Recomendacion()
+					.tipoProducto(Recomendacion.TipoProductoEnum.fromValue(r.productType()))
+					.moneda(Recomendacion.MonedaEnum.fromValue(r.currency()))
+					.montoSugerido(r.suggestedAmount().toPlainString())
+					.razon(r.reason())
+                    .plazoSugeridoMeses(r.suggestedTermMonths())
+                    .razones(r.reasons()))
+				.toList());
 	}
 
 }

@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -25,11 +26,19 @@ import com.doggycredit.shared.DocumentNumber;
 public class WalletConnector implements SourceConnector<Optional<WalletReport>> {
 
 	private final RestClient http;
+	private final ConnectorCredentials credentials;
 
+	@Autowired
 	WalletConnector(@Value("${doggycredit.integration.wallet.url}") String url,
 			@Value("${doggycredit.integration.wallet.connect-timeout}") Duration connectTimeout,
-			@Value("${doggycredit.integration.wallet.read-timeout}") Duration readTimeout) {
+			@Value("${doggycredit.integration.wallet.read-timeout}") Duration readTimeout,
+			ConnectorCredentials credentials) {
+		this.credentials = credentials;
 		this.http = ConnectorHttp.client(url, connectTimeout, readTimeout);
+	}
+
+	WalletConnector(String url, Duration connectTimeout, Duration readTimeout) {
+		this(url, connectTimeout, readTimeout, (tenant, provider) -> "");
 	}
 
 	@Override
@@ -44,6 +53,7 @@ public class WalletConnector implements SourceConnector<Optional<WalletReport>> 
 			throw new IllegalArgumentException("documento vacío");
 		}
 		return ConnectorHttp.get(http, Source.WALLET, "/wallet/v1/titulares/{doc}", doc,
+				credentials.apiKey(tenantId, ConnectorCredentials.Provider.WALLET),
 				body -> WalletJson.toReport(body, doc, Instant.now()), body -> WalletJson.isNotFound(body, doc));
 	}
 

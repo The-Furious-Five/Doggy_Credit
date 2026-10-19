@@ -17,6 +17,7 @@ public enum ErrorCode {
     PROVIDER_UNAVAILABLE("provider-unavailable", 502, "Fuente externa no disponible"),
     IDEMPOTENCY_KEY_REUSED("idempotency-key-reused", 422, "Clave de idempotencia reutilizada con un cuerpo distinto"),
     TENANT_NOT_FOUND("tenant-not-found", 403, "Tenant no registrado"),
+    TENANT_SUSPENDED("tenant-suspended", 403, "Tenant suspendido"),
     UNAUTHENTICATED("unauthenticated", 401, "Autenticación requerida"),
     INVALID_TENANT_CLAIM("invalid-tenant-claim", 403, "Reclamo de tenant inválido"),
     VALIDATION_ERROR("validation-error", 400, "Error de validación"),
@@ -29,7 +30,9 @@ public enum ErrorCode {
     API_KEY_NOT_FOUND("api-key-not-found", 404, "Clave de API no encontrada"),
     PRODUCT_NOT_FOUND("product-not-found", 404, "Producto no encontrado"),
     POLICY_NOT_FOUND("policy-not-found", 404, "Regla no encontrada"),
-    CONCURRENT_UPDATE("concurrent-update", 409, "Cambio simultáneo");
+    CONCURRENT_UPDATE("concurrent-update", 409, "Cambio simultáneo"),
+    PLAN_CHANGE_NOT_ALLOWED("plan-change-not-allowed", 409, "Cambio de plan no permitido"),
+    MEMBER_ALREADY_EXISTS("member-already-exists", 409, "La persona ya tiene una cuenta");
 
     private static final String BASE_URI = "https://docs.doggycredit.example/errors/";
 

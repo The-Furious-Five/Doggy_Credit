@@ -16,7 +16,7 @@ export interface CasoRevision {
     evaluacionId: string;
     solicitanteId: string;
     /**
-     * Documento del titular; la consola lo enmascara según el rol
+     * Documento del titular; el servidor lo enmascara según el rol y la preferencia del tenant (A-10)
      */
     documento: string;
     creadoEn: string;

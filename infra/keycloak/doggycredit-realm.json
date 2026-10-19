@@ -228,6 +228,58 @@
       ]
     },
     {
+      "clientId": "doggycredit-mobile",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "bearerOnly": false,
+      "redirectUris": [
+        "doggycredit://oauth/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id"
+          }
+        },
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "included.custom.audience": "doggycredit-api"
+          }
+        }
+      ]
+    },
+    {
       "clientId": "progreso-andino-m2m",
       "protocol": "openid-connect",
       "publicClient": false,
@@ -349,6 +401,9 @@
           "temporary": false,
           "value": "${DC_SEED_ADMIN_PASSWORD}"
         }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
       ]
     },
     {
@@ -407,6 +462,32 @@
           "type": "password",
           "temporary": false,
           "value": "${DC_SEED_ADMIN_PASSWORD_2}"
+        }
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    },
+    {
+      "username": "operador.demo",
+      "enabled": true,
+      "email": "operador.demo@doggycredit.invalid",
+      "emailVerified": true,
+      "firstName": "Operación",
+      "lastName": "DoggyCredit",
+      "attributes": {
+        "tenant_id": [
+          "9c7e7c1a-0000-4000-8000-000000000002"
+        ]
+      },
+      "realmRoles": [
+        "PLATFORM_ADMIN"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "temporary": false,
+          "value": "${DC_SEED_PLATFORM_ADMIN_PASSWORD}"
         }
       ]
     },

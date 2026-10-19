@@ -19,6 +19,7 @@ tags:
   - name: solicitantes
   - name: evaluaciones
   - name: integraciones
+  - name: credenciales-integraciones
   - name: auditoria
   - name: tenant
   - name: admin
@@ -28,6 +29,13 @@ tags:
   - name: analytics
   - name: webhooks
   - name: revision-manual
+  - name: planes
+  - name: reporte-accesos
+  - name: operador
+    description: >
+      RF-ANA-04 (D-14). Métricas agregadas de la plataforma para PLATFORM_ADMIN. Tag propio:
+      con skipDefaultInterface, sumar la operación a AdminApi rompería la compilación de
+      AdminController hasta que D-14 la implemente.
 
 paths:
 
@@ -315,6 +323,62 @@ paths:
           $ref: "#/components/responses/ErrorNegocio"
 
 
+  /integraciones/{fuente}/credenciales:
+    parameters:
+      - name: fuente
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/ProveedorCredenciales" }
+    get:
+      tags: [credenciales-integraciones]
+      operationId: obtenerCredencialesIntegracion
+      summary: Estado de las credenciales propias del tenant
+      description: >
+        RF-INT-07. Solo TENANT_ADMIN del tenant del JWT. Devuelve únicamente si
+        están configuradas y los últimos cuatro caracteres; nunca el secreto.
+        BANCO_DOS identifica al proveedor alternativo de BANCO, no otra fuente activa.
+      responses:
+        "200":
+          description: Metadatos seguros, incluso si no hay credenciales propias
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EstadoCredencialesIntegracion" }
+        "400": { $ref: "#/components/responses/ErrorNegocio" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/ErrorNegocio" }
+    put:
+      tags: [credenciales-integraciones]
+      operationId: guardarCredencialesIntegracion
+      summary: Registra o reemplaza la clave propia para este proveedor
+      description: >
+        Solo TENANT_ADMIN. Cifrado con la DEK del tenant (RF-SEG-05), aislamiento
+        RLS y auditoría sin secretos. Se envía como X-API-Key al conector elegido.
+        No activa fuentes ni modifica límites del plan o consentimientos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CredencialesIntegracionNuevas" }
+      responses:
+        "200":
+          description: Metadatos seguros de la clave guardada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EstadoCredencialesIntegracion" }
+        "400": { $ref: "#/components/responses/ErrorNegocio" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/ErrorNegocio" }
+    delete:
+      tags: [credenciales-integraciones]
+      operationId: eliminarCredencialesIntegracion
+      summary: Elimina la clave propia y vuelve a las credenciales de DoggyCredit
+      description: Solo TENANT_ADMIN. Idempotente; el secreto no se devuelve ni se audita.
+      responses:
+        "204": { description: Sin credenciales propias para este proveedor }
+        "400": { $ref: "#/components/responses/ErrorNegocio" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/ErrorNegocio" }
+
   /credit-assessments:
     get:
       tags: [evaluaciones]
@@ -398,9 +462,9 @@ paths:
           description: No existe, o pertenece a otro tenant (nunca se distingue cuál)
 
 
-  # RF-DEC-03 (D-10 / C-10 / E-10). Tag propio: el backend genera RevisionManualApi
-  # sin implementación por defecto, así que agregar estas rutas no obliga a tocar
-  # los controladores existentes.
+  # RF-DEC-03 (D-10 / C-10 / E-10). Propuesto por E-10 y adoptado sin cambios por D-10.
+  # Tag propio: el backend genera RevisionManualApi sin implementación por defecto, así
+  # que agregar estas rutas no obliga a tocar los controladores existentes.
   /revision-manual:
     get:
       tags: [revision-manual]
@@ -524,6 +588,78 @@ paths:
         "403":
           $ref: "#/components/responses/ErrorNegocio"
 
+  # RF-CON-03 (D-10 / C-11). Tag propio: AuditoriaApi ya está implementada, y sumar
+  # parámetros a listarAuditoria cambiaría la firma generada de AuditQueryController.
+  /auditoria/accesos:
+    get:
+      tags: [reporte-accesos]
+      operationId: obtenerReporteAccesos
+      summary: >
+        Reporte de accesos: quién accedió a los datos de un titular y con qué autorización
+        (solo TENANT_ADMIN)
+      description: >
+        RF-CON-03. Se filtra por titular (`solicitanteId`), por `correlationId` o por ambos;
+        al menos uno es obligatorio (sin ninguno, 400 VALIDATION_ERROR). Por titular devuelve
+        toda acción registrada sobre sus recursos: alta, consentimientos, consultas a las
+        fuentes, Perfil 360, evaluaciones, lecturas y resoluciones de revisión manual. Por
+        correlation-id devuelve lo que hizo una sola petición. De lo más reciente a lo más
+        antiguo, con paginación por cursor como /auditoria. Lee de audit.access_log por la
+        API pública del módulo audit, sin JOIN entre esquemas. La respuesta no lleva datos
+        personales: el titular va por id. Generar el reporte también queda en la bitácora.
+      parameters:
+        - name: solicitanteId
+          in: query
+          required: false
+          description: Titular del reporte. Inexistente o de otro tenant responde 404 UNKNOWN_APPLICANT
+          schema: { type: string, format: uuid }
+        - name: correlationId
+          in: query
+          required: false
+          description: X-Correlation-Id de una petición; coincidencia exacta
+          schema: { type: string, minLength: 1, maxLength: 128 }
+        - name: desde
+          in: query
+          required: false
+          description: Incluye registros creados en o después de este instante
+          schema: { type: string, format: date-time }
+        - name: hasta
+          in: query
+          required: false
+          description: Incluye registros creados antes de este instante (exclusivo)
+          schema: { type: string, format: date-time }
+        - name: cursor
+          in: query
+          required: false
+          description: Secuencia del último registro de la página anterior
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        "200":
+          description: Página del reporte con las autorizaciones que aparecen en ella
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReporteAccesos"
+        "400":
+          description: VALIDATION_ERROR, sin `solicitanteId` ni `correlationId`, o un parámetro inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "404":
+          description: UNKNOWN_APPLICANT, el solicitante no existe o es de otro tenant (nunca se distingue cuál)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+
   /tenant/actual:
     get:
       tags: [tenant]
@@ -556,6 +692,52 @@ paths:
                   $ref: '#/components/schemas/MiembroEquipo'
         "401":
           $ref: '#/components/responses/NoAutenticado'
+        "502":
+          $ref: '#/components/responses/ErrorNegocio'
+    post:
+      tags: [tenant]
+      operationId: invitarMiembroEquipo
+      summary: Invita a una persona al equipo del tenant actual (solo TENANT_ADMIN)
+      description: >
+        A-10 (LOS-71). Crea la cuenta en Keycloak con el tenant_id del JWT
+        (nunca del cuerpo) y el rol indicado, y le pide definir su contraseña en el primer
+        ingreso (un TENANT_ADMIN, además, configura MFA). Si el realm tiene correo
+        configurado, Keycloak le envía el enlace. El plan limita las cuentas humanas
+        activas del tenant (billing.plans.max_usuarios; FREE = 3): al superarlo responde
+        409 PLAN_LIMIT_REACHED sin crear nada. Queda en audit.access_log.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MiembroEquipoNuevo'
+      responses:
+        "201":
+          description: Invitación creada; el miembro queda en estado INVITADO
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MiembroEquipo'
+        "400":
+          description: VALIDATION_ERROR, nombre, email o rol inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        "401":
+          $ref: '#/components/responses/NoAutenticado'
+        "403":
+          description: INSUFFICIENT_ROLE (no es TENANT_ADMIN) o TENANT_SUSPENDED
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        "409":
+          description: PLAN_LIMIT_REACHED (el plan no admite más usuarios) o MEMBER_ALREADY_EXISTS
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
         "502":
           $ref: '#/components/responses/ErrorNegocio'
 
@@ -600,6 +782,11 @@ paths:
       tags: [tenant]
       operationId: obtenerUsoTenant
       summary: Consulta uso de evaluaciones del mes y límite del plan actual
+      description: >
+        RF-ANA-01 (B-12). Cualquier rol del tenant. El mes es el calendario UTC, el mismo de
+        la cuota. integracionesActivas y limiteIntegraciones reflejan el estado actual y el
+        plan vigente (0 = sin límite). Una evaluación repetida con la misma Idempotency-Key
+        no suma consumo.
       responses:
         "200":
           description: Uso mensual actual
@@ -633,11 +820,93 @@ paths:
           description: Sin permisos
 
 
+  # RF-PLN-04 / RF-PLN-05 (D-10 / A-11 / A-12). Subir de plan es PATCH /admin/tenants/{id}
+  # (operador). Tag propio por la misma razón que revision-manual: con
+  # skipDefaultInterface, sumar operaciones a TenantApi rompería la compilación de
+  # TenantController hasta que A-12 las implemente.
+  /tenant/actual/plan:
+    get:
+      tags: [planes]
+      operationId: obtenerEstadoPlan
+      summary: Plan del tenant autenticado, período en curso, bajada programada y gracia vigente
+      description: >
+        Cualquier rol del tenant. El período es el mes calendario en UTC, el mismo con el
+        que se cuenta la cuota mensual. El tenant sale exclusivamente del JWT.
+      responses:
+        "200":
+          description: Estado del plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstadoPlan"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /tenant/actual/plan/bajada:
+    put:
+      tags: [planes]
+      operationId: programarBajadaPlan
+      summary: Programa la bajada de plan para el cierre del período (solo TENANT_ADMIN)
+      description: >
+        RF-PLN-05. No cambia nada hoy: el plan actual sigue hasta `periodo.fin`. Al cierre,
+        el tenant pasa a `planDestino` y empiezan 30 días de gracia: las integraciones que
+        excedan el plan nuevo quedan desactivadas, no borradas; la preaprobación automática
+        (nivel 1) vuelve a decisión sugerida, y nada se purga antes de `gracia.hasta`. Si
+        durante la gracia el operador vuelve a subir el plan, el tenant recupera lo
+        desactivado. Programar otra vez reemplaza la bajada anterior. Queda en
+        audit.access_log con el X-Correlation-Id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BajadaPlanNueva"
+      responses:
+        "200":
+          description: Bajada programada; el plan actual no cambia hasta el cierre del período
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstadoPlan"
+        "400":
+          $ref: "#/components/responses/ErrorNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+        "409":
+          description: PLAN_CHANGE_NOT_ALLOWED, `planDestino` no es inferior al plan actual
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    delete:
+      tags: [planes]
+      operationId: cancelarBajadaPlan
+      summary: Cancela la bajada programada antes del cierre del período (solo TENANT_ADMIN)
+      description: >
+        Idempotente: sin bajada programada devuelve el estado igual. No termina una gracia
+        ya iniciada; eso solo ocurre si el operador vuelve a subir el plan. Queda en
+        audit.access_log con el X-Correlation-Id.
+      responses:
+        "200":
+          description: Estado del plan, sin bajada programada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EstadoPlan"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorNegocio"
+
+
   /admin/tenants:
     get:
       tags: [admin]
       operationId: listarTenants
       summary: Lista todos los tenants (solo PLATFORM_ADMIN)
+      description: Incluye evaluacionesMes del mes calendario UTC y limiteMensual del plan (0 = sin límite).
       responses:
         "200":
           description: OK
@@ -657,7 +926,19 @@ paths:
     patch:
       tags: [admin]
       operationId: actualizarTenant
-      summary: Activa o desactiva un tenant (solo PLATFORM_ADMIN)
+      summary: Suspende o reactiva un tenant, o cambia su plan (solo PLATFORM_ADMIN)
+      description: >
+        RF-PLN-04: el operador sube el plan en el momento (pago simulado en el MVP). El cambio
+        es efectivo en ≤ 1 min sin volver a iniciar sesión, porque los entitlements se leen
+        del servidor en cada petición y no viajan en el token. Subir cancela una bajada
+        programada y termina la gracia vigente. Aquí el cambio es inmediato en ambos
+        sentidos: es la herramienta del operador (y del E2E para restaurar el plan). La bajada
+        que pide el tenant va por PUT /tenant/actual/plan/bajada, al cierre del período.
+        Todo cambio de plan queda en audit.access_log.
+        RF-TEN-04: activo=false bloquea toda petición autenticada del tenant con 403
+        TENANT_SUSPENDED (RFC 9457), tanto de personas como de claves de API, excepto
+        PLATFORM_ADMIN. Reactivar recupera el acceso en ≤ 1 min con el mismo token.
+        No se borra ningún dato. Suspender y reactivar se auditan con X-Correlation-Id.
       parameters:
         - name: id
           in: path
@@ -682,6 +963,49 @@ paths:
           description: Sin permisos
         "404":
           description: Tenant no encontrado
+
+
+  # RF-ANA-04 (D-14). Solo agregados: ningún dato individual de un tenant.
+  /operador/metricas:
+    get:
+      tags: [operador]
+      operationId: obtenerMetricasOperador
+      summary: Métricas de negocio de la plataforma para un período (solo PLATFORM_ADMIN)
+      description: >
+        Fechas inclusivas en UTC; por defecto el mes calendario actual. tenantsPorPlan,
+        tenantsActivos y tenantsSuspendidos son una foto al momento de la consulta;
+        tenantsActivados, conversionesFreeAPro y evaluaciones se cuentan dentro del período.
+        Una conversión es un cambio de plan FREE → PRO registrado en audit.access_log. No
+        expone nombres, NIT ni identificadores de tenants. Otros roles reciben 403
+        INSUFFICIENT_ROLE.
+      parameters:
+        - name: desde
+          in: query
+          schema: { type: string, format: date }
+        - name: hasta
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Agregados de la plataforma
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricasOperador"
+        "400":
+          description: VALIDATION_ERROR, `desde` posterior a `hasta` o fecha inválida
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: INSUFFICIENT_ROLE, el usuario no es PLATFORM_ADMIN
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
 
   /api-keys:
     get:
@@ -967,6 +1291,10 @@ components:
 
     AnalyticsPro:
       type: object
+      description: >
+        distribucionBandas, tasaOverride y aceptacionPorProducto son los KPIs de cartera de
+        RF-ANA-02 (C-14). Son opcionales para no romper a los consumidores actuales; desde
+        C-14 el servidor los envía siempre, calculados sobre el mismo intervalo.
       required: [conversionPorcentaje, montoRecomendado, recomendacionesPorProducto, modelos]
       properties:
         conversionPorcentaje:
@@ -987,6 +1315,64 @@ components:
           type: array
           description: Último monitoreo semanal D-08 por modelo, independiente del intervalo consultado.
           items: { $ref: "#/components/schemas/AnalyticsModelo" }
+        distribucionBandas:
+          type: array
+          description: >
+            Siempre las cinco bandas, de A a E y con 0 si no hay casos, sobre las evaluaciones
+            del intervalo que tienen score (las FALLIDA no cuentan).
+          items: { $ref: "#/components/schemas/AnalyticsBanda" }
+        tasaOverride:
+          $ref: "#/components/schemas/AnalyticsOverride"
+        aceptacionPorProducto:
+          type: array
+          description: Un elemento por tipo de producto (MICROCREDITO, VERDE, PYME), con 0 si no hubo recomendaciones.
+          items: { $ref: "#/components/schemas/AnalyticsAceptacionProducto" }
+
+    AnalyticsBanda:
+      type: object
+      required: [banda, cantidad, porcentaje]
+      properties:
+        banda: { type: string, enum: [A, B, C, D, E] }
+        cantidad: { type: integer, format: int64, minimum: 0 }
+        porcentaje:
+          type: number
+          format: double
+          description: Evaluaciones de la banda / evaluaciones con score del intervalo × 100. 0 si no hay base.
+
+    AnalyticsOverride:
+      type: object
+      description: >
+        Override = caso de revisión manual resuelto por una persona (POST
+        /revision-manual/{evaluacionId}/resolucion), APROBADO o RECHAZADO. Se cuenta por la
+        fecha de la evaluación, no por la de la resolución.
+      required: [overrides, evaluaciones, porcentaje]
+      properties:
+        overrides: { type: integer, format: int64, minimum: 0 }
+        evaluaciones:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Base del cálculo, las evaluaciones con decisión del intervalo.
+        porcentaje:
+          type: number
+          format: double
+          description: overrides / evaluaciones × 100. 0 si no hay evaluaciones.
+
+    AnalyticsAceptacionProducto:
+      type: object
+      description: >
+        Recomendado = un producto de este tipo fue el primero del ranking C-06. Aceptado = esa
+        evaluación quedó PREAPROBADO o se aprobó en revisión manual con un producto del mismo
+        tipo. No mide desembolsos.
+      required: [tipo, recomendados, aceptados, porcentaje]
+      properties:
+        tipo: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        recomendados: { type: integer, format: int64, minimum: 0 }
+        aceptados: { type: integer, format: int64, minimum: 0 }
+        porcentaje:
+          type: number
+          format: double
+          description: aceptados / recomendados × 100. 0 si no hubo recomendaciones.
 
     AnalyticsProducto:
       type: object
@@ -1035,6 +1421,30 @@ components:
         pais: { type: string }
         moneda: { type: string }
         activo: { type: boolean }
+        evaluacionesMes:
+          type: integer
+          minimum: 0
+          description: En GET /admin/tenants y GET /tenant/actual. Evaluaciones del mes calendario UTC; 0 si no hay consumo.
+        limiteMensual:
+          type: integer
+          minimum: 0
+          description: En GET /admin/tenants y GET /tenant/actual. Cuota mensual del plan actual; 0 significa sin límite.
+        limiteUsuarios:
+          type: integer
+          minimum: 0
+          description: A-01 (LOS-64). Solo en GET /tenant/actual. Cuentas humanas que admite el plan; 0 significa sin límite.
+        limiteIntegraciones:
+          type: integer
+          minimum: 0
+          description: A-01 (LOS-64). Solo en GET /tenant/actual. Integraciones activas que admite el plan; 0 significa sin límite.
+        funcionalidades:
+          type: array
+          description: >
+            A-01 (LOS-64). Solo en GET /tenant/actual. Funciones incluidas en el plan vigente,
+            según billing.Entitlements; las ausentes responden FEATURE_NOT_IN_PLAN.
+          items:
+            type: string
+            enum: [SCORING_AVANZADO, API_PRODUCCION, WEBHOOKS, ANALYTICS, RECOMENDACIONES]
       required: [id, nombre, nit, tipo, plan, pais, moneda, activo]
 
 
@@ -1046,6 +1456,16 @@ components:
         rol: { type: string }
         estado: { type: string, enum: [ACTIVO, INVITADO, DESACTIVADO] }
       required: [nombre, rol, estado]
+
+
+    MiembroEquipoNuevo:
+      type: object
+      additionalProperties: false
+      properties:
+        nombre: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        rol: { type: string, enum: [ANALYST, TENANT_ADMIN] }
+      required: [nombre, email, rol]
 
 
     ConsentimientoNuevo:
@@ -1145,6 +1565,12 @@ components:
         creadoEn: { type: string, format: date-time }
         ingresoMensual: { $ref: "#/components/schemas/Dinero" }
         origenIngreso: { type: string, enum: [BANCO, WALLET, DECLARADO] }
+        ingresoDeclarado: { $ref: "#/components/schemas/Dinero" }
+        discrepanciaIngreso:
+          type: boolean
+          description: >
+            RF-PER-06: declarado y observado difieren en más de 30 %. Ausente
+            si no hay observado con que comparar (origenIngreso DECLARADO).
         deudaVigente: { $ref: "#/components/schemas/Dinero" }
         obligaciones: { type: integer, minimum: 0 }
         cuotaMensual: { $ref: "#/components/schemas/Dinero" }
@@ -1169,6 +1595,34 @@ components:
     FuenteIntegracion:
       type: string
       enum: [BURO, BANCO, WALLET, OPEN_BANKING, FACTURACION, GARANTIAS]
+
+    ProveedorCredenciales:
+      type: string
+      enum: [BURO, BANCO, BANCO_DOS, WALLET]
+
+    CredencialesIntegracionNuevas:
+      type: object
+      additionalProperties: false
+      required: [clave]
+      properties:
+        clave:
+          type: string
+          writeOnly: true
+          minLength: 8
+          maxLength: 2048
+          pattern: '^[!-~]{8,2048}$'
+          description: Clave API de caracteres ASCII visibles, sin espacios ni saltos de línea.
+
+    EstadoCredencialesIntegracion:
+      type: object
+      additionalProperties: false
+      required: [configuradas, ultimosCuatro]
+      properties:
+        configuradas: { type: boolean }
+        ultimosCuatro:
+          type: string
+          pattern: '^([!-~]{4})?$'
+          description: Últimos cuatro caracteres si configuradas; cadena vacía en caso contrario.
 
 
     Integracion:
@@ -1223,6 +1677,28 @@ components:
         modelVersion: { type: string }
         simulado: { type: boolean, default: true }
         correlationId: { type: string }
+        elegibilidad:
+          type: array
+          description: >
+            RF-REC-02 (E-16): snapshot de todos los productos activos del tenant al evaluar,
+            disponible en todos los planes. Cada producto indica los seis criterios y si
+            cumple todos. Se evalúa el monto propuesto tras ajustar RF-NEC-01 y el máximo
+            del producto, y el plazo solicitado o el predeterminado de la necesidad.
+            Las monedas diferentes y la capacidad no verificable no califican.
+            Ausente en evaluaciones históricas anteriores a E-16; vacío si no había
+            productos activos. Nunca se recalcula al consultar el perfil.
+          items:
+            $ref: "#/components/schemas/ElegibilidadProducto"
+        recomendaciones:
+          type: array
+          description: >
+            C-06: productos del catálogo del tenant para los que el titular es elegible,
+            del más adecuado al menos, cada uno con su razón. Solo en los planes con
+            recomendaciones (PRO y ENTERPRISE). Ausente si el plan no las incluye o si el
+            resultado es PARCIAL (no se recomienda con fuentes fallidas); vacío si ningún
+            producto aplica.
+          items:
+            $ref: "#/components/schemas/Recomendacion"
 
 
     RegistroAuditoria:
@@ -1273,7 +1749,53 @@ components:
       properties:
         evaluacionesMes: { type: integer, minimum: 0 }
         limiteMensual: { type: integer, minimum: 0, description: 0 means unlimited }
+        integracionesActivas:
+          type: integer
+          minimum: 0
+          description: RF-ANA-01. Integraciones en estado CONECTADO hoy, el buró incluido.
+        limiteIntegraciones:
+          type: integer
+          minimum: 0
+          description: RF-ANA-01. Máximo de integraciones activas del plan vigente; 0 significa sin límite.
       required: [evaluacionesMes, limiteMensual]
+
+
+    MetricasOperador:
+      type: object
+      description: RF-ANA-04 (D-14). Solo agregados de la plataforma, sin datos de tenants individuales.
+      properties:
+        desde: { type: string, format: date }
+        hasta: { type: string, format: date }
+        tenantsPorPlan:
+          type: array
+          description: Un elemento por plan (FREE, PRO, ENTERPRISE), con 0 si no hay tenants.
+          items: { $ref: "#/components/schemas/TenantsPorPlan" }
+        tenantsActivos: { type: integer, format: int64, minimum: 0 }
+        tenantsSuspendidos: { type: integer, format: int64, minimum: 0 }
+        tenantsActivados:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Tenants dados de alta o reactivados dentro del período.
+        conversionesFreeAPro:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Cambios de plan FREE → PRO dentro del período.
+        evaluaciones:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Evaluaciones de toda la plataforma dentro del período.
+      required: [desde, hasta, tenantsPorPlan, tenantsActivos, tenantsSuspendidos, tenantsActivados, conversionesFreeAPro, evaluaciones]
+
+
+    TenantsPorPlan:
+      type: object
+      properties:
+        plan: { $ref: "#/components/schemas/CodigoPlan" }
+        cantidad: { type: integer, format: int64, minimum: 0 }
+      required: [plan, cantidad]
 
 
     OrganizacionTenantPatch:
@@ -1337,7 +1859,7 @@ components:
       properties:
         evaluacionId: { type: string, format: uuid }
         solicitanteId: { type: string, format: uuid }
-        documento: { type: string, description: "Documento del titular; la consola lo enmascara según el rol" }
+        documento: { type: string, description: "Documento del titular; el servidor lo enmascara según el rol y la preferencia del tenant (A-10)" }
         creadoEn: { type: string, format: date-time }
         score: { type: integer }
         banda: { type: string, enum: [A, B, C, D, E] }
@@ -1460,3 +1982,166 @@ components:
       properties:
         activa: { type: boolean }
       required: [activa]
+
+    CodigoPlan:
+      type: string
+      enum: [FREE, PRO, ENTERPRISE]
+
+    PeriodoPlan:
+      type: object
+      description: Mes calendario en UTC, el mismo con el que se cuenta la cuota.
+      properties:
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time, description: "Exclusivo: inicio del mes siguiente" }
+      required: [inicio, fin]
+
+    EstadoPlan:
+      type: object
+      description: RF-PLN-04 / RF-PLN-05. Plan vigente hoy y los cambios en curso.
+      properties:
+        plan: { $ref: "#/components/schemas/CodigoPlan" }
+        periodo: { $ref: "#/components/schemas/PeriodoPlan" }
+        bajadaProgramada:
+          $ref: "#/components/schemas/BajadaPlan"
+          description: Ausente si no hay una bajada programada
+        gracia:
+          $ref: "#/components/schemas/GraciaPlan"
+          description: Ausente si no hay una gracia vigente
+      required: [plan, periodo]
+
+    BajadaPlanNueva:
+      type: object
+      properties:
+        planDestino:
+          $ref: "#/components/schemas/CodigoPlan"
+          description: Debe ser inferior al plan actual (si no, 409 PLAN_CHANGE_NOT_ALLOWED)
+      required: [planDestino]
+
+    BajadaPlan:
+      type: object
+      description: Bajada que se aplicará al cierre del período.
+      properties:
+        planDestino: { $ref: "#/components/schemas/CodigoPlan" }
+        efectivaEn: { type: string, format: date-time, description: "Igual a periodo.fin" }
+        integracionesADesactivar:
+          type: array
+          description: Integraciones activas hoy que excederán el plan destino; vacío si ninguna
+          items: { $ref: "#/components/schemas/FuenteIntegracion" }
+        solicitadaPor: { type: string, description: "Usuario que la programó (claim preferred_username)" }
+        solicitadaEn: { type: string, format: date-time }
+      required: [planDestino, efectivaEn, integracionesADesactivar, solicitadaPor, solicitadaEn]
+
+    GraciaPlan:
+      type: object
+      description: >
+        30 días después de una bajada. Lo que excede el plan nuevo queda desactivado, no
+        borrado; al terminar se aplican los límites y la retención del plan nuevo.
+      properties:
+        planAnterior: { $ref: "#/components/schemas/CodigoPlan" }
+        desde: { type: string, format: date-time }
+        hasta: { type: string, format: date-time, description: "desde + 30 días; antes de esta fecha no se purga nada" }
+        integracionesDesactivadas:
+          type: array
+          items: { $ref: "#/components/schemas/FuenteIntegracion" }
+      required: [planAnterior, desde, hasta, integracionesDesactivadas]
+
+    ReporteAccesos:
+      type: object
+      description: RF-CON-03. Una página del reporte, sin datos personales.
+      properties:
+        solicitanteId: { type: string, format: uuid, description: "Filtro aplicado, si se indicó" }
+        correlationId: { type: string, description: "Filtro aplicado, si se indicó" }
+        generadoEn: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RegistroAcceso"
+        autorizaciones:
+          type: array
+          description: Los consentimientos que aparecen en `items`, una vez cada uno
+          items:
+            $ref: "#/components/schemas/AutorizacionAcceso"
+        siguienteCursor:
+          type: integer
+          format: int64
+          description: Ausente si no hay más páginas
+      required: [generadoEn, items, autorizaciones]
+
+    RegistroAcceso:
+      description: Un registro de la bitácora, con el titular afectado y la autorización usada.
+      allOf:
+        - $ref: "#/components/schemas/RegistroAuditoria"
+        - type: object
+          properties:
+            solicitanteId:
+              type: string
+              format: uuid
+              description: Titular cuyos datos se tocaron; ausente si la acción no toca datos de un titular
+            consentimientoId:
+              type: string
+              format: uuid
+              description: >
+                Consentimiento con el que se hizo la acción; ausente si no lo requiere (por
+                ejemplo, leer un perfil ya consolidado)
+
+    AutorizacionAcceso:
+      type: object
+      description: Resumen de un consentimiento, sin el documento del titular.
+      properties:
+        consentimientoId: { type: string, format: uuid }
+        solicitanteId: { type: string, format: uuid }
+        fuentes:
+          type: array
+          items: { type: string, enum: [BURO, BANCO, WALLET] }
+        finalidad: { type: string }
+        estado: { type: string, enum: [ACTIVO, REVOCADO, EXPIRADO] }
+        creadoEn: { type: string, format: date-time }
+        expiraEn: { type: string, format: date-time }
+        revocadoEn: { type: string, format: date-time, description: Solo si estado es REVOCADO }
+      required: [consentimientoId, solicitanteId, fuentes, finalidad, estado, creadoEn, expiraEn]
+
+    Recomendacion:
+      type: object
+      description: Un producto recomendado. Es una recomendación, no una aprobación.
+      properties:
+        tipoProducto: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        moneda: { type: string, enum: [BOB, USD] }
+        montoSugerido: { type: string, description: "Decimal como string: monto ajustado a la capacidad de pago y al rango del producto" }
+        razon: { type: string, description: "Por qué aplica, en lenguaje legible" }
+        plazoSugeridoMeses:
+          type: integer
+          minimum: 1
+          maximum: 360
+          description: "RF-REC-03: plazo dentro del rango del producto. Opcional para snapshots anteriores a E-16."
+        razones:
+          type: array
+          minItems: 2
+          items: { type: string, minLength: 1 }
+          description: "RF-REC-03: al menos dos razones del ajuste. Opcional para snapshots anteriores a E-16; razon se conserva por compatibilidad."
+      required: [tipoProducto, moneda, montoSugerido, razon]
+
+    ElegibilidadProducto:
+      type: object
+      description: Producto activo al evaluar, con los criterios del snapshot. Una recomendación no implica aprobación.
+      properties:
+        productoId: { type: string, format: uuid }
+        tipoProducto: { type: string, enum: [MICROCREDITO, VERDE, PYME] }
+        moneda: { type: string, enum: [BOB, USD] }
+        elegible: { type: boolean }
+        criterios:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items:
+            $ref: "#/components/schemas/CriterioElegibilidad"
+      required: [productoId, tipoProducto, moneda, elegible, criterios]
+
+    CriterioElegibilidad:
+      type: object
+      properties:
+        codigo:
+          type: string
+          enum: [BANDA_MINIMA, RANGO_MONTO, RANGO_PLAZO, TIPO_TITULAR, DESTINO, CAPACIDAD_PAGO]
+        cumple: { type: boolean }
+        detalle: { type: string, minLength: 1 }
+      required: [codigo, cumple, detalle]

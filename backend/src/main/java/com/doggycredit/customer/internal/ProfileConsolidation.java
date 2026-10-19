@@ -61,14 +61,19 @@ final class ProfileConsolidation {
 		List<Money> bankIncome = bank.map(b -> inCurrency(b.ingresosMensuales(), currency)).orElse(List.of());
 		List<Money> walletIncome = wallet.map(w -> inCurrency(w.meses().stream().map(WalletReport.Mes::recibido).toList(),
 				currency)).orElse(List.of());
+		Money observedIncome = null;
 		if (!bankIncome.isEmpty()) {
 			origin = IncomeOrigin.BANCO;
-			income = average(bankIncome, currency);
+			observedIncome = average(bankIncome, currency);
+			income = observedIncome;
 		}
 		else if (!walletIncome.isEmpty()) {
 			origin = IncomeOrigin.WALLET;
-			income = average(walletIncome, currency);
+			observedIncome = average(walletIncome, currency);
+			income = observedIncome;
 		}
+		// B-11 (RF-PER-06): visible solo si hay observado con que comparar lo declarado.
+		Boolean incomeDiscrepancy = observedIncome == null ? null : discrepancy(declaredIncome, observedIncome);
 
 		List<BureauReport.Endeudamiento> debts = bureau.map(BureauReport::endeudamiento).orElse(List.of());
 		Money debt = debtKnown ? sum(debts, BureauReport.Endeudamiento::saldo, currency) : null;
@@ -105,7 +110,7 @@ final class ProfileConsolidation {
 		canonical.put("hash", hash);
 		canonical.put("creadoEn", now);
 		FinancialProfile360 view = new FinancialProfile360(id, applicantId, now, hash, income, origin, debt,
-				obligations, installment, debtToIncome, capacity, seniority, lineage);
+				obligations, installment, debtToIncome, capacity, seniority, lineage, declaredIncome, incomeDiscrepancy);
 		return new Snapshot(canonical, view);
 	}
 
@@ -186,6 +191,18 @@ final class ProfileConsolidation {
 		return new Money(inCurrency(items.stream().map(amount).toList(), currency).stream()
 			.map(Money::amount)
 			.reduce(new BigDecimal("0.00"), BigDecimal::add), currency);
+	}
+
+	private static final BigDecimal DISCREPANCY_THRESHOLD = new BigDecimal("0.30");
+
+	/** {@code true} si lo declarado difiere en más de 30 % de lo observado (RF-PER-06). */
+	private static boolean discrepancy(Money declared, Money observed) {
+		if (observed.amount().signum() == 0) {
+			return declared.amount().signum() != 0;
+		}
+		BigDecimal ratio = declared.amount().subtract(observed.amount()).abs()
+			.divide(observed.amount(), 4, RoundingMode.HALF_UP);
+		return ratio.compareTo(DISCREPANCY_THRESHOLD) > 0;
 	}
 
 	private static Money nonNegative(Money income, Money outflow) {

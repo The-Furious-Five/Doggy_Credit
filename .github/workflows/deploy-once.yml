@@ -1,0 +1,257 @@
+name: Despliegue personal con runner temporal
+run-name: Despliegue temporal de ${{ inputs.expected_sha }} (${{ inputs.runner_label }})
+
+# Un único job para que --ephemeral retire el runner después de validar y desplegar.
+# No lo invocan pushes, PRs ni horarios; CI/CD conserva sus runners habituales.
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Commit completo de main autorizado para esta ejecución
+        required: true
+        type: string
+      runner_label:
+        description: Etiqueta exclusiva del runner temporal, sin etiquetas por defecto
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-deploy:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.actor == vars.DC_ONCE_DEPLOY_ACTOR &&
+      github.sha == vars.DC_ONCE_DEPLOY_SHA &&
+      github.sha == inputs.expected_sha &&
+      startsWith(inputs.runner_label, 'doggycredit-once-')
+    runs-on: ${{ inputs.runner_label }}
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 90
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: ${{ steps.release.outputs.origin }}
+    permissions:
+      contents: read
+      packages: write
+    env:
+      COMPOSE_PROJECT_NAME: dc-once-${{ github.run_id }}
+      DC_HTTP_PORT: '127.0.0.1:443'
+      DC_WIREMOCK_BUREAU_HOST_PORT: '127.0.0.1:8089'
+      DC_WIREMOCK_BANK_HOST_PORT: '127.0.0.1:8090'
+      DC_WIREMOCK_WALLET_HOST_PORT: '127.0.0.1:8091'
+      DC_GRAFANA_HOST_PORT: '127.0.0.1:3300'
+      TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Comprobar el commit y el entorno temporal
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$RUNNER_OS" = macOS
+          test -n "$DOCKER_HOST"
+          docker info
+          mkdir -p "$RUNNER_TEMP/dc-docker-config"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          assert __import__('sys').version_info >= (3, 12)
+          source = Path.home() / '.docker/config.json'
+          plugins = json.loads(source.read_text()).get('cliPluginsExtraDirs', []) if source.exists() else []
+          plugins.append(str(Path.home() / '.docker/cli-plugins'))
+          destination = Path(os.environ['RUNNER_TEMP']) / 'dc-docker-config/config.json'
+          destination.write_text(json.dumps({'cliPluginsExtraDirs': plugins}))
+          PY
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/dc-docker-config" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          settings-path: ${{ runner.temp }}/dc-maven-settings
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Preparar Python local y dependencias en un entorno temporal
+        run: |
+          python3 -m venv "$RUNNER_TEMP/dc-python"
+          "$RUNNER_TEMP/dc-python/bin/pip" install -r scripts/requirements.txt
+          echo "$RUNNER_TEMP/dc-python/bin" >> "$GITHUB_PATH"
+          docker compose version
+          docker buildx version
+
+      - name: '1 · Backend: compilar, arquitectura y todos los tests'
+        run: |
+          (cd backend && ./mvnw -B verify)
+          python ci/check_skipped_tests.py
+
+      - name: '2 · Web: Design System, compilación y tests'
+        working-directory: web
+        run: |
+          npm ci
+          npm run ds:check
+          npm run ds:test
+          npm run build
+          npm test -- --watch=false
+
+      - name: '3 · Contratos: generadores, despliegue y configuración'
+        run: |
+          python -m unittest discover -s scripts -p 'test_*.py'
+          python scripts/generate_realm.py
+          bash scripts/generate_clients.sh
+          git diff --exit-code -- infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json web/src/app/api
+          test -z "$(git ls-files --others --exclude-standard web/src/app/api)"
+
+      - name: Validar Compose de producción con imágenes por etiqueta
+        env:
+          DC_API_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-api:${{ github.sha }}
+          DC_WEB_IMAGE: ghcr.io/the-furious-five/doggy_credit/doggycredit-web:${{ github.sha }}
+          DC_MASTER_KEY: ci_configuration_validation_only
+        run: docker compose --env-file .env.example -f infra/compose.yaml -f infra/compose.prod.yaml config --quiet
+
+      - name: '4 · Identidad: cliente móvil, login PKCE, renovación y API'
+        run: |
+          docker compose --env-file .env.example -f infra/compose.yaml up -d --build --wait --wait-timeout 300
+          docker compose --env-file .env.example -f infra/compose.yaml cp caddy:/data/caddy/pki/authorities/local/root.crt "$RUNNER_TEMP/doggycredit-root.crt"
+          curl --retry 30 --retry-all-errors --retry-delay 2 --fail --silent --cacert "$RUNNER_TEMP/doggycredit-root.crt" https://localhost/actuator/health
+          python e2e/mobile_client_sync.py
+          (
+            set -a
+            source .env.example
+            set +a
+            python e2e/identity_smoke.py --ca "$RUNNER_TEMP/doggycredit-root.crt"
+          )
+          bash scripts/check_simulators.sh --env-file .env.example -f infra/compose.yaml
+          docker compose --env-file .env.example -f infra/compose.yaml down --volumes --remove-orphans
+          rm -f e2e/.generated/totp.json
+
+      - name: '5 · Modelo ML: reentrenar en Linux x64 y comprobar artefactos'
+        # Las bibliotecas científicas deben coincidir con el gate de Linux x64.
+        run: |
+          docker run --rm --platform linux/amd64 -v "$PWD:/work" -w /work python:3.14-slim \
+            sh -ec 'pip install -r ml/requirements.txt; python ci/check_ml_artifacts.py --self-test; python ml/training/train.py; python ci/check_ml_artifacts.py'
+          git diff --exit-code -- 'ml/model/*.onnx' 'ml/model/*.params.json' ml/model/golden_set.json
+
+      - name: '6 · Flujo E2E: Playwright, revisión manual y smoke test'
+        run: |
+          (cd e2e && npm ci && npm run typecheck && npx playwright install chromium)
+          docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml up -d --build --wait --wait-timeout 300
+          python scripts/smoke_release.py https://localhost --release local --insecure
+          (
+            set -a
+            source .env.example
+            set +a
+            cd e2e
+            npx playwright test
+          )
+          docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml down --volumes --remove-orphans
+
+      - name: Configurar dominio público
+        id: release
+        env:
+          DC_KEYCLOAK_ISSUER_URI: ${{ vars.DC_KEYCLOAK_ISSUER_URI }}
+        run: |
+          python scripts/configure_demo.py
+          echo "origin=${DC_KEYCLOAK_ISSUER_URI%/auth/realms/doggycredit}" >> "$GITHUB_OUTPUT"
+          echo "repo=ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar la API para el VPS
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.release.outputs.repo }}/doggycredit-api:${{ github.sha }}
+          cache-from: type=gha,scope=api
+
+      - name: Construir y publicar la web para el VPS
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: DC_RELEASE=${{ github.sha }}
+          tags: ${{ steps.release.outputs.repo }}/doggycredit-web:${{ github.sha }}
+          cache-from: type=gha,scope=web
+
+      - name: Empaquetar release
+        env:
+          REPO: ${{ steps.release.outputs.repo }}
+          DC_KEYCLOAK_ISSUER_URI: ${{ vars.DC_KEYCLOAK_ISSUER_URI }}
+        run: |
+          cat > infra/release.env <<EOF
+          DC_API_IMAGE=$REPO/doggycredit-api:$GITHUB_SHA
+          DC_WEB_IMAGE=$REPO/doggycredit-web:$GITHUB_SHA
+          DC_KEYCLOAK_ISSUER_URI=$DC_KEYCLOAK_ISSUER_URI
+          EOF
+          COPYFILE_DISABLE=1 tar -czf release.tar.gz infra/compose.yaml infra/compose.prod.yaml infra/release.env \
+            infra/caddy/Caddyfile infra/keycloak/doggycredit-realm.json infra/keycloak/doggycredit-mobile.json infra/keycloak/themes infra/grafana \
+            simulators/wiremock scripts/deploy.sh scripts/check_simulators.sh scripts/ensure_deploy_env.sh scripts/sync_mobile_client.sh
+
+      - name: Desplegar al VPS con claves temporales y rollback
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ssh_dir="$RUNNER_TEMP/dc-ssh"
+          install -m 700 -d "$ssh_dir"
+          trap 'rm -rf "$ssh_dir"' EXIT
+          install -m 600 /dev/null "$ssh_dir/id_ed25519"
+          install -m 600 /dev/null "$ssh_dir/known_hosts"
+          printf '%s\n' "$SSH_KEY" > "$ssh_dir/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          ssh_options=(-i "$ssh_dir/id_ed25519" -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes)
+          dir=/srv/doggycredit/releases/$GITHUB_SHA
+          ssh "${ssh_options[@]}" "$TARGET" "mkdir -p $dir && tar -xzf - -C $dir" < release.tar.gz
+          printf '%s' "$GH_TOKEN" | ssh "${ssh_options[@]}" "$TARGET" \
+            "trap 'docker logout ghcr.io >/dev/null' EXIT; docker login ghcr.io -u $GITHUB_ACTOR --password-stdin && cd $dir && bash scripts/deploy.sh"
+
+      - name: Comprobar producción desde Internet
+        run: python scripts/smoke_release.py "${{ steps.release.outputs.origin }}" --release "$GITHUB_SHA"
+
+      - name: Mostrar diagnóstico si falló
+        if: failure()
+        run: docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml logs --no-color --tail=150
+
+      - name: Limpiar el stack temporal y las claves
+        if: always()
+        run: |
+          trap 'rm -rf "$RUNNER_TEMP/dc-ssh"' EXIT
+          docker compose --env-file .env.example -f infra/compose.yaml -f e2e/compose.e2e.yaml down --volumes --remove-orphans
+
+      - name: Guardar los reportes de validación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validacion-despliegue-temporal
+          path: |
+            backend/target/surefire-reports/
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 3
+          if-no-files-found: ignore

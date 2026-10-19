@@ -8,7 +8,7 @@ import {
   EvaluacionesService,
 } from '../api';
 import { DsAlert, DsBadge, DsButton, DsEmptyState, DsLink, DsPagination, DsSpinner, DsTable, DsTone } from '../design-system';
-import { day } from './client-format';
+import { day, isMasked } from './client-format';
 
 const AMOUNT = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 2 });
 
@@ -121,6 +121,7 @@ export class AssessmentList {
 
   /** La evaluación guarda el monto sin moneda: se muestra el número, sin inventar el símbolo. */
   amount(item: EvaluacionResumen): string {
-    return item.montoSolicitado ? AMOUNT.format(Number(item.montoSolicitado)) : '—';
+    if (!item.montoSolicitado) return '—';
+    return isMasked(item.montoSolicitado) ? item.montoSolicitado : AMOUNT.format(Number(item.montoSolicitado));
   }
 }

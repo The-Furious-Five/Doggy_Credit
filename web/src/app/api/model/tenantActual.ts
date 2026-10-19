@@ -18,6 +18,26 @@ export interface TenantActual {
     pais: string;
     moneda: string;
     activo: boolean;
+    /**
+     * En GET /admin/tenants y GET /tenant/actual. Evaluaciones del mes calendario UTC; 0 si no hay consumo.
+     */
+    evaluacionesMes?: number;
+    /**
+     * En GET /admin/tenants y GET /tenant/actual. Cuota mensual del plan actual; 0 significa sin límite.
+     */
+    limiteMensual?: number;
+    /**
+     * A-01 (LOS-64). Solo en GET /tenant/actual. Cuentas humanas que admite el plan; 0 significa sin límite.
+     */
+    limiteUsuarios?: number;
+    /**
+     * A-01 (LOS-64). Solo en GET /tenant/actual. Integraciones activas que admite el plan; 0 significa sin límite.
+     */
+    limiteIntegraciones?: number;
+    /**
+     * A-01 (LOS-64). Solo en GET /tenant/actual. Funciones incluidas en el plan vigente, según billing.Entitlements; las ausentes responden FEATURE_NOT_IN_PLAN. 
+     */
+    funcionalidades?: Array<TenantActualFuncionalidadesEnum>;
 }
 export enum TenantActualTipoEnum {
     Imf = 'IMF',
@@ -29,6 +49,13 @@ export enum TenantActualPlanEnum {
     Free = 'FREE',
     Pro = 'PRO',
     Enterprise = 'ENTERPRISE'
+};
+export enum TenantActualFuncionalidadesEnum {
+    ScoringAvanzado = 'SCORING_AVANZADO',
+    ApiProduccion = 'API_PRODUCCION',
+    Webhooks = 'WEBHOOKS',
+    Analytics = 'ANALYTICS',
+    Recomendaciones = 'RECOMENDACIONES'
 };
 
 

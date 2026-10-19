@@ -5,11 +5,14 @@ import argparse
 import base64
 import hashlib
 import http.cookiejar
+import hmac
 import json
 import os
 import secrets
 import ssl
+import struct
 import sys
+import time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError
@@ -18,17 +21,50 @@ from urllib.request import build_opener, HTTPCookieProcessor, HTTPHandler, HTTPS
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import yaml
+from mobile_client_sync import synchronize
 
 class LoginForm(HTMLParser):
-    action = None
+    """Acción del formulario de Keycloak con ese id y los campos ocultos de la página."""
+    def __init__(self, form_id='kc-form-login'):
+        super().__init__()
+        self.form_id, self.action, self.hidden = form_id, None, {}
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == 'form' and attrs.get('id') == 'kc-form-login':
+        if tag == 'form' and attrs.get('id') == self.form_id:
             self.action = attrs['action']
+        if tag == 'input' and attrs.get('type') == 'hidden' and attrs.get('name'):
+            self.hidden[attrs['name']] = attrs.get('value', '')
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+# A-14 (LOS-118): los TENANT_ADMIN configuran MFA en su primer inicio de sesión. El
+# secreto queda fuera del repositorio, en el mismo archivo que usa Playwright
+# (e2e/tests/support.ts), para poder volver a entrar mientras viva el volumen de Keycloak.
+TOTP_STORE = Path(__file__).resolve().parent / '.generated' / 'totp.json'
+
+def totp(secret, counter):
+    # Keycloak firma con los bytes del secreto tal cual; el Base32 es solo lo que muestra al usuario.
+    digest = hmac.new(secret.encode(), struct.pack('>Q', counter), hashlib.sha1).digest()
+    offset = digest[-1] & 0x0f
+    return f'{(struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7fffffff) % 1000000:06d}'
+
+def totp_store():
+    return json.loads(TOTP_STORE.read_text()) if TOTP_STORE.is_file() else {}
+
+def next_totp(key, secret):
+    """Keycloak no acepta dos veces el mismo código: se usa el del paso siguiente al
+    último usado (su ventana admite uno de adelanto) y, si aún no vale, se espera."""
+    store = totp_store()
+    counter = max(int(time.time() // 30), store.get(key, {}).get('counter', 0) + 1)
+    wait = (counter - 1) * 30 - time.time()
+    if wait > 0:
+        time.sleep(wait + 1)
+    store[key] = {'secret': secret, 'counter': counter}
+    TOTP_STORE.parent.mkdir(exist_ok=True)
+    TOTP_STORE.write_text(json.dumps(store, indent=2))
+    return totp(secret, counter)
 
 def claims(token):
     part = token.split('.')[1]
@@ -67,37 +103,63 @@ def main():
         except HTTPError as error:
             return error.code, error.headers, error.read()
 
-    def request_json(method, url, token, payload=None):
+    def request_json(method, url, token, payload=None, extra_headers=None):
         data = json.dumps(payload).encode() if payload is not None else None
         req = Request(url, data=data, method=method,
-                      headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'})
+                      headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json',
+                               **(extra_headers or {})})
         try:
             with opener.open(req, timeout=20) as response:
                 return response.status, response.read()
         except HTTPError as error:
             return error.code, error.read()
 
-    def pkce_login(user):
+    def pkce_login(user, client_id='doggycredit-web', redirect_uri=None):
         """Flujo humano Authorization Code + PKCE S256 con el formulario real de Keycloak."""
         jar.clear()  # sin la sesión SSO anterior, Keycloak vuelve a pedir usuario y contraseña
+        redirect_uri = redirect_uri or origin + '/callback'
         verifier, state, nonce = secrets.token_urlsafe(48), secrets.token_urlsafe(24), secrets.token_urlsafe(24)
         challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
-        query = {'client_id': 'doggycredit-web', 'response_type': 'code', 'scope': 'openid profile',
-                 'redirect_uri': origin + '/callback', 'state': state, 'nonce': nonce,
+        query = {'client_id': client_id, 'response_type': 'code', 'scope': 'openid profile',
+                 'redirect_uri': redirect_uri, 'state': state, 'nonce': nonce,
                  'code_challenge': challenge, 'code_challenge_method': 'S256'}
         status, _, body = request(issuer + '/protocol/openid-connect/auth?' + urlencode(query))
         assert status == 200, f'Formulario PKCE HTTP {status}'
         form = LoginForm(); form.feed(body.decode())
         assert form.action, 'No apareció el formulario Keycloak'
-        status, headers, _ = request(form.action, {'username': user['username'], 'password': os.environ[user['password_env']]})
+        status, headers, body = request(form.action, {'username': user['username'], 'password': os.environ[user['password_env']]})
+        mfa = origin + '|' + user['username']
+        if status == 200:
+            # MFA ya configurado en este Keycloak: tras la contraseña pide el código.
+            otp_form = LoginForm('kc-otp-login-form'); otp_form.feed(body.decode())
+            assert otp_form.action, 'Login HTTP 200 sin formulario de código MFA'
+            saved = totp_store().get(mfa)
+            assert saved, (f'Keycloak pide el código MFA de {user["username"]} y {TOTP_STORE} no tiene su secreto: '
+                           'recrea el volumen de Keycloak (docker compose down -v)')
+            status, headers, _ = request(otp_form.action, {'otp': next_totp(mfa, saved['secret'])})
         assert status in (302, 303), f'Login HTTP {status}'
-        redirect = urlsplit(headers['Location'])
-        assert f'{redirect.scheme}://{redirect.netloc}{redirect.path}' == origin + '/callback'
+        location = headers['Location']
+        if 'required-action' in location:
+            # Primer inicio de sesión de un TENANT_ADMIN sembrado: Keycloak obliga a configurar MFA.
+            assert 'CONFIGURE_TOTP' in location, f'Acción requerida inesperada: {location}'
+            status, _, body = request(location)
+            assert status == 200, f'Pantalla de configuración MFA HTTP {status}'
+            setup = LoginForm('kc-totp-settings-form'); setup.feed(body.decode())
+            secret = setup.hidden.get('totpSecret')
+            assert setup.action and secret, 'No apareció el formulario de configuración MFA'
+            status, headers, _ = request(setup.action, {'totp': next_totp(mfa, secret), 'totpSecret': secret,
+                                                        'userLabel': 'e2e'})
+            assert status in (302, 303), f'Registro MFA HTTP {status}'
+            location = headers['Location']
+            print('OK: ' + user['username'] + ' tuvo que configurar MFA para entrar')
+
+        redirect = urlsplit(location)
+        assert f'{redirect.scheme}://{redirect.netloc}{redirect.path}' == redirect_uri
         params = parse_qs(redirect.query)
         assert params['state'] == [state]
         status, _, body = request(issuer + '/protocol/openid-connect/token', {
-            'grant_type': 'authorization_code', 'client_id': 'doggycredit-web',
-            'code': params['code'][0], 'redirect_uri': origin + '/callback', 'code_verifier': verifier})
+            'grant_type': 'authorization_code', 'client_id': client_id,
+            'code': params['code'][0], 'redirect_uri': redirect_uri, 'code_verifier': verifier})
         assert status == 200, f'Canje PKCE HTTP {status}'
         tokens = json.loads(body)
         assert claims(tokens['id_token'])['nonce'] == nonce
@@ -134,6 +196,85 @@ def main():
     assert claims(tokens['access_token'])['tenant_id'] == tenant['tenant_id']
     verify_api(tokens['access_token'])
     print('OK: humano PKCE S256, tenant_id y API real')
+
+    for invalid in ('redirect', 'missing-pkce', 'plain-pkce'):
+        jar.clear()
+        query = {'client_id': 'doggycredit-mobile', 'response_type': 'code', 'scope': 'openid profile',
+                 'redirect_uri': 'doggycredit://oauth/callback', 'state': 'invalid-mobile-probe',
+                 'code_challenge': 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', 'code_challenge_method': 'S256'}
+        if invalid == 'redirect':
+            query['redirect_uri'] = 'doggycredit://unregistered/callback'
+        elif invalid == 'missing-pkce':
+            del query['code_challenge']
+            del query['code_challenge_method']
+        else:
+            query['code_challenge_method'] = 'plain'
+        status, headers, _ = request(issuer + '/protocol/openid-connect/auth?' + urlencode(query))
+        assert status in (400, 302, 303), f'El cliente móvil aceptó {invalid}: HTTP {status}'
+        if status in (302, 303):
+            params = parse_qs(urlsplit(headers['Location']).query)
+            assert 'error' in params and 'code' not in params, f'No se rechazó {invalid}'
+
+    mobile = pkce_login(tenant['usuarios'][1], 'doggycredit-mobile', 'doggycredit://oauth/callback')
+    mobile_claims = claims(mobile['access_token'])
+    assert mobile_claims['tenant_id'] == tenant['tenant_id']
+    assert mobile_claims['sub'] and mobile_claims['preferred_username']
+    assert 'ANALYST' in mobile_claims['realm_access']['roles']
+    audience = mobile_claims['aud']
+    assert 'doggycredit-api' in ([audience] if isinstance(audience, str) else audience)
+    for path in ('tenant/actual', 'tenant/actual/uso', 'tenant/actual/preferencias',
+                 'revision-manual', 'credit-assessments', 'solicitantes'):
+        status, _, _ = request(origin + '/api/v1/' + path, token=mobile['access_token'])
+        assert status == 200, f'Consulta iOS {path}: HTTP {status}'
+
+    failure_mapping = next(json.loads(path.read_text()) for path in
+                           (Path(__file__).resolve().parents[1] / 'simulators/wiremock/bureau/mappings').glob('*.json')
+                           if json.loads(path.read_text())['response']['status'] == 503)
+    document_mobile = failure_mapping['request']['url'].rsplit('/', 1)[1]
+    for decision in ('APROBADO', 'RECHAZADO'):
+        status, body = request_json('POST', origin + '/api/v1/solicitantes', mobile['access_token'], {
+            'documento': document_mobile, 'actividad': 'Comercio', 'antiguedadActividadMeses': 36,
+            'ingresosMensuales': '5000.00', 'moneda': 'BOB', 'destinoCredito': 'Capital'})
+        assert status == 201 or (status == 409 and json.loads(body)['code'] == 'APPLICANT_ALREADY_EXISTS'), f'Alta móvil HTTP {status}'
+        status, body = request_json('POST', origin + '/api/v1/consentimientos', mobile['access_token'], {
+            'titularDocumento': document_mobile, 'fuentes': ['BURO'],
+            'finalidad': 'Prueba sintética móvil', 'vigenciaDias': 1})
+        assert status == 201, f'Consentimiento móvil HTTP {status}'
+        consent_id = json.loads(body)['id']
+        status, body = request_json('POST', origin + '/api/v1/credit-assessments', mobile['access_token'], {
+            'titularDocumento': document_mobile, 'consentId': consent_id, 'proposito': 'Capital de trabajo',
+            'montoSolicitado': '3000.00', 'plazoMeses': 12}, {'Idempotency-Key': 'mobile-' + secrets.token_hex(16)})
+        assert status == 201, f'Evaluación móvil HTTP {status}'
+        assert json.loads(body)['estado'] == 'PARCIAL', 'La caída del buró debe requerir revisión humana'
+        evaluation_id = json.loads(body)['id']
+        # La fixture de buró caído (503) genera un resultado parcial para revisión humana.
+        status, body = request_json('GET', origin + '/api/v1/revision-manual?tamano=100', mobile['access_token'])
+        assert status == 200, f'Bandeja móvil HTTP {status}'
+        inbox = json.loads(body)
+        assert any(item['evaluacionId'] == evaluation_id for item in inbox['items']), 'Falta el caso en la bandeja'
+        resolution = {'decision': decision, 'justificacion': 'Ingresos verificados durante la prueba móvil'}
+        if decision == 'APROBADO':
+            assert inbox['productos'], 'Faltan productos activos al aprobar'
+            resolution['productoId'] = inbox['productos'][0]['id']
+        url = origin + '/api/v1/revision-manual/' + evaluation_id + '/resolucion'
+        status, body = request_json('POST', url, mobile['access_token'], resolution)
+        assert status == 200, f'Resolución móvil HTTP {status}'
+        assert json.loads(body)['decision'] == decision
+        status, body = request_json('POST', url, mobile['access_token'], resolution)
+        assert status == 409 and json.loads(body)['code'] == 'CONCURRENT_UPDATE', 'Se duplicó una resolución'
+        status, body = request_json('GET', origin + '/api/v1/revision-manual?tamano=100', mobile['access_token'])
+        assert status == 200 and all(item['evaluacionId'] != evaluation_id for item in json.loads(body)['items'])
+    print('OK: móvil crea solicitante, consentimiento y evaluación; aprueba/rechaza casos reales sin duplicados')
+    synchronize()  # El despliegue repetido conserva también una sesión móvil activa.
+    status, _, body = request(issuer + '/protocol/openid-connect/token', {
+        'grant_type': 'refresh_token', 'client_id': 'doggycredit-mobile', 'refresh_token': mobile['refresh_token']})
+    assert status == 200, f'Renovación móvil HTTP {status}'
+    refreshed = json.loads(body)
+    assert claims(refreshed['access_token'])['tenant_id'] == tenant['tenant_id']
+    status, _, _ = request(issuer + '/protocol/openid-connect/logout', {
+        'client_id': 'doggycredit-mobile', 'refresh_token': refreshed['refresh_token']})
+    assert status == 204, f'Cierre de sesión móvil HTTP {status}'
+    print('OK: móvil PKCE, claims, consultas de la app, renovación y cierre de sesión')
 
     # D-09: un TENANT_ADMIN crea una clave de API; la clave obtiene un token del
     # tenant correcto que la API acepta, y al revocarla deja de obtener tokens.

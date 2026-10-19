@@ -9,10 +9,12 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.doggycredit.assessment.AssessmentRecommendation;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.AssessmentSummary;
 import com.doggycredit.assessment.CreditAssessmentCompleted;
+import com.doggycredit.recommendation.ProductEligibility;
 import com.doggycredit.scoring.BasicScoreResult;
 import com.doggycredit.scoring.ScoreBand;
 
@@ -91,6 +93,10 @@ class CreditAssessment {
 	@Column(name = "decision_time_ms")
 	private Long decisionTimeMs;
 
+	/** C-06: true si se evaluaron recomendaciones (aunque ninguna aplique). */
+	@Column(name = "recommendations_evaluated", nullable = false)
+	private boolean recommendationsEvaluated;
+
 	/** C-12 (LOS-113): el vector con el que se calculó el score; null en evaluaciones previas. */
 	@Column(name = "scoring_input", columnDefinition = "text")
 	private String scoringInput;
@@ -132,6 +138,15 @@ class CreditAssessment {
 		this.recommendedProductType = snapshot.productType();
 		this.recommendedAmount = snapshot.recommendedAmount();
 		this.decisionTimeMs = elapsedMs;
+		this.recommendationsEvaluated = snapshot.recommendations() != null;
+	}
+
+	UUID tenantId() {
+		return tenantId;
+	}
+
+	boolean recommendationsEvaluated() {
+		return recommendationsEvaluated;
 	}
 
 	/** Se guarda en el mismo INSERT que la evaluación; después la tabla no admite UPDATE. */
@@ -168,6 +183,16 @@ class CreditAssessment {
 		return requestHash;
 	}
 
+	/** C-10: lo que la bandeja de revisión manual muestra de esta evaluación. */
+	ReviewCase reviewCase() {
+		return new ReviewCase(id, applicantId, AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band),
+				List.of(reasons), requestedAmount, termMonths, purpose, createdAt);
+	}
+
+	record ReviewCase(UUID id, UUID applicantId, AssessmentStatus status, int score, ScoreBand band,
+			List<String> reasons, BigDecimal requestedAmount, Integer termMonths, String purpose, Instant createdAt) {
+	}
+
 	CreditAssessmentCompleted completedEvent() {
 		// El evento v1 no conoce SOLICITAR_DATOS: se publica el estado equivalente.
 		return new CreditAssessmentCompleted(UUID.randomUUID(), Instant.now(), tenantId, id, applicantId,
@@ -180,9 +205,10 @@ class CreditAssessment {
 				requestedAmount, termMonths, createdAt);
 	}
 
-	AssessmentResult toResult() {
+	/** @param recommendations las guardadas, o null si no se evaluaron (ver recommendationsEvaluated). */
+	AssessmentResult toResult(List<AssessmentRecommendation> recommendations, List<ProductEligibility> eligibility) {
 		return new AssessmentResult(id, AssessmentStatus.valueOf(status), score, ScoreBand.valueOf(band),
-				List.of(reasons), modelVersion, simulated, correlationId);
+				List.of(reasons), modelVersion, simulated, correlationId, recommendations, eligibility);
 	}
 
 }
