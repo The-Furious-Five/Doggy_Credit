@@ -2,9 +2,9 @@
 
 Procedimientos operativos (arranque desde cero, diagnóstico, recuperación).
 El primero — "arranque en una máquina limpia en ≤ 15 min" — es parte de la
-Definition of Done de release (capítulo 13 de la guía de inducción) y se
-agrega al cerrar el Sprint 4.
+Definition of Done de release (capítulo 13 de la guía de inducción).
 
+- [Arranque en una máquina limpia en ≤ 15 min (B-14): Docker, `.env`, CA de Caddy, login con MFA y una evaluación](arranque-maquina-limpia.md)
 - [Webhooks por tenant (E-08): configuración, firma HMAC y recuperación](webhooks-e08.md)
 - [Consola sin datos simulados (E-09): qué se retiró y revisión de accesibilidad](revision-consola-e09.md)
 - [Avisos al 80 % y al 100 % de la cuota (E-11)](avisos-cuota-e11.md)
