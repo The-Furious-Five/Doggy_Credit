@@ -75,8 +75,8 @@ const merged = {
   bandeja: true,
   /** A-11 (LOS-115): seed/tenants.yaml siembra un operador PLATFORM_ADMIN (y su contraseña en .env.example). */
   cambioDePlan: true,
-  /** B-13 (LOS-132): la vista del operador pide confirmación antes de suspender o reactivar. */
-  vistaOperador: false,
+  /** B-13 (LOS-132): la vista del operador pide confirmación antes de suspender (reactivar no la pide). */
+  vistaOperador: true,
   /** C-14 (LOS-130) y D-13 (LOS-133): KPIs de cartera en AnalyticsPro y su vista en Analítica. */
   kpisCartera: false,
   /** E-16: productos elegibles con sus criterios (✓/✗) y ranking con monto y plazo en el resultado. */
@@ -259,8 +259,9 @@ export async function setTenantActive(page: Page, tenant: string, active: boolea
   await expect(toggle.or(done)).toBeVisible();
   if (await done.isVisible()) return;
   await toggle.click();
-  if (ready('vistaOperador')) {
-    await page.getByRole('dialog').getByRole('button', { name: active ? /^(Activar|Reactivar)/ : /^(Desactivar|Suspender)/ }).click();
+  // B-13 confirma solo la suspensión: reactivar no corta el servicio y se aplica sin diálogo.
+  if (!active && ready('vistaOperador')) {
+    await page.getByRole('dialog').getByRole('button', { name: SUSPEND }).click();
   }
   // El botón cambia cuando la API devolvió el tenant actualizado.
   await expect(done).toBeVisible();
@@ -333,7 +334,10 @@ export const test = base.extend<{ apiErrors: string[] }>({
       const errors: string[] = [];
       trackApiErrors(page, errors);
       await use(errors);
-      expect(errors, 'respuestas 5xx/429 de la API durante el escenario').toEqual([]);
+      // captureApi y las rutas de cada escenario pueden tener una petición en curso al terminar
+      // (p. ej. la SPA refrescando el equipo): sin esto, route.fetch falla con «Test ended».
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
+      expect(errors,'respuestas 5xx/429 de la API durante el escenario').toEqual([]);
     },
     { auto: true },
   ],
