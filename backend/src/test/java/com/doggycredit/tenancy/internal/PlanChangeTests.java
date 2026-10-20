@@ -89,6 +89,7 @@ class PlanChangeTests {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.plan").value("PRO"));
 		assertThat(audited(free)).contains("PLAN_UPGRADED");
+		assertThat(history(free)).as("D-14: el historial guarda desde qué plan y hacia cuál").containsExactly("FREE>PRO");
 	}
 
 	@Test
@@ -161,6 +162,7 @@ class PlanChangeTests {
 			.andExpect(jsonPath("$[1].estado").value("REQUIERE_PRO"));
 		assertThat(audited(pro)).contains("PLAN_DOWNGRADED", "INTEGRATION_DISABLED");
 		assertThat(planChanges.applyDue(graceEnd)).as("la bajada se aplica una sola vez").isZero();
+		assertThat(history(pro)).containsExactly("PRO>FREE");
 	}
 
 	@Test
@@ -333,6 +335,11 @@ class PlanChangeTests {
 
 	private List<String> audited(UUID tenant) {
 		return query("select action from audit.access_log where tenant_id = ? order by chain_seq", tenant);
+	}
+
+	private List<String> history(UUID tenant) {
+		return query("select plan_anterior || '>' || plan_nuevo from tenancy.plan_changes where tenant_id = ?"
+				+ " order by cambiado_en", tenant);
 	}
 
 	private List<String> query(String sql, UUID tenant) {

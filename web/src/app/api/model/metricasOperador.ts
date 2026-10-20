@@ -23,11 +23,11 @@ export interface MetricasOperador {
     tenantsActivos: number;
     tenantsSuspendidos: number;
     /**
-     * Tenants dados de alta o reactivados dentro del período.
+     * Tenants con al menos una evaluación dentro del período.
      */
     tenantsActivados: number;
     /**
-     * Cambios de plan FREE → PRO dentro del período.
+     * Subidas desde FREE a PRO o ENTERPRISE dentro del período (tenancy.plan_changes). El nombre del campo se conserva por compatibilidad. 
      */
     conversionesFreeAPro: number;
     /**

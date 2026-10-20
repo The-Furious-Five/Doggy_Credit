@@ -17,10 +17,10 @@ arquitectura, fuera de este repositorio.
 | Construido | Elegibilidad de productos en todos los planes y ranking con monto y plazo en Pro | RF-REC-02/03, RF-NEC-01 |
 | Construido | Planes Gratis/Pro, cuota mensual idempotente, gates por plan, cambio de plan, suspensión de tenants, administración por API | RF-PLN-04/05/06, RF-TEN-04 |
 | Construido | Aislamiento por RLS, Keycloak multi-tenant con PKCE, MFA (TOTP) para `TENANT_ADMIN`, claves de API, webhooks firmados, auditoría encadenada, enmascarado en el servidor | RF-SEG-01/03/05/06, RF-API-02, RF-INT-07 |
-| Construido | Analítica por tenant, resumen y avisos de cuota; consola web Angular y apps móviles iOS y Android; despliegue CI/CD a la VM con smoke test | RF-ANA-01/04 |
+| Construido | Analítica por tenant, resumen y avisos de cuota; métricas de negocio del operador (`GET /operador/metricas`); consola web Angular y apps móviles iOS y Android; despliegue CI/CD a la VM con smoke test | RF-ANA-01/04 |
 | Simulado | Buró, banco (dos proveedores) y billetera: WireMock en `simulators/`, también en la VM. El consentimiento no tiene validez legal verificada (DEBT-004) | RF-INT-02 |
 | Simulado | Modelo de scoring entrenado con datos sintéticos (`ml/`, DEBT-005); pago del cambio de plan (sin facturación real) | RF-SCO-*, RF-PLN-04 |
-| Solo diseñado | `GET /operador/metricas` (en el contrato OpenAPI, sin implementación en el backend) y los KPIs de cartera `tasaOverride` de analítica Pro (campo del contrato, no calculado por el backend) | RF-ANA-02 |
+| Solo diseñado | Los KPIs de cartera `tasaOverride` de analítica Pro (campo del contrato, no calculado por el backend) | RF-ANA-02 |
 | Solo diseñado | Facturación real y autoservicio de registro (DEBT-010), broker de eventos (DEBT-002), KMS y rotación de claves (DEBT-006), alta disponibilidad (DEBT-001) | [registro de deuda](docs/debt-register.md) |
 
 Deuda aceptada y su disparador de pago: [`docs/debt-register.md`](docs/debt-register.md).
