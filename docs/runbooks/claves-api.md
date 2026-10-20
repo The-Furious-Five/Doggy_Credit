@@ -1,5 +1,9 @@
 # Claves de API (D-09)
 
+> Para integradores: el uso de una clave, de punta a punta, está en
+> [`docs/guia-inicio-rapido-api.md`](../guia-inicio-rapido-api.md) (D-11). Este runbook
+> describe cómo funcionan por dentro.
+
 Cada clave de API de un tenant es un cliente OAuth 2.0 `client_credentials`
 de Keycloak. La API lo crea y lo borra con la cuenta de servicio
 `doggycredit-api-admin` (roles de `realm-management`: `manage-clients`,

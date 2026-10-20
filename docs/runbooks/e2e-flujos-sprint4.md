@@ -36,9 +36,11 @@ E2E_DEPENDENCIAS=kpisCartera npx playwright test tests/portfolio-kpis.spec.ts
 ### B-13 (LOS-132): `vistaOperador`
 
 - En Administración de tenants, el botón de cada fila se llama
-  `Suspender institución` / `Reactivar institución` (hoy `Desactivar` / `Activar`;
-  el escenario acepta ambos) y abre un `dialog` cuyo botón de confirmación empieza
-  con `Suspender` o `Reactivar`.
+  `Suspender institución` / `Reactivar institución` (el escenario también acepta
+  `Desactivar` / `Activar`). Suspender abre un `dialog` cuyo botón de confirmación es
+  `Suspender institución`; reactivar se aplica sin diálogo, como quedó en B-13.
+- Fusionada: el interruptor está en `true` desde que el job 6 de `main` fallaba
+  porque el escenario no confirmaba el diálogo de la suspensión.
 - El analista suspendido ve un aviso con rol `status` o `alert` que contenga
   «suspendida». Hoy lo cubre el toast del problema RFC 9457 («Tenant suspendido»).
 

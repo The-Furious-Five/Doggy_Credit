@@ -61,14 +61,16 @@ class PlanChangeService {
     private final PlanIntegrations integrations;
     private final AuditTrail audit;
     private final TransactionTemplate transactions;
+    private final PlanChangeRepository history;
 
     PlanChangeService(TenantRepository tenants, PlanCatalog plans, PlanIntegrations integrations, AuditTrail audit,
-            TransactionTemplate transactions) {
+            TransactionTemplate transactions, PlanChangeRepository history) {
         this.tenants = tenants;
         this.plans = plans;
         this.integrations = integrations;
         this.audit = audit;
         this.transactions = transactions;
+        this.history = history;
     }
 
     State state(UUID tenantId) {
@@ -155,6 +157,7 @@ class PlanChangeService {
         if (inGrace) {
             integrations.restoreSuspended(tenant.getId(), plans.requireById(plan).maxIntegraciones());
         }
+        history.save(new PlanChange(previous, plan, now));
         audit.record(tenant.getId(), "PLAN_UPGRADED", RESOURCE, tenant.getId());
         log.info("Plan del tenant {}: {} -> {}", tenant.getId(), previous, plan);
     }
@@ -165,6 +168,7 @@ class PlanChangeService {
         tenants.save(tenant);
         List<String> suspended = integrations.suspendExceeding(tenant.getId(),
                 plans.requireById(plan).maxIntegraciones());
+        history.save(new PlanChange(previous, plan, now));
         audit.record(tenant.getId(), "PLAN_DOWNGRADED", RESOURCE, tenant.getId());
         log.info("Plan del tenant {}: {} -> {}, gracia hasta {}, integraciones desactivadas {}", tenant.getId(),
                 previous, plan, tenant.getGraciaHasta(), suspended);

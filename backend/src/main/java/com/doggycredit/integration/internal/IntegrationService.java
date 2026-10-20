@@ -79,6 +79,12 @@ class IntegrationService implements TenantIntegrations, PlanIntegrations {
 		return active;
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public int activeCount(UUID tenantId) {
+		return activeSources(tenantId).size();
+	}
+
 	/** El buró cuenta y es obligatorio: las que sobran son las últimas del catálogo. */
 	@Override
 	@Transactional(readOnly = true)

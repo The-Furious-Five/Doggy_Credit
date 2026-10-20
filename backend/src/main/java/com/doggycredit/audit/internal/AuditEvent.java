@@ -3,6 +3,8 @@ package com.doggycredit.audit.internal;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.doggycredit.audit.AccessSubject;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -48,11 +50,23 @@ class AuditEvent {
 	@Column(name = "row_hash", length = 64, insertable = false, updatable = false)
 	private String rowHash;
 
+	// C-11 (LOS-112): titular afectado y consentimiento usado, para el reporte de accesos.
+	@Column(name = "applicant_id")
+	private UUID applicantId;
+
+	@Column(name = "consent_id")
+	private UUID consentId;
+
 	protected AuditEvent() {
 	}
 
 	AuditEvent(UUID tenantId, String actor, String action, String resourceType, UUID resourceId,
 			String correlationId) {
+		this(tenantId, actor, action, resourceType, resourceId, correlationId, AccessSubject.NONE);
+	}
+
+	AuditEvent(UUID tenantId, String actor, String action, String resourceType, UUID resourceId,
+			String correlationId, AccessSubject subject) {
 		this.id = UUID.randomUUID();
 		this.tenantId = tenantId;
 		this.actor = actor;
@@ -61,6 +75,16 @@ class AuditEvent {
 		this.resourceId = resourceId;
 		this.correlationId = correlationId;
 		this.createdAt = Instant.now();
+		this.applicantId = subject.applicantId();
+		this.consentId = subject.consentId();
+	}
+
+	UUID applicantId() {
+		return applicantId;
+	}
+
+	UUID consentId() {
+		return consentId;
 	}
 
 	UUID id() {
