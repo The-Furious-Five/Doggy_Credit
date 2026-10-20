@@ -11,6 +11,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.doggycredit.assessment.AssessmentRecommendation;
 import com.doggycredit.assessment.AssessmentResult;
+import com.doggycredit.audit.AccessSubject;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.AssessmentSummary;
 import com.doggycredit.assessment.CreditAssessmentCompleted;
@@ -131,6 +132,11 @@ class CreditAssessment {
 
 	UUID id() {
 		return id;
+	}
+
+	/** C-11 (RF-CON-03): de qué titular son los datos y con qué consentimiento se evaluó. */
+	AccessSubject accessSubject() {
+		return AccessSubject.applicant(applicantId, consentId);
 	}
 
 	void captureAnalytics(AssessmentAnalyticsSnapshot.Snapshot snapshot, long elapsedMs) {

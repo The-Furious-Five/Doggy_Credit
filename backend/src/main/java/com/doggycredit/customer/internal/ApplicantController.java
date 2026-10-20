@@ -12,6 +12,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.doggycredit.audit.AccessSubject;
+import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.customer.ApplicantPage;
 import com.doggycredit.customer.ApplicantProfile;
 import com.doggycredit.customer.ApplicantRegistration;
@@ -37,11 +39,14 @@ class ApplicantController implements SolicitantesApi {
 
 	private final ApplicantRegistry applicants;
 	private final FinancialProfiles profiles;
+	private final AuditTrail audit;
 	private final SensitiveDataPolicy sensitiveData;
 
-	ApplicantController(ApplicantRegistry applicants, FinancialProfiles profiles, SensitiveDataPolicy sensitiveData) {
+	ApplicantController(ApplicantRegistry applicants, FinancialProfiles profiles, AuditTrail audit,
+			SensitiveDataPolicy sensitiveData) {
 		this.applicants = applicants;
 		this.profiles = profiles;
+		this.audit = audit;
 		this.sensitiveData = sensitiveData;
 	}
 
@@ -83,6 +88,8 @@ class ApplicantController implements SolicitantesApi {
 			.segmento(Segmento.fromValue(a.segment().name()))
 			.creadoEn(a.createdAt().atOffset(ZoneOffset.UTC))
 			.perfil(profiles.latest(tenantId, id).map(profile -> toContract(profile, mask)).orElse(null));
+		// C-11 (RF-CON-03): leer el detalle y el Perfil 360 de un titular también es un acceso.
+		audit.record(tenantId, "APPLICANT_READ", "APPLICANT", id, AccessSubject.applicant(id));
 		return ResponseEntity.ok(detail);
 	}
 

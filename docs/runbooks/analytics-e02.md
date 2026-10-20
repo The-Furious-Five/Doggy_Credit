@@ -30,6 +30,9 @@ responde 400 RFC 9457 con `VALIDATION_ERROR` y `correlationId`.
 | Monto recomendado | Suma del primer producto recomendado por evaluación, en la moneda del tenant. El contrato usa un string decimal para los montos. |
 | Recomendaciones por producto | Cantidad, porcentaje de las evaluaciones con recomendación y monto por tipo de producto. |
 | Modelos | Último resultado semanal por modelo de D-08: PSI, estado, ventana y tamaños de muestras. La ventana de D-08 se muestra explícitamente y no depende del filtro de evaluaciones. |
+| Distribución de bandas (C-14) | Cantidad y porcentaje por banda, siempre de A a E y con 0 si no hay casos. Base: evaluaciones del intervalo con decisión, es decir, sin `FALLIDA` ni `PENDIENTE`. |
+| Tasa de override (C-14) | Casos de la bandeja resueltos por una persona (`APROBADO` o `RECHAZADO`), contados por la fecha de la evaluación, no de la resolución / la misma base de bandas × 100. |
+| Aceptación por producto (C-14) | Por tipo (`MICROCREDITO`, `VERDE`, `PYME`): recomendadas = el primer producto recomendado es de ese tipo; aceptadas = de esas, las que quedaron `PREAPROBADO` o se aprobaron en la bandeja con un producto del mismo tipo; % = aceptadas / recomendadas × 100. No mide desembolsos. |
 
 Los porcentajes se redondean a dos decimales. Sin evaluaciones, los conteos,
 porcentajes y montos son cero; los promedios y duraciones desconocidos son
@@ -141,3 +144,48 @@ Si cambia el contrato, regenerar el cliente; no editar `web/src/app/api/`:
 ```sh
 bash scripts/generate_clients.sh
 ```
+
+## C-14 · KPIs de cartera (LOS-130, RF-ANA-02)
+
+Llena `distribucionBandas`, `tasaOverride` y `aceptacionPorProducto` del objeto
+`pro`, que A-15 (LOS-128) ya había publicado en el contrato. No cambia el
+contrato ni el cliente generado. Igual que el resto de `pro`, un plan sin
+analítica no recibe estos campos ni ejecuta sus consultas.
+
+**Base de bandas y override:** evaluaciones del intervalo sin `FALLIDA` ni
+`PENDIENTE` (decisión del 19 de octubre de 2026). Coincide con «con decisión»
+del contrato. `PENDIENTE` existe en el enum, pero la aplicación no la persiste,
+así que hoy esta base da lo mismo que «con score».
+
+**Persistencia** (`V2026_10_19_1000__analytics_portfolio_kpis.sql`):
+
+- `assessment.analytics_evaluations_v1` suma la columna `band` al final y repite
+  `security_invoker = true`.
+- `assessment.manual_review_resolutions.product_type`: al aprobar, la bandeja
+  guarda el tipo del producto elegido como snapshot, igual que
+  `recommended_product_type`. Lo obtiene de la Api pública
+  `ProductCatalog.activeProductType`, sin JOIN con el esquema `recommendation`.
+  Un `CHECK` impide guardar un tipo en un rechazo.
+- `assessment.analytics_resolutions_v1` (`security_invoker = true`): cada
+  resolución con la fecha, el estado y el producto recomendado de su evaluación.
+  El JOIN queda dentro del módulo `assessment`.
+
+**Resoluciones anteriores a C-14:** quedan con `product_type` en `null`. No se
+reconstruyen con el catálogo actual, porque el producto pudo cambiar y habría
+que cruzar esquemas. Cuentan como override, pero no como aceptadas. Afecta solo
+a las resoluciones entre el 12/10 (C-10) y este cambio.
+
+**Verificación (19 de octubre de 2026):**
+
+- `AnalyticsControllerTests.calculaBandasOverrideYAceptacionPorProducto`: nueve
+  evaluaciones sintéticas con todas las cifras calculables a mano (una aceptada
+  con el mismo tipo, otra aprobada con otro tipo, un rechazo, una resolución sin
+  tipo, una `FALLIDA` y una fuera del intervalo).
+- FREE no recibe los campos nuevos; con cero evaluaciones salen las cinco bandas
+  y los tres tipos en 0, sin dividir por cero; los tenants no ven las
+  resoluciones de otros, ni siquiera con la vista sin predicado.
+- `ManualReviewTests.aprobarGuardaElTipoDelProductoYRechazarLoDejaVacio`.
+- Prueba al revés: contar las `FALLIDA`, aceptar con otro tipo y correr el
+  intervalo del override hacen caer el test.
+- Rendimiento con 1.500 evaluaciones: `[361, 84, 82, 64, 61, 87, 81, 85, 76, 99]` ms.
+- `./mvnw clean verify`: 497 pruebas, cero fallos, errores o pruebas omitidas.

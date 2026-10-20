@@ -2,14 +2,17 @@ package com.doggycredit.audit.internal;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** C-04 (LOS-84): lectura paginada de la bitácora del tenant actual. */
+import com.doggycredit.audit.AccessLog;
+
+/** C-04 (LOS-84): lectura paginada de la bitácora del tenant actual; C-11: reporte de accesos. */
 @Service
-class AuditQueryService {
+class AuditQueryService implements AccessLog {
 
 	/** Límite superior abierto para "hasta" (timestamptz admite fechas mucho mayores). */
 	private static final Instant OPEN_END = Instant.parse("9999-12-31T23:59:59Z");
@@ -35,6 +38,38 @@ class AuditQueryService {
 				before == null ? Long.MAX_VALUE : before, Limit.of(size + 1));
 		boolean hasMore = rows.size() > size;
 		return new Page(hasMore ? List.copyOf(rows.subList(0, size)) : rows, hasMore);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public AccessLog.Page find(UUID applicantId, String correlationId, Instant from, Instant to, Long before,
+			int size) {
+		if (applicantId == null && correlationId == null) {
+			throw new IllegalArgumentException("El reporte de accesos necesita un titular o un correlation-id");
+		}
+		Instant start = from == null ? Instant.EPOCH : from;
+		Instant end = to == null ? OPEN_END : to;
+		long cursor = before == null ? Long.MAX_VALUE : before;
+		Limit limit = Limit.of(size + 1);
+		List<AuditEvent> rows;
+		if (applicantId != null && correlationId != null) {
+			rows = events.findByApplicantAndCorrelation(applicantId, correlationId, start, end, cursor, limit);
+		}
+		else if (applicantId != null) {
+			rows = events.findByApplicant(applicantId, start, end, cursor, limit);
+		}
+		else {
+			rows = events.findByCorrelation(correlationId, start, end, cursor, limit);
+		}
+		boolean hasMore = rows.size() > size;
+		List<AuditEvent> page = hasMore ? rows.subList(0, size) : rows;
+		return new AccessLog.Page(page.stream().map(AuditQueryService::toEntry).toList(), hasMore);
+	}
+
+	private static AccessLog.Entry toEntry(AuditEvent event) {
+		return new AccessLog.Entry(event.id(), event.chainSeq(), event.actor(), event.action(), event.resourceType(),
+				event.resourceId(), event.correlationId(), event.createdAt(), event.rowHash(), event.applicantId(),
+				event.consentId());
 	}
 
 }

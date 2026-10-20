@@ -128,6 +128,27 @@ class ManualReviewTests {
 		assertThat(auditoria.get(0).get("correlation_id")).isEqualTo(correlationId);
 	}
 
+	/** C-14 (LOS-130): el tipo del producto aprobado queda como snapshot para la aceptación por producto. */
+	@Test
+	void aprobarGuardaElTipoDelProductoYRechazarLoDejaVacio() throws Exception {
+		UUID aprobado = casoParcial(TENANT_A);
+		UUID rechazado = casoParcial(TENANT_A);
+		UUID producto = productoActivo(TENANT_A);
+		String tipo = comoTenant(TENANT_A, () -> jdbc.queryForObject(
+				"select product_type from recommendation.products where id = ?", String.class, producto));
+
+		resolver(TENANT_A, "ANALYST", aprobado, """
+				{"decision":"APROBADO","productoId":"%s","justificacion":"%s"}""".formatted(producto, JUSTIFICACION))
+			.andExpect(status().isOk());
+		resolver(TENANT_A, "ANALYST", rechazado, """
+				{"decision":"RECHAZADO","justificacion":"%s"}""".formatted(JUSTIFICACION))
+			.andExpect(status().isOk());
+
+		String sql = "select product_type from assessment.manual_review_resolutions where assessment_id = ?";
+		assertThat(comoTenant(TENANT_A, () -> jdbc.queryForObject(sql, String.class, aprobado))).isEqualTo(tipo);
+		assertThat(comoTenant(TENANT_A, () -> jdbc.queryForObject(sql, String.class, rechazado))).isNull();
+	}
+
 	@Test
 	void rechazarNoLlevaProducto() throws Exception {
 		UUID caso = casoParcial(TENANT_A);

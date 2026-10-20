@@ -24,6 +24,7 @@ import com.doggycredit.assessment.AssessmentRecommendation;
 import com.doggycredit.assessment.AssessmentResult;
 import com.doggycredit.assessment.AssessmentStatus;
 import com.doggycredit.assessment.IdempotencyKeyReusedException;
+import com.doggycredit.audit.AccessSubject;
 import com.doggycredit.audit.AuditTrail;
 import com.doggycredit.billing.QuotaGuard;
 import com.doggycredit.billing.PlanGate;
@@ -126,7 +127,8 @@ class SynchronousAssessmentService implements AssessmentOperations {
 			recommendationStore.save(command.tenantId(), assessment.id(), recommendations);
 		}
 		eligibilityStore.save(command.tenantId(), assessment.id(), snapshot.eligibility());
-		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id());
+		audit.record(command.tenantId(), "ASSESSMENT_CREATED", "CREDIT_ASSESSMENT", assessment.id(),
+				assessment.accessSubject());
 		// D-03: en la misma transacción que la evaluación (outbox); una repetición idempotente no lo publica.
 		events.publishEvent(assessment.completedEvent());
 		return assessment.toResult(recommendations, snapshot.eligibility());
@@ -149,20 +151,27 @@ class SynchronousAssessmentService implements AssessmentOperations {
 	}
 
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional
 	public AssessmentPage list(UUID tenantId, UUID applicantId, Instant from, int page, int size) {
 		// Sin "desde" se usa el inicio de los tiempos: así la consulta no compara con un null sin tipo.
 		var result = assessments.search(tenantId, applicantId, from == null ? Instant.EPOCH : from,
 				PageRequest.of(page - 1, size));
+		if (applicantId != null) {
+			// C-11 (RF-CON-03): el historial de un titular es un acceso a sus datos. Sin titular
+			// (las recientes del Resumen) no se atribuye a nadie.
+			audit.record(tenantId, "ASSESSMENTS_LISTED", "APPLICANT", applicantId, AccessSubject.applicant(applicantId));
+		}
 		return new AssessmentPage(result.map(CreditAssessment::toSummary).getContent(), result.getTotalElements());
 	}
 
+	/** No es readOnly: leer una evaluación queda en la bitácora (C-11), y eso es un INSERT. */
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional
 	public AssessmentResult get(UUID tenantId, UUID assessmentId) {
-		return assessments.findByIdAndTenantId(assessmentId, tenantId)
-			.map(this::withRecommendations)
+		CreditAssessment assessment = assessments.findByIdAndTenantId(assessmentId, tenantId)
 			.orElseThrow(AssessmentNotFoundException::new);
+		audit.record(tenantId, "ASSESSMENT_READ", "CREDIT_ASSESSMENT", assessmentId, assessment.accessSubject());
+		return withRecommendations(assessment);
 	}
 
 	private ScorecardInput toScorecardInput(AssessmentCommand command, ApplicantProfile applicant,
