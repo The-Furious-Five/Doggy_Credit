@@ -6,7 +6,7 @@ quedan en `test.fixme` y el CI los informa como omitidos.
 
 | Escenario | Archivo | Corre hoy | Espera | Interruptor |
 | --- | --- | --- | --- | --- |
-| Operador suspende y reactiva; el analista recibe 403 `TENANT_SUSPENDED` y vuelve a operar sin iniciar sesión | `tenant-suspension.spec.ts` | Sí (E-14 fusionada) | **B-13** (LOS-132) solo para el diálogo de confirmación | `vistaOperador` |
+| Operador suspende y reactiva; el analista recibe 403 `TENANT_SUSPENDED` y vuelve a operar sin iniciar sesión | `tenant-suspension.spec.ts` | Sí (E-14 y B-13 fusionadas) | — | `vistaOperador` (encendido; el diálogo confirma solo la suspensión) |
 | Resolver un caso en revisión manual actualiza la tasa de override (Pro) | `portfolio-kpis.spec.ts` | No | **C-14** (LOS-130) y **D-13** (LOS-133) | `kpisCartera` |
 | Analítica del plan Gratis invita a Pro en lugar de fallar | `portfolio-kpis.spec.ts` | Sí | — | — |
 | Consumo +1 por evaluación; la misma `Idempotency-Key` no suma | `usage-idempotency.spec.ts` | Sí | — | — |

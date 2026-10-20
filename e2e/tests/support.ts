@@ -75,8 +75,8 @@ const merged = {
   bandeja: true,
   /** A-11 (LOS-115): seed/tenants.yaml siembra un operador PLATFORM_ADMIN (y su contraseña en .env.example). */
   cambioDePlan: true,
-  /** B-13 (LOS-132): la vista del operador pide confirmación antes de suspender o reactivar. */
-  vistaOperador: false,
+  /** B-13 (LOS-132): la vista del operador pide confirmación antes de suspender (reactivar no la pide). */
+  vistaOperador: true,
   /** C-14 (LOS-130) y D-13 (LOS-133): KPIs de cartera en AnalyticsPro y su vista en Analítica. */
   kpisCartera: false,
   /** E-16: productos elegibles con sus criterios (✓/✗) y ranking con monto y plazo en el resultado. */
@@ -259,8 +259,9 @@ export async function setTenantActive(page: Page, tenant: string, active: boolea
   await expect(toggle.or(done)).toBeVisible();
   if (await done.isVisible()) return;
   await toggle.click();
-  if (ready('vistaOperador')) {
-    await page.getByRole('dialog').getByRole('button', { name: active ? /^(Activar|Reactivar)/ : /^(Desactivar|Suspender)/ }).click();
+  // B-13 confirma solo la suspensión (platform-tenants.ts); la reactivación es directa.
+  if (!active && ready('vistaOperador')) {
+    await page.getByRole('dialog').getByRole('button', { name: /^(Desactivar|Suspender)/ }).click();
   }
   // El botón cambia cuando la API devolvió el tenant actualizado.
   await expect(done).toBeVisible();
