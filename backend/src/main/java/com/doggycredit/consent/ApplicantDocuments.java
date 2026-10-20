@@ -12,4 +12,10 @@ public interface ApplicantDocuments {
 
 	Optional<String> documentOf(UUID tenantId, UUID applicantId);
 
+	/**
+	 * C-11 (RF-CON-03): el solicitante de un documento, para que la bitácora sepa de qué
+	 * titular es cada consentimiento. Vacío si el titular aún no está registrado.
+	 */
+	Optional<UUID> applicantIdOf(UUID tenantId, String documento);
+
 }
