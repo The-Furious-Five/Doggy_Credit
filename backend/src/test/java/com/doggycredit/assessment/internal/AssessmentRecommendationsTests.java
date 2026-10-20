@@ -106,7 +106,8 @@ class AssessmentRecommendationsTests {
 			.andExpect(jsonPath("$.recomendaciones.length()").value(1))
 			.andExpect(jsonPath("$.recomendaciones[0].tipoProducto").value("MICROCREDITO"))
 			.andExpect(jsonPath("$.recomendaciones[0].moneda").value("BOB"))
-			.andExpect(jsonPath("$.recomendaciones[0].montoSugerido").value("3000.00"))
+			// A-10: con la preferencia por defecto el analista recibe el monto enmascarado (ver C-16 abajo).
+			.andExpect(jsonPath("$.recomendaciones[0].montoSugerido").value("••••••"))
 			.andExpect(jsonPath("$.recomendaciones[0].razon").isNotEmpty())
             .andExpect(jsonPath("$.recomendaciones[0].plazoSugeridoMeses").value(12))
             .andExpect(jsonPath("$.recomendaciones[0].razones.length()").value(greaterThanOrEqualTo(2)))
@@ -125,6 +126,41 @@ class AssessmentRecommendationsTests {
 		assertThat(asTenant(pro, () -> jdbc.queryForObject(
 				"SELECT count(*) FROM assessment.assessment_recommendations WHERE assessment_id = ?::uuid",
 				Integer.class, id))).isEqualTo(1);
+	}
+
+	/**
+	 * C-16 (LOS-140), A-10: el analista no ve los montos del titular ni en el ranking ni en los
+	 * textos de elegibilidad (monto propuesto, cuota, capacidad); quien administra el tenant sí.
+	 */
+	@Test
+	void elAnalistaRecibeMontosEnmascaradosEnRankingYElegibilidadYElAdministradorCompletos() throws Exception {
+		when(bureau.fetch(any(), anyString())).thenReturn(Optional.of(report()));
+		String body = create(pro, consent(pro), "reco-mask-0001").andExpect(status().isCreated())
+			.andReturn().getResponse().getContentAsString();
+		String id = body.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+		String montoMicro = "$.elegibilidad[?(@.tipoProducto == 'MICROCREDITO')].criterios[?(@.codigo == 'RANGO_MONTO')].detalle";
+		String cuotaMicro = "$.elegibilidad[?(@.tipoProducto == 'MICROCREDITO')].criterios[?(@.codigo == 'CAPACIDAD_PAGO')].detalle";
+
+		String analyst = mvc.perform(get("/credit-assessments/{id}", id).with(token(pro)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.recomendaciones[0].montoSugerido").value("••••••"))
+			// El rango es del catálogo (el analista ya lo ve en la bandeja): solo se oculta el monto del titular.
+			.andExpect(jsonPath(montoMicro, contains(matchesPattern("Monto Bs •••••• dentro del rango Bs \\d.* – \\d.*"))))
+			.andExpect(jsonPath(cuotaMicro, contains(allOf(startsWith("Cuota BOB ••••••"),
+					containsString("la capacidad mensual BOB ••••••")))))
+			.andExpect(jsonPath("$.recomendaciones[0].razones[*]",
+					everyItem(not(matchesPattern(".*(Monto|Cuota|capacidad mensual) (Bs|BOB|USD) \\d.*")))))
+			.andReturn().getResponse().getContentAsString();
+		// El plazo y la banda no son montos: se siguen viendo.
+		assertThat(analyst).contains("Plazo de 12 meses").contains("Banda ");
+
+		mvc.perform(get("/credit-assessments/{id}", id).with(jwt()
+				.jwt(t -> t.subject("admin-reco").claim("tenant_id", pro.toString()))
+				.authorities(new SimpleGrantedAuthority("ROLE_TENANT_ADMIN"))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.recomendaciones[0].montoSugerido").value("3000.00"))
+			.andExpect(jsonPath(montoMicro, contains(startsWith("Monto Bs 3.000 dentro del rango"))))
+			.andExpect(jsonPath(cuotaMicro, contains(matchesPattern("Cuota BOB \\d.*capacidad mensual BOB \\d.*"))));
 	}
 
 	@Test
