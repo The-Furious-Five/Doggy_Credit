@@ -40,10 +40,19 @@ Si C-14 necesita otra definición, se cambia aquí y en el contrato en el mismo 
 
 Solo agregados: nada de nombres, NIT ni IDs de tenants. `tenantsPorPlan`,
 `tenantsActivos` y `tenantsSuspendidos` son la foto al consultar;
-`tenantsActivados`, `conversionesFreeAPro` (FREE → PRO en `audit.access_log`) y
-`evaluaciones` se cuentan en el período (UTC, por defecto el mes en curso).
-Para el consumo, ADR-019 ya ofrece `billing.OperatorUsageQuery`; un intervalo
-que no sea un mes completo necesita su propio agregado con el mismo patrón.
+`tenantsActivados`, `conversionesFreeAPro` y `evaluaciones` se cuentan en el
+período (UTC, por defecto el mes en curso).
+
+D-14 (LOS-134) lo implementó con estas definiciones, que reemplazan las de arriba
+donde difieren ([ADR-029](../adr/ADR-029-metricas-del-operador-con-historial-de-planes.md)):
+
+- **Activado:** tenant con al menos una evaluación en el período.
+- **Conversión:** subida desde FREE a PRO o ENTERPRISE, leída de
+  `tenancy.plan_changes` y no de `audit.access_log`, que no guarda el plan de
+  origen. El campo conserva el nombre `conversionesFreeAPro`.
+- **Consumo:** evaluaciones creadas en el período, en total y por plan actual
+  (`TenantsPorPlan.evaluaciones`, campo opcional nuevo). No sale de
+  `billing.OperatorUsageQuery` porque esta solo tiene meses completos.
 
 ## INT-07: credenciales propias
 

@@ -16,3 +16,4 @@ Contexto, Decisión, Alternativas consideradas, Consecuencias.
 - [ADR-026 · Apps móviles nativas con su propio cliente de Keycloak](ADR-026-apps-moviles-nativas-con-cliente-keycloak-propio.md)
 - [ADR-027 · Segundo banco con el contrato estándar de conector](ADR-027-segundo-banco-con-contrato-estandar-de-conector.md)
 - [ADR-028 · Release por merge a main, `/release.json` y smoke test](ADR-028-release-por-merge-a-main-con-release-json-y-smoke-test.md)
+- [ADR-029 · Métricas del operador con historial de planes y lectura bajo RLS](ADR-029-metricas-del-operador-con-historial-de-planes.md)

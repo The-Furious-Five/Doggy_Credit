@@ -1,12 +1,45 @@
 import { Component, inject, signal, viewChild } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { AdminService, TenantActual, TenantPatchPlanEnum } from '../api';
-import { DsAlert, DsBadge, DsButton, DsCard, DsDialog, DsField, DsOption, DsSelect, DsTable, DsToastService } from '../design-system';
+import { AdminService, MetricasOperador, OperadorService, TenantActual, TenantPatchPlanEnum } from '../api';
+import {
+  DsAlert,
+  DsBadge,
+  DsButton,
+  DsCard,
+  DsDialog,
+  DsEmptyState,
+  DsField,
+  DsOption,
+  DsSelect,
+  DsSpinner,
+  DsStat,
+  DsTable,
+  DsToastService,
+} from '../design-system';
+
+const numberFormat = new Intl.NumberFormat('es-BO');
+// El período de las métricas es UTC (contrato de GET /operador/metricas).
+const dates = new Intl.DateTimeFormat('es-BO', { timeZone: 'UTC' });
+const planLabels: Record<string, string> = { FREE: 'Gratis', PRO: 'Pro', ENTERPRISE: 'Enterprise' };
 
 @Component({
   selector: 'dc-platform-tenants',
-  imports: [FormsModule, DsAlert, DsBadge, DsButton, DsCard, DsDialog, DsField, DsSelect, DsTable],
+  imports: [
+    FormsModule,
+    DsAlert,
+    DsBadge,
+    DsButton,
+    DsCard,
+    DsDialog,
+    DsEmptyState,
+    DsField,
+    DsSelect,
+    DsSpinner,
+    DsStat,
+    DsTable,
+  ],
   styleUrl: './page.scss',
   template: `
     <header class="page-header">
@@ -15,6 +48,50 @@ import { DsAlert, DsBadge, DsButton, DsCard, DsDialog, DsField, DsOption, DsSele
         <p class="ds-muted">Consulta instituciones y administra su plan y estado.</p>
       </div>
     </header>
+
+    <section class="ds-stack" aria-labelledby="platform-metrics-heading">
+      <div class="ds-row">
+        <div class="card-head"><h2 id="platform-metrics-heading">Métricas de la plataforma</h2></div>
+        @if (metrics.hasValue()) {
+          <span class="ds-caption">{{ date(metrics.value().desde) }} – {{ date(metrics.value().hasta) }} (UTC)</span>
+        }
+      </div>
+      @if (metrics.isLoading()) {
+        <ds-spinner label="Cargando métricas…" />
+      } @else if (metrics.error()) {
+        <ds-alert heading="No se pudieron cargar las métricas" tone="danger">
+          <p>La lista de instituciones sigue disponible. Vuelve a intentarlo en unos segundos.</p>
+          <button dsButton variant="secondary" (click)="metrics.reload()">Reintentar</button>
+        </ds-alert>
+      } @else if (metrics.value(); as data) {
+        <div class="kpis">
+          <ds-card padding="compact"
+            ><ds-stat label="Tenants" [value]="number(tenantCount(data))" [detail]="plansDetail(data)"
+          /></ds-card>
+          <ds-card padding="compact"
+            ><ds-stat
+              label="Activados"
+              [value]="number(data.tenantsActivados)"
+              detail="Con al menos una evaluación en el período"
+          /></ds-card>
+          <ds-card padding="compact"
+            ><ds-stat
+              label="Conversiones"
+              [value]="number(data.conversionesFreeAPro)"
+              detail="Subidas desde Gratis a Pro o Enterprise"
+          /></ds-card>
+          <ds-card padding="compact"
+            ><ds-stat label="Evaluaciones" [value]="number(data.evaluaciones)" [detail]="usageDetail(data)"
+          /></ds-card>
+        </div>
+        @if (data.evaluaciones === 0 && data.conversionesFreeAPro === 0) {
+          <ds-empty-state
+            heading="Sin actividad en este período"
+            description="Ninguna institución registró evaluaciones ni subió de plan en el mes en curso."
+          />
+        }
+      }
+    </section>
 
     @if (error()) {
       <ds-alert heading="No se pudo cargar la lista" tone="danger">{{ error() }}</ds-alert>
@@ -75,6 +152,7 @@ import { DsAlert, DsBadge, DsButton, DsCard, DsDialog, DsField, DsOption, DsSele
 })
 export class PlatformTenants {
   private readonly admin = inject(AdminService);
+  private readonly operator = inject(OperadorService);
   private readonly toast = inject(DsToastService);
   readonly tenants = signal<TenantActual[]>([]);
   readonly loading = signal(true);
@@ -88,6 +166,8 @@ export class PlatformTenants {
     { value: TenantPatchPlanEnum.Enterprise, label: 'Enterprise' },
   ];
   private readonly selectedPlans = signal<Record<string, TenantPatchPlanEnum>>({});
+  /** D-14 (RF-ANA-04): sin fechas, el servidor responde el mes calendario UTC en curso. */
+  readonly metrics = rxResource({ stream: () => this.operator.obtenerMetricasOperador() });
 
   constructor() {
     void this.refresh();
@@ -124,6 +204,32 @@ export class PlatformTenants {
 
   async reactivate(tenant: TenantActual): Promise<void> {
     await this.updateTenant(tenant, { activo: true }, 'Institución reactivada.');
+  }
+
+  number(value: number): string {
+    return numberFormat.format(value);
+  }
+
+  date(iso: string): string {
+    return dates.format(new Date(iso + 'T00:00:00Z'));
+  }
+
+  tenantCount(data: MetricasOperador): number {
+    return data.tenantsActivos + data.tenantsSuspendidos;
+  }
+
+  /** `Gratis 3 · Pro 2 · Enterprise 1 · 1 suspendido`. */
+  plansDetail(data: MetricasOperador): string {
+    const plans = data.tenantsPorPlan.map((row) => `${planLabels[row.plan] ?? row.plan} ${this.number(row.cantidad)}`);
+    const suspended = data.tenantsSuspendidos === 1 ? '1 suspendido' : `${this.number(data.tenantsSuspendidos)} suspendidos`;
+    return [...plans, suspended].join(' · ');
+  }
+
+  /** Consumo por plan actual; un servidor anterior a D-14 no envía el desglose. */
+  usageDetail(data: MetricasOperador): string {
+    const rows = data.tenantsPorPlan.filter((row) => row.evaluaciones != null);
+    if (rows.length === 0) return 'En el período';
+    return rows.map((row) => `${planLabels[row.plan] ?? row.plan} ${this.number(row.evaluaciones ?? 0)}`).join(' · ');
   }
 
   /** `X de Y`, o `X · sin límite` cuando el plan no tiene cuota (límite 0). */
