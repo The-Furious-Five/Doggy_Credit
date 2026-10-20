@@ -1,6 +1,7 @@
 package com.doggycredit.recommendation;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.doggycredit.shared.contract.model.Producto;
@@ -15,7 +16,10 @@ public interface ProductCatalog {
 	/** Productos activos del tenant actual (RLS), en el orden del catálogo. */
 	List<Producto> activeProducts();
 
-	/** true si el producto existe, es del tenant actual y está activo. */
-	boolean isActive(UUID productId);
+	/**
+	 * El tipo (MICROCREDITO, VERDE, PYME) si el producto existe, es del tenant actual y está
+	 * activo; vacío si no. C-14 (LOS-130): la bandeja guarda ese tipo como snapshot.
+	 */
+	Optional<String> activeProductType(UUID productId);
 
 }

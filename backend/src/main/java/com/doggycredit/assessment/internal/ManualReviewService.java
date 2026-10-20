@@ -95,12 +95,12 @@ class ManualReviewService {
 				|| resolutions.existsByTenantIdAndAssessmentId(tenantId, assessmentId)) {
 			throw alreadyResolved();
 		}
-		if (decision == Decision.APROBADO && !catalog.isActive(productId)) {
-			throw new ErrorResponseException(HttpStatus.NOT_FOUND, ErrorCode.PRODUCT_NOT_FOUND
-				.toProblemDetail("El producto no existe, está inactivo o pertenece a otro tenant."), null);
-		}
+		// C-14 (LOS-130): el tipo del producto aprobado se guarda como snapshot para los KPIs de cartera.
+		String productType = decision == Decision.RECHAZADO ? null : catalog.activeProductType(productId)
+			.orElseThrow(() -> new ErrorResponseException(HttpStatus.NOT_FOUND, ErrorCode.PRODUCT_NOT_FOUND
+				.toProblemDetail("El producto no existe, está inactivo o pertenece a otro tenant."), null));
 		ManualReviewResolution resolution = new ManualReviewResolution(tenantId, assessmentId, decision, productId,
-				text, resolvedBy);
+				productType, text, resolvedBy);
 		try {
 			// saveAndFlush: el choque con otra resolución simultánea salta aquí, no en el commit.
 			resolutions.saveAndFlush(resolution);

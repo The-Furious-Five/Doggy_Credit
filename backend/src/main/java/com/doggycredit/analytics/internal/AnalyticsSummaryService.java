@@ -2,11 +2,14 @@ package com.doggycredit.analytics.internal;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,7 +25,10 @@ import com.doggycredit.shared.ErrorCode;
 import com.doggycredit.shared.SensitiveDataPolicy;
 import com.doggycredit.shared.SensitiveDataPolicy.Masker;
 import com.doggycredit.shared.TenantContext;
+import com.doggycredit.shared.contract.model.AnalyticsAceptacionProducto;
+import com.doggycredit.shared.contract.model.AnalyticsBanda;
 import com.doggycredit.shared.contract.model.AnalyticsModelo;
+import com.doggycredit.shared.contract.model.AnalyticsOverride;
 import com.doggycredit.shared.contract.model.AnalyticsNecesidad;
 import com.doggycredit.shared.contract.model.AnalyticsPro;
 import com.doggycredit.shared.contract.model.AnalyticsProducto;
@@ -88,8 +94,32 @@ class AnalyticsSummaryService {
                             .psi(model.psi()).estado(AnalyticsModelo.EstadoEnum.fromValue(model.level().name()))
                             .desde(model.windowStart().atOffset(ZoneOffset.UTC)).hasta(model.windowEnd().atOffset(ZoneOffset.UTC))
                             .muestrasActuales(model.actualCount()).muestrasBase(model.baselineCount())).toList()));
+            portfolio(response.getPro(), tenantId, start, end);
         }
         return response.plan(tenant.plan());
+    }
+
+    /**
+     * C-14 (LOS-130), RF-ANA-02: KPIs de cartera. Siempre las cinco bandas y los tres tipos de
+     * producto, con 0 si no hay casos; la base de bandas y override es la misma.
+     */
+    private void portfolio(AnalyticsPro pro, UUID tenantId, Instant start, Instant end) {
+        Map<String, Long> bands = repository.bands(tenantId, start, end);
+        long decided = bands.values().stream().mapToLong(Long::longValue).sum();
+        long overrides = repository.overrides(tenantId, start, end);
+        var acceptance = repository.acceptance(tenantId, start, end);
+        pro.distribucionBandas(Arrays.stream(AnalyticsBanda.BandaEnum.values()).map(band -> {
+                    long count = bands.getOrDefault(band.getValue(), 0L);
+                    return new AnalyticsBanda().banda(band).cantidad(count).porcentaje(percent(count, decided));
+                }).toList())
+                .tasaOverride(new AnalyticsOverride().overrides(overrides).evaluaciones(decided)
+                        .porcentaje(percent(overrides, decided)))
+                .aceptacionPorProducto(Arrays.stream(AnalyticsAceptacionProducto.TipoEnum.values()).map(type -> {
+                    var row = acceptance.stream().filter(a -> type.getValue().equals(a.productType())).findFirst()
+                            .orElse(new AnalyticsSummaryRepository.Acceptance(type.getValue(), 0, 0));
+                    return new AnalyticsAceptacionProducto().tipo(type).recomendados(row.recommended())
+                            .aceptados(row.accepted()).porcentaje(percent(row.accepted(), row.recommended()));
+                }).toList());
     }
 
     private static Double percent(long count, long total) {
