@@ -72,6 +72,9 @@ class TenantControllerTests {
     @MockitoBean
     Entitlements entitlements;
 
+    @MockitoBean
+    com.doggycredit.tenancy.PlanIntegrations integrations;
+
     @TestConfiguration(proxyBeanMethods = false)
     static class DecoderFixture {
         @Bean
@@ -95,9 +98,9 @@ class TenantControllerTests {
         @Bean
         TenantController tenantController(TenantRegistry registry, TenantPreferencesService preferences,
                 PlanCatalog plans, UsageMeter usage, KeycloakClients keycloak, AuditTrail audit,
-                Entitlements entitlements) {
+                Entitlements entitlements, com.doggycredit.tenancy.PlanIntegrations integrations) {
             return new TenantController(registry, preferences, plans, usage, keycloak,
-                    new TeamInvitationService(registry, plans, keycloak, audit), entitlements);
+                    new TeamInvitationService(registry, plans, keycloak, audit), entitlements, integrations);
         }
     }
 
@@ -189,10 +192,13 @@ class TenantControllerTests {
                 .thenReturn(new TenantInfo(id, "Mi Fintech", "1234567", "FINTECH", "FREE", "BO", "BOB", true));
         when(planCatalog.requireById("FREE")).thenReturn(new PlanInfo("FREE", "Gratis", 500, 3, 1, false, false, false, false, false));
         when(usageMeter.currentMonthEvaluations(id)).thenReturn(81);
+        when(integrations.activeCount(id)).thenReturn(2);
 
         mvc.perform(get("/tenant/actual/uso").header("Authorization", "Bearer valid"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.evaluacionesMes").value(81))
-                .andExpect(jsonPath("$.limiteMensual").value(500));
+                .andExpect(jsonPath("$.limiteMensual").value(500))
+                .andExpect(jsonPath("$.integracionesActivas").value(2))
+                .andExpect(jsonPath("$.limiteIntegraciones").value(1));
     }
 
     @Test

@@ -13,6 +13,10 @@ import { CodigoPlan } from './codigoPlan';
 export interface TenantsPorPlan { 
     plan: CodigoPlan;
     cantidad: number;
+    /**
+     * D-14: evaluaciones del período de los tenants que hoy tienen este plan. La suma de todos los planes es MetricasOperador.evaluaciones. 
+     */
+    evaluaciones?: number;
 }
 
 

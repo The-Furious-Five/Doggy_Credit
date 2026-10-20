@@ -39,7 +39,7 @@ export class OperadorService extends BaseService {
 
     /**
      * Métricas de negocio de la plataforma para un período (solo PLATFORM_ADMIN)
-     * Fechas inclusivas en UTC; por defecto el mes calendario actual. tenantsPorPlan, tenantsActivos y tenantsSuspendidos son una foto al momento de la consulta; tenantsActivados, conversionesFreeAPro y evaluaciones se cuentan dentro del período. Una conversión es un cambio de plan FREE → PRO registrado en audit.access_log. No expone nombres, NIT ni identificadores de tenants. Otros roles reciben 403 INSUFFICIENT_ROLE. 
+     * Fechas inclusivas en UTC; por defecto el mes calendario actual. tenantsPorPlan, tenantsActivos y tenantsSuspendidos son una foto al momento de la consulta; tenantsActivados, conversionesFreeAPro y evaluaciones se cuentan dentro del período. Un tenant activado es uno con al menos una evaluación en el período. Una conversión es una subida desde FREE a PRO o ENTERPRISE registrada en tenancy.plan_changes (D-14). No expone nombres, NIT ni identificadores de tenants. Otros roles reciben 403 INSUFFICIENT_ROLE. 
      * @endpoint get /operador/metricas
      * @param desde 
      * @param hasta 

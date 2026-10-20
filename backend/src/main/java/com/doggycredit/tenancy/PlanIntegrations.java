@@ -13,6 +13,9 @@ import java.util.UUID;
  */
 public interface PlanIntegrations {
 
+    /** RF-ANA-01: integraciones CONECTADO hoy, el buró incluido. */
+    int activeCount(UUID tenantId);
+
     /** Integraciones activas que no caben en {@code maxIntegraciones}; no cambia nada. */
     List<String> exceeding(UUID tenantId, int maxIntegraciones);
 

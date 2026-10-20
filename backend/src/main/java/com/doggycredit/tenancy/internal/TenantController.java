@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.doggycredit.shared.contract.api.TenantApi;
 import com.doggycredit.shared.RoleGuard;
 import com.doggycredit.shared.contract.model.TenantActual;
+import com.doggycredit.tenancy.PlanIntegrations;
 import com.doggycredit.tenancy.TenantId;
 import com.doggycredit.tenancy.TenantInfo;
 import com.doggycredit.tenancy.TenantRegistry;
@@ -32,10 +33,12 @@ public class TenantController implements TenantApi {
     private final KeycloakClients keycloak;
     private final TeamInvitationService invitations;
     private final Entitlements entitlements;
+    private final PlanIntegrations integrations;
 
     TenantController(TenantRegistry tenantRegistry, TenantPreferencesService preferences,
             PlanCatalog planCatalog, UsageMeter usageMeter, KeycloakClients keycloak,
-            TeamInvitationService invitations, Entitlements entitlements) {
+            TeamInvitationService invitations, Entitlements entitlements, PlanIntegrations integrations) {
+        this.integrations = integrations;
         this.tenantRegistry = tenantRegistry;
         this.preferences = preferences;
         this.planCatalog = planCatalog;
@@ -129,7 +132,9 @@ public class TenantController implements TenantApi {
         var plan = planCatalog.requireById(tenant.plan());
         return ResponseEntity.ok(new UsoTenant()
                 .evaluacionesMes(usageMeter.currentMonthEvaluations(id))
-                .limiteMensual(plan.evaluacionesMes()));
+                .limiteMensual(plan.evaluacionesMes())
+                .integracionesActivas(integrations.activeCount(id))
+                .limiteIntegraciones(plan.maxIntegraciones()));
     }
 
     @Override
