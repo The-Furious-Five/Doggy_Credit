@@ -6,6 +6,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { canAccessAppRoute } from '../auth/permissions';
 import { AuthSessionService } from '../auth/session.service';
 import {
+  DsAlert,
   DsBrand,
   DsIcon,
   DsIconName,
@@ -16,6 +17,7 @@ import {
   DsThemeToggle,
   DsToastService,
 } from '../design-system';
+import { TenantSuspensionService } from '../http/tenant-suspension.service';
 import { QuotaNotice } from './quota-notice';
 import { TenantUsageService } from './tenant-usage.service';
 
@@ -30,6 +32,7 @@ interface NavigationGroup {
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    DsAlert,
     DsBrand,
     DsIcon,
     DsLink,
@@ -127,6 +130,15 @@ interface NavigationGroup {
           </div>
         </header>
         <main id="contenido" class="console-main" tabindex="-1">
+          @if (suspended()) {
+            <ds-alert heading="Tu institución está suspendida" tone="danger" [urgent]="true">
+              <p>
+                Mientras dure la suspensión, las personas y las claves de API de tu institución no
+                pueden operar. No se borró ningún dato. Contacta al equipo de DoggyCredit para
+                reactivarla.
+              </p>
+            </ds-alert>
+          }
           <dc-quota-notice />
           <router-outlet />
         </main>
@@ -144,6 +156,7 @@ export class Console {
     this.tenantService.obtenerTenantActual().pipe(catchError(() => of(null))),
   );
   readonly usage = inject(TenantUsageService).usage;
+  readonly suspended = inject(TenantSuspensionService).suspended;
   readonly user = this.auth.session;
   readonly loggingOut = signal(false);
   readonly path = () => this.router.url.split('#')[0];
