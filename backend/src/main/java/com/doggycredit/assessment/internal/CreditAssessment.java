@@ -3,6 +3,7 @@ package com.doggycredit.assessment.internal;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -97,6 +98,13 @@ class CreditAssessment {
 	@Column(name = "recommendations_evaluated", nullable = false)
 	private boolean recommendationsEvaluated;
 
+	/** C-12 (LOS-113): el vector con el que se calculó el score; null en evaluaciones previas. */
+	@Column(name = "scoring_input", columnDefinition = "text")
+	private String scoringInput;
+
+	@Column(name = "scoring_input_sha256", length = 64)
+	private String scoringInputSha256;
+
 	protected CreditAssessment() {
 	}
 
@@ -145,6 +153,36 @@ class CreditAssessment {
 
 	boolean recommendationsEvaluated() {
 		return recommendationsEvaluated;
+	}
+
+	/** Se guarda en el mismo INSERT que la evaluación; después la tabla no admite UPDATE. */
+	void captureScoringInput(ScoringInput input) {
+		this.scoringInput = input.toJson();
+		this.scoringInputSha256 = ScoringInput.sha256(this.scoringInput);
+	}
+
+	Optional<String> scoringInput() {
+		return Optional.ofNullable(scoringInput);
+	}
+
+	String scoringInputSha256() {
+		return scoringInputSha256;
+	}
+
+	int score() {
+		return score;
+	}
+
+	String band() {
+		return band;
+	}
+
+	List<String> reasons() {
+		return List.of(reasons);
+	}
+
+	String modelVersion() {
+		return modelVersion;
 	}
 
 	String requestHash() {

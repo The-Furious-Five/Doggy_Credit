@@ -39,7 +39,12 @@ class AdvancedScorer {
 		float[] vector = vector(features);
 		float probabilityOfDefault = model.score(vector).probabilityOfDefault();
 		int score = scoreFromProbability(probabilityOfDefault);
-		return new BasicScoreResult(score, band(score), reasons(vector), "scoring-" + parameters.modelVersion());
+		return new BasicScoreResult(score, band(score), reasons(vector), version());
+	}
+
+	/** La versión que queda en cada evaluación, ej. "scoring-v2". */
+	String version() {
+		return "scoring-" + parameters.modelVersion();
 	}
 
 	/**
