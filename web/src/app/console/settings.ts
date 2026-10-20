@@ -149,6 +149,15 @@ const FEATURES: { id: TenantActualFuncionalidadesEnum; label: string }[] = [
                 } @else {
                   <p>{{ quota.evaluacionesMes }} evaluaciones utilizadas este mes. Tu plan no tiene límite mensual.</p>
                 }
+                <p class="ds-caption">Período: mes calendario UTC, el mismo de la cuota de tu plan.</p>
+                @if (quota.integracionesActivas !== undefined) {
+                  @if ((quota.limiteIntegraciones ?? 0) > 0) {
+                    <p>{{ quota.integracionesActivas }} de {{ quota.limiteIntegraciones }} integraciones activas</p>
+                    <ds-progress label="Integraciones activas" [value]="quota.integracionesActivas" [max]="quota.limiteIntegraciones ?? 0" />
+                  } @else {
+                    <p>{{ quota.integracionesActivas }} integraciones activas. Tu plan no tiene límite de integraciones.</p>
+                  }
+                }
               } @else if (usageUnavailable()) {
                 <ds-alert heading="No se pudo consultar el uso" tone="warning">
                   Comprueba la conexión e inténtalo de nuevo más tarde.

@@ -41,7 +41,7 @@ describe('Configuración con datos de la API (E-09)', () => {
     vi.resetAllMocks();
     roles.set(['TENANT_ADMIN']);
     api.obtenerTenantActual.mockReturnValue(of(tenant(TenantActualPlanEnum.Free)));
-    api.obtenerUsoTenant.mockReturnValue(of({ evaluacionesMes: 120, limiteMensual: 500 }));
+    api.obtenerUsoTenant.mockReturnValue(of({ evaluacionesMes: 120, limiteMensual: 500, integracionesActivas: 2, limiteIntegraciones: 3 }));
     api.listarEquipo.mockReturnValue(of([]));
     api.obtenerPreferenciasTenant.mockReturnValue(of({ enmascararDatos: true }));
     TestBed.configureTestingModule({
@@ -93,6 +93,19 @@ describe('Configuración con datos de la API (E-09)', () => {
     expect(plan(f).textContent).toContain('El equipo de DoggyCredit activa los cambios de plan');
     const compare = plan(f).querySelector('a[href="/#planes"]');
     expect(compare?.textContent?.trim()).toBe('Comparar planes');
+  });
+
+  it('muestra integraciones activas contra el límite y el período UTC', async () => {
+    const f = await render();
+    expect(plan(f).textContent).toContain('2 de 3 integraciones activas');
+    expect(plan(f).textContent).toContain('mes calendario UTC');
+    expect(plan(f).querySelectorAll('[role="progressbar"]').length).toBe(2);
+  });
+
+  it('un límite de integraciones 0 se presenta como sin límite', async () => {
+    api.obtenerUsoTenant.mockReturnValue(of({ evaluacionesMes: 1, limiteMensual: 0, integracionesActivas: 4, limiteIntegraciones: 0 }));
+    const f = await render();
+    expect(plan(f).textContent).toContain('4 integraciones activas. Tu plan no tiene límite de integraciones.');
   });
 
   it('presenta un plan sin límite mensual sin barra de progreso', async () => {
