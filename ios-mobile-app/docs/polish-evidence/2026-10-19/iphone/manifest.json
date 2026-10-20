@@ -1,0 +1,129 @@
+[
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "Acceso y servidor con texto máximo.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "Acceso y servidor con texto máximo_0_81F64C5A-ED73-4F7F-8890-24443A6A8085.png",
+        "timestamp": 1792461959.824
+      }
+    ],
+    "testIdentifier": "ScreenTourUITests/testMaximumTextKeepsSignInAndServerReachable()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appUITests/ScreenTourUITests/testMaximumTextKeepsSignInAndServerReachable",
+    "resultBundle": "/tmp/doggycredit-ios-polish-verified-iphone.xcresult"
+  },
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "welcome-dark-accessibility-middle.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-dark-accessibility-middle_0_50EFC80A-93C1-488F-B9AC-DE0D254E3BEC.png",
+        "timestamp": 1792462217.062
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "draft-conflict-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "draft-conflict-dark-accessibility_0_99F8EF50-D94D-4732-8EAE-7DCFE7D7AA10.png",
+        "timestamp": 1792462215.896
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "result-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "result-dark-accessibility-bottom_0_116A3D15-CEE8-4EE1-BB1A-B32D548F433A.png",
+        "timestamp": 1792462215.146
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "existing-applicant-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "existing-applicant-dark-accessibility-bottom_0_0803063D-0C68-4A1F-BD37-350734D72FE4.png",
+        "timestamp": 1792462213.801
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "existing-applicant-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "existing-applicant-dark-accessibility_0_B3FA9B41-A909-43B3-9903-A771264CD838.png",
+        "timestamp": 1792462213.105
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "clients-error-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "clients-error-dark-accessibility_0_65801028-5476-4781-9E27-2271D43C6224.png",
+        "timestamp": 1792462210.431
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "welcome-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-light_0_EC856A12-CFB8-4ADC-BF4D-DE950E41FE3E.png",
+        "timestamp": 1792462209.715
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "review-filter-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "review-filter-light_0_EB9D86A6-9E7B-4B36-AB46-118D9A28423E.png",
+        "timestamp": 1792462206.752
+      }
+    ],
+    "testIdentifier": "HardeningScreensTests/testHardenedScreens()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appTests/HardeningScreensTests/testHardenedScreens",
+    "resultBundle": "/tmp/doggycredit-ios-polish-layout-iphone.xcresult"
+  },
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "draft-conflict-dark-accessibility-landscape-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "draft-conflict-dark-accessibility-landscape-bottom_0_4D303051-F825-45BC-BD0E-5E97057E7922.png",
+        "timestamp": 1792462228.596
+      }
+    ],
+    "testIdentifier": "HardeningScreensTests/testPolishedLandscapeScreens()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appTests/HardeningScreensTests/testPolishedLandscapeScreens",
+    "resultBundle": "/tmp/doggycredit-ios-polish-layout-iphone.xcresult"
+  },
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+        "deviceName": "iPhone 18 Pro",
+        "exportedFileName": "Acceso en horizontal.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "Acceso en horizontal_0_FC0A698F-99E7-42CB-BE40-14AEF9F53D00.png",
+        "timestamp": 1792462238.586
+      }
+    ],
+    "testIdentifier": "ScreenTourUITests/testWelcomeInLandscape()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appUITests/ScreenTourUITests/testWelcomeInLandscape",
+    "resultBundle": "/tmp/doggycredit-ios-polish-layout-iphone.xcresult"
+  }
+]

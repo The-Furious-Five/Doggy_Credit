@@ -19,11 +19,15 @@ final class ReviewQueueModel {
     private(set) var total = 0
     private(set) var phase: LoadPhase = .idle
     private(set) var isLoadingMore = false
+    private(set) var isRefreshing = false
+    private(set) var loadMoreError: APIError?
+    private(set) var lastUpdatedAt: Date?
     var filter: Filter = .all
 
     private let service: any DoggyCreditService
     private let pageSize = 20
     private var loadedPages = 0
+    private var generation = UUID()
 
     init(service: any DoggyCreditService) {
         self.service = service
@@ -46,34 +50,67 @@ final class ReviewQueueModel {
     }
 
     func refresh() async {
-        if cases.isEmpty { phase = .loading }
+        let request = UUID()
+        generation = request
+        isRefreshing = true
+        isLoadingMore = false
+        loadMoreError = nil
+        phase = cases.isEmpty ? .loading : .loaded
+        defer { if generation == request { isRefreshing = false } }
         do {
             let page = try await service.reviewCases(page: 1, size: pageSize)
+            guard generation == request else { return }
             cases = page.items
             products = page.products
             total = page.total
             loadedPages = 1
             phase = .loaded
+            lastUpdatedAt = .now
         } catch {
+            guard generation == request else { return }
             let error = APIError(error)
-            guard !error.isCancellation else { return }
+            if error.isCancellation {
+                phase = cases.isEmpty ? .idle : .loaded
+                return
+            }
+            if error.isForbidden { cases = []; products = []; total = 0; lastUpdatedAt = nil }
             phase = .failed(error)
         }
     }
 
     func loadMoreIfNeeded(after item: ReviewCase) async {
-        guard hasMore, !isLoadingMore, item.id == cases.last?.id else { return }
+        guard item.id == visibleCases.last?.id, loadMoreError == nil else { return }
+        await loadMore()
+    }
+
+    /// Disponible incluso cuando el filtro no muestra ninguna fila de la página actual.
+    func loadMore() async {
+        guard hasMore, !isLoadingMore, !isRefreshing else { return }
+        let request = generation
+        let nextPage = loadedPages + 1
         isLoadingMore = true
-        defer { isLoadingMore = false }
+        loadMoreError = nil
+        defer { if generation == request { isLoadingMore = false } }
         do {
-            let page = try await service.reviewCases(page: loadedPages + 1, size: pageSize)
+            let page = try await service.reviewCases(page: nextPage, size: pageSize)
+            guard generation == request else { return }
             let known = Set(cases.map(\.id))
             cases.append(contentsOf: page.items.filter { !known.contains($0.id) })
             products = page.products
             total = page.total
-            loadedPages += 1
+            loadedPages = nextPage
         } catch {
-            // La página siguiente se reintenta al volver a llegar al final.
+            guard generation == request else { return }
+            let error = APIError(error)
+            if error.isForbidden {
+                cases = []
+                products = []
+                total = 0
+                lastUpdatedAt = nil
+                phase = .failed(error)
+            } else if !error.isCancellation {
+                loadMoreError = error
+            }
         }
     }
 

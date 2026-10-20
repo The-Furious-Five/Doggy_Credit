@@ -33,6 +33,9 @@ final class AppModel {
         self.lock = lock ?? AppLock(defaults: defaults)
     }
 
+    // El estado no requiere limpieza en MainActor al liberar la instancia.
+    nonisolated deinit {}
+
     var server: URL { AuthConfiguration.defaultServer }
 
     var session: SessionStore? {

@@ -1,0 +1,30 @@
+{
+  "unit": {
+    "tests": 42,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "instrumentation": {
+    "phone": 4,
+    "narrow": 3,
+    "landscape": 3,
+    "tablet-portrait": 3,
+    "tablet-landscape": 3,
+    "flows": 16
+  },
+  "instrumentation_total": 32,
+  "lint": {
+    "errors": 0,
+    "warnings": 41
+  },
+  "resolved_audit_findings": [
+    "AUD-01",
+    "AUD-02"
+  ],
+  "open_audit_findings": [
+    "AUD-03",
+    "AUD-04",
+    "AUD-05"
+  ]
+}

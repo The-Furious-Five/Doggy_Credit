@@ -7,6 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -15,7 +18,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -27,24 +36,43 @@ import com.doggycredit.app.ui.components.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun EvaluationScreen(vm: AppViewModel, openClient: (String) -> Unit) {
     val draft = vm.draft
+    val fieldFocus = remember(draft) { ApplicantField.entries.associateWith { FocusRequester() } }
+    val fieldScroll = remember(draft) { ApplicantField.entries.associateWith { BringIntoViewRequester() } }
+    val fieldModifiers = ApplicantField.entries.associateWith {
+        Modifier.fillMaxWidth().bringIntoViewRequester(fieldScroll.getValue(it)).focusRequester(fieldFocus.getValue(it))
+    }
+    var validationRequest by remember(draft) { mutableIntStateOf(0) }
+    LaunchedEffect(validationRequest) {
+        if (validationRequest > 0 && draft.step == 0) {
+            draft.applicantErrors.keys.firstOrNull()?.let {
+                fieldScroll.getValue(it).bringIntoView()
+                fieldFocus.getValue(it).requestFocus()
+            }
+        }
+    }
     fun close() { vm.showEvaluation = false }
     Dialog(onDismissRequest = { close() }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, securePolicy = SecureFlagPolicy.SecureOn)) {
         BackHandler { close() }
         Surface(Modifier.fillMaxSize()) {
             Scaffold(Modifier.safeDrawingPadding().imePadding(), containerColor = MaterialTheme.colorScheme.background, topBar = {
-                TopAppBar(title = { Column { Eyebrow("DoggyCredit"); Text("Nueva evaluación", style = MaterialTheme.typography.titleLarge) } },
+                TopAppBar(title = { Text("Nueva evaluación", style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = { IconButton(onClick = { close() }) { Icon(Icons.Rounded.Close, "Cerrar y conservar borrador") } },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
             }, bottomBar = {
                 Surface(color = MaterialTheme.colorScheme.surface) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        draft.requirement?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        if (draft.step == 0) {
+                            if (draft.validationAttempted && !draft.validApplicant) Text("Revisa los campos marcados para continuar.",
+                                style = MaterialTheme.typography.bodySmall, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                        } else draft.requirement?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (draft.step in 1..2) OutlinedButton(onClick = draft::back, enabled = !draft.busy) { Text("Atrás") }
                             if (draft.step == 3) {
                                 OutlinedButton(onClick = vm::restartDraft, modifier = Modifier.weight(1f)) { Text("Nueva evaluación") }
                                 Button(onClick = { close() }, modifier = Modifier.weight(1f)) { Text("Listo") }
-                            } else Button(onClick = vm::nextEvaluation, enabled = draft.requirement == null && !draft.busy, modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
+                            } else Button(onClick = {
+                                if (draft.step == 0 && !draft.validateApplicant()) validationRequest++ else vm.nextEvaluation()
+                            }, enabled = !draft.busy && (draft.step == 0 || draft.requirement == null), modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
                                 if (draft.busy) { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp); Spacer(Modifier.width(12.dp)) }
                                 Text(if (draft.busy) "Procesando…" else if (draft.step == 2) "Evaluar cliente" else "Continuar")
                             }
@@ -68,7 +96,7 @@ import com.doggycredit.app.ui.components.*
                         }
                         draft.error?.let { Notice("No pudimos completar este paso", "$it\nTus datos se conservan para reintentar.") }
                         when (draft.step) {
-                            0 -> ApplicantStep(draft)
+                            0 -> ApplicantStep(draft, fieldModifiers)
                             1 -> ConsentStep(draft)
                             2 -> SourcesStep(vm)
                             3 -> draft.result?.let { AssessmentContent(it, vm.mask, draft.capacity, draft.applicantId?.let { id -> { close(); openClient(id) } }) }
@@ -79,32 +107,47 @@ import com.doggycredit.app.ui.components.*
         }
     }
 }
-@Composable private fun ApplicantStep(draft: EvaluationDraft) {
+@Composable private fun ApplicantStep(draft: EvaluationDraft, fields: Map<ApplicantField, Modifier>) {
+    val errors = draft.applicantErrors
     SectionTitle("Datos del solicitante", "Usa los datos que el cliente declara durante la visita.")
     ChipSelector(listOf("PERSONA", "EMPRENDEDOR", "PYME"), draft.segment, enabled = !draft.busy) { draft.segment = it }
-    OutlinedTextField(draft.document, { if (it.length <= 64) draft.document = it }, label = { Text("CI o NIT") }, singleLine = true, enabled = !draft.busy, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii))
-    OutlinedTextField(draft.activity, { if (it.length <= 120) draft.activity = it }, label = { Text("Actividad económica") }, enabled = !draft.busy, modifier = Modifier.fillMaxWidth())
-    NumberField("Antigüedad de la actividad (meses)", draft.seniority, { draft.seniority = it }, false, !draft.busy)
-    NumberField("Ingreso mensual declarado (Bs)", draft.income, { draft.income = it }, enabled = !draft.busy)
+    ValidatedTextField(draft.document, { if (it.length <= 64) draft.document = it }, "CI o NIT", fields.getValue(ApplicantField.DOCUMENT),
+        validationError = errors[ApplicantField.DOCUMENT], hint = "De 3 a 64 caracteres.", submitted = draft.validationAttempted,
+        enabled = !draft.busy, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii))
+    ValidatedTextField(draft.activity, { if (it.length <= 120) draft.activity = it }, "Actividad económica", fields.getValue(ApplicantField.ACTIVITY),
+        validationError = errors[ApplicantField.ACTIVITY], hint = "De 2 a 120 caracteres.", submitted = draft.validationAttempted, enabled = !draft.busy, singleLine = false)
+    NumberField("Antigüedad de la actividad (meses)", draft.seniority, { draft.seniority = it }, false, !draft.busy,
+        fields.getValue(ApplicantField.SENIORITY), errors[ApplicantField.SENIORITY], "De 0 a 1200 meses.", draft.validationAttempted)
+    NumberField("Ingreso mensual declarado (Bs)", draft.income, { draft.income = it }, enabled = !draft.busy,
+        modifier = fields.getValue(ApplicantField.INCOME), validationError = errors[ApplicantField.INCOME], hint = "Mayor que 0. Puedes usar coma decimal.", submitted = draft.validationAttempted)
     HorizontalDivider()
     SectionTitle("Solicitud de crédito")
-    NumberField("Monto solicitado (Bs, opcional)", draft.amount, { draft.amount = it }, enabled = !draft.busy)
-    NumberField("Plazo (meses)", draft.term, { draft.term = it }, false, !draft.busy)
+    NumberField("Monto solicitado (Bs, opcional)", draft.amount, { draft.amount = it }, enabled = !draft.busy,
+        modifier = fields.getValue(ApplicantField.AMOUNT), validationError = errors[ApplicantField.AMOUNT], hint = "Mayor que 0 o vacío si aún no está definido.", submitted = draft.validationAttempted)
+    NumberField("Plazo (meses)", draft.term, { draft.term = it }, false, !draft.busy,
+        fields.getValue(ApplicantField.TERM), errors[ApplicantField.TERM], "De 1 a 360 meses.", draft.validationAttempted)
     Text("Destino del crédito", style = MaterialTheme.typography.titleSmall)
-    creditPurposes.forEach { purpose ->
-        OutlinedCard(modifier = Modifier.fillMaxWidth().selectable(selected = draft.purpose == purpose, enabled = !draft.busy, role = Role.RadioButton, onClick = { draft.purpose = purpose }),
-            colors = CardDefaults.outlinedCardColors(containerColor = if (draft.purpose == purpose) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .5f) else MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, if (draft.purpose == purpose) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)) {
-            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(draft.purpose == purpose, onClick = null)
-                Text(purpose, Modifier.padding(start = 12.dp))
+    if (draft.validationAttempted) errors[ApplicantField.PURPOSE]?.let {
+        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
+    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        creditPurposes.forEachIndexed { index, purpose ->
+            val modifier = if (index == 0) fields.getValue(ApplicantField.PURPOSE) else Modifier.fillMaxWidth()
+            OutlinedCard(modifier = modifier.selectable(selected = draft.purpose == purpose, enabled = !draft.busy, role = Role.RadioButton, onClick = { draft.purpose = purpose }),
+                colors = CardDefaults.outlinedCardColors(containerColor = if (draft.purpose == purpose) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .5f) else MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, if (draft.purpose == purpose) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(draft.purpose == purpose, onClick = null)
+                    Text(purpose, Modifier.padding(start = 12.dp))
+                }
             }
         }
     }
 }
-@Composable private fun NumberField(label: String, value: String, changed: (String) -> Unit, decimal: Boolean = true, enabled: Boolean = true) {
-    OutlinedTextField(value, { input -> if (input.length <= 18 && input.all { it.isDigit() || decimal && (it == '.' || it == ',') }) changed(input) },
-        label = { Text(label) }, singleLine = true, enabled = enabled, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number))
+@Composable private fun NumberField(label: String, value: String, changed: (String) -> Unit, decimal: Boolean = true, enabled: Boolean = true,
+    modifier: Modifier = Modifier.fillMaxWidth(), validationError: String? = null, hint: String? = null, submitted: Boolean = false) {
+    ValidatedTextField(value, { input -> if (input.length <= 18 && input.all { it.isDigit() || decimal && (it == '.' || it == ',') }) changed(input) },
+        label, modifier, validationError, hint, submitted, enabled, keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number))
 }
 @Composable internal fun ConsentStep(draft: EvaluationDraft) {
     SectionTitle("Autorización del cliente", "Explica cada consulta y marca únicamente lo que el cliente autorice.")

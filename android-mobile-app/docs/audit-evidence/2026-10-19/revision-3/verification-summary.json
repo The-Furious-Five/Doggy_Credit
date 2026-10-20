@@ -1,0 +1,357 @@
+{
+  "review": "Android technical audit revision 3 after all requested remediation commands",
+  "recorded_at_utc": "2026-10-20T00:44:12.665937+00:00",
+  "scope": "android-mobile-app only; source paths are relative to this module",
+  "score": {
+    "accessibility": 4,
+    "performance": 4,
+    "appearance_and_theming": 4,
+    "platform_conformance": 4,
+    "adaptivity": 3,
+    "total": 19,
+    "maximum": 20,
+    "rating": "Excellent"
+  },
+  "remaining_score_limit": "Specific Android multiwindow and foldable-posture evidence is missing; resized emulator displays are not equivalent.",
+  "open_findings": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "closed_findings": [
+    "AUD-01",
+    "AUD-02",
+    "AUD-03",
+    "AUD-04",
+    "AUD-05"
+  ],
+  "production_files_changed_since_revision_2": [
+    "app/src/main/java/com/doggycredit/app/MainActivity.kt",
+    "app/src/main/java/com/doggycredit/app/ui/DoggyCreditApp.kt",
+    "app/src/main/java/com/doggycredit/app/ui/components/Components.kt",
+    "app/src/main/java/com/doggycredit/app/ui/screens/DetailScreens.kt",
+    "app/src/main/java/com/doggycredit/app/ui/screens/WelcomeScreen.kt",
+    "app/src/main/java/com/doggycredit/app/ui/theme/Color.kt"
+  ],
+  "source_fingerprints": "source-fingerprints.json",
+  "unit": {
+    "counts": {
+      "tests": 47,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "classes": [
+      {
+        "class": "com.doggycredit.app.AppViewModelTests",
+        "counts": {
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "f91a8e57bb82d409cdad3df909f187ac7f95f3cd0bc59ab27930735c6c76f672"
+      },
+      {
+        "class": "com.doggycredit.app.BrandContrastTests",
+        "counts": {
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "e1ebd90f2eca888b5ccf2580e793e9c193821c8ef9a7ca4d29c6d9c73fa87146"
+      },
+      {
+        "class": "com.doggycredit.app.ClientHistoryTests",
+        "counts": {
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "e61f19993d3cf8e0d8b8bd2013cc620525814bcd3f5038586673f66360f5bc06"
+      },
+      {
+        "class": "com.doggycredit.app.ContractTests",
+        "counts": {
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "719fe5cf84743b7dc96edaecc5b69f6cd4c6742b25cfef111f28ee4f89dae508"
+      },
+      {
+        "class": "com.doggycredit.app.EvaluationTests",
+        "counts": {
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "dd9fd8e033abc6a475301e7a67a4c4f89c787382cb927ad7a25ae68e6d5620d0"
+      },
+      {
+        "class": "com.doggycredit.app.LiveApiTests",
+        "counts": {
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "a0cfef295316ad600af551fe897b0eaf08075c114f7cbcd38247e603845a6efa"
+      },
+      {
+        "class": "com.doggycredit.app.ResolutionTests",
+        "counts": {
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "8daccf97d94261f6389d68e644f8254a6a7c703f34e6d84f2bf5008dae13d6f0"
+      }
+    ]
+  },
+  "native": {
+    "post_implementation_executions": 91,
+    "successful_executions": 89,
+    "initial_harness_failures_resolved": 2,
+    "unresolved_failures": 0,
+    "runs": [
+      {
+        "phase": "initial",
+        "configuration": "landscape",
+        "executions": 7,
+        "failures": 1,
+        "evidence": "initial/results-landscape.txt",
+        "sha256": "3f62b32f728c5441f368806b34d887ba19db63084a8494e4f113de03bd5a9a33"
+      },
+      {
+        "phase": "initial",
+        "configuration": "medium-window",
+        "executions": 7,
+        "failures": 0,
+        "evidence": "initial/results-medium-window.txt",
+        "sha256": "e057d4d05343998c8460fb7fd32300094e678f148ff4b39c9cfb1efc06b19d55"
+      },
+      {
+        "phase": "initial",
+        "configuration": "narrow",
+        "executions": 7,
+        "failures": 0,
+        "evidence": "initial/results-narrow.txt",
+        "sha256": "46e8de1eea5b877fa864c36a5d6f8d71e918cef6035f6e9416491731bad5f2b6"
+      },
+      {
+        "phase": "initial",
+        "configuration": "phone",
+        "executions": 31,
+        "failures": 0,
+        "evidence": "initial/results-phone.txt",
+        "sha256": "b50fff4643477bfd965fc74bb70061bc8bed2ab16f8159aabf65797484efa32c"
+      },
+      {
+        "phase": "initial",
+        "configuration": "tablet-landscape",
+        "executions": 7,
+        "failures": 0,
+        "evidence": "initial/results-tablet-landscape.txt",
+        "sha256": "951cbe79901264f8303d45170ffb47b605bbacc626a98504a07ff529acdd4293"
+      },
+      {
+        "phase": "initial",
+        "configuration": "tablet-portrait",
+        "executions": 7,
+        "failures": 0,
+        "evidence": "initial/results-tablet-portrait.txt",
+        "sha256": "ef0856c14cac326ad81aee7d633f573f75ee8a6a179434be5289ae37aaaf1c29"
+      },
+      {
+        "phase": "confirmation",
+        "configuration": "landscape",
+        "executions": 4,
+        "failures": 1,
+        "evidence": "confirmation/results-landscape.txt",
+        "sha256": "0cc5a93244225bfbf21836bf03ec8283465356d7b42a0f2c4168134d2a286165"
+      },
+      {
+        "phase": "confirmation",
+        "configuration": "medium-window",
+        "executions": 4,
+        "failures": 0,
+        "evidence": "confirmation/results-medium-window.txt",
+        "sha256": "04b2716084af348a272291f7bd623de0f3af9f474639d6290139972264618639"
+      },
+      {
+        "phase": "confirmation",
+        "configuration": "narrow",
+        "executions": 4,
+        "failures": 0,
+        "evidence": "confirmation/results-narrow.txt",
+        "sha256": "80b0d51e4537d76470b2b49f3a5ca977dc3765e59c51730ee390efaec9269a72"
+      },
+      {
+        "phase": "confirmation",
+        "configuration": "phone",
+        "executions": 4,
+        "failures": 0,
+        "evidence": "confirmation/results-phone.txt",
+        "sha256": "b9aab497a83a6e77952b0867b942bb0c9bf7b456d2e2cf76ea843c5ff56c7138"
+      },
+      {
+        "phase": "confirmation",
+        "configuration": "tablet-landscape",
+        "executions": 4,
+        "failures": 0,
+        "evidence": "confirmation/results-tablet-landscape.txt",
+        "sha256": "4a60cd6b5b28bdbd210c5eb5b3cf3da86ed9b2274f8f240bd29ea821c0fd4258"
+      },
+      {
+        "phase": "confirmation",
+        "configuration": "tablet-portrait",
+        "executions": 4,
+        "failures": 0,
+        "evidence": "confirmation/results-tablet-portrait.txt",
+        "sha256": "e4ca7ac414ef135448a74c8e41ac4a7ad8199f6e38b3d2b04768589d1cdd71dc"
+      },
+      {
+        "phase": "targeted-harness-repair",
+        "configuration": "landscape",
+        "executions": 1,
+        "failures": 0,
+        "evidence": "targeted-landscape-back.txt",
+        "sha256": "88b087fad42c1c1b9d691624648549a82d749fb917859ae9d24588e3f0536442"
+      }
+    ],
+    "device": "Pixel 9 Pro emulator API 37; one device configured to six window sizes",
+    "display_dp": {
+      "phone": [
+        427,
+        952
+      ],
+      "narrow": [
+        320,
+        800
+      ],
+      "landscape": [
+        952,
+        427
+      ],
+      "tablet-portrait": [
+        800,
+        1280
+      ],
+      "tablet-landscape": [
+        1280,
+        800
+      ],
+      "medium-window": [
+        600,
+        900
+      ]
+    },
+    "large_text_scales": [
+      1.4,
+      2.0
+    ],
+    "animations_disabled_case": "tablet-landscape",
+    "visual_rounds": 2,
+    "targeted_functional_retry_after_harness_repair": 1
+  },
+  "history_measurement": {
+    "loaded_records": 1000,
+    "before_composed_status_nodes": 1000,
+    "after_composed_status_nodes": 7,
+    "reduction_percent": 99.3,
+    "before_evidence": "baseline-history-observation.txt",
+    "after_evidence": "history-window-observations.txt",
+    "not_measured": [
+      "FPS",
+      "Total memory",
+      "Network latency"
+    ]
+  },
+  "contrast": {
+    "old_forest_on_pine_nominal": 1.273,
+    "busy_ivory_on_forest": 8.997,
+    "normal_pine_on_ivory": 11.45,
+    "unit_minimum_for_both_text_states": 4.5
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 41,
+    "warnings_by_id": {
+      "OldTargetApi": 1,
+      "AndroidGradlePluginVersion": 2,
+      "GradleDependency": 8,
+      "NewerVersionAvailable": 8,
+      "ModifierParameter": 2,
+      "ObsoleteSdkInt": 1,
+      "VectorPath": 12,
+      "MonochromeLauncherIcon": 2,
+      "UseKtx": 5
+    },
+    "report_sha256": "8674cc5a943b01b393f2e5d8fc3b1541deaf853922421696ef2829e6e0f6bbec"
+  },
+  "web_required_checks": {
+    "ds_check": "passed",
+    "ds_tests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "build": "passed",
+    "unchanged_warnings": [
+      "Initial chunk budget",
+      "landing.scss budget"
+    ],
+    "web_source_changes": false
+  },
+  "builds": {
+    "debug": "passed",
+    "instrumentation": "passed",
+    "release_unsigned": "passed",
+    "log": "final-build.txt",
+    "final_harness_build": "harness-build.txt"
+  },
+  "artifacts": {
+    "app/build/outputs/apk/debug/app-debug.apk": {
+      "sha256": "bf4273f6d2dabbbb76ca82a03c0fcc6e3234a25614a7ba7ca5965f4a3a697e2c",
+      "bytes": 21410676,
+      "modified_at_utc": "2026-10-20T00:32:23.359658+00:00"
+    },
+    "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": {
+      "sha256": "d9c8665326f581229ef430fad8bac141298604f816b314c2d9b92a0fa1701309",
+      "bytes": 1121678,
+      "modified_at_utc": "2026-10-20T00:41:01.797436+00:00"
+    },
+    "app/build/outputs/apk/release/app-release-unsigned.apk": {
+      "sha256": "8fcb68d88669fa96328725895277e245884a2139fddaaf37b9e01e88e1abd319",
+      "bytes": 2568857,
+      "modified_at_utc": "2026-10-20T00:39:06.917531+00:00"
+    }
+  },
+  "saved_visual_evidence": [
+    "navigation-narrow-200-dark.png",
+    "navigation-landscape-140-light.png",
+    "navigation-tablet-200-dark.png",
+    "welcome-narrow-light-200.png",
+    "welcome-landscape-dark-200.png",
+    "lock-narrow-rtl-200.png",
+    "profile-landscape-200-dark.png",
+    "analytics-tablet-200-dark.png",
+    "result-phone-200-dark.png",
+    "home-phone-default.png"
+  ],
+  "cleanup": "cleanup.json",
+  "limitations": [
+    "Only API 37 execution evidence",
+    "No real TalkBack or physical keyboard session",
+    "No physical-device predictive Back or biometrics",
+    "No 60/120 Hz hardware performance measurement",
+    "No actual split-screen/multiwindow or foldable-posture validation",
+    "No business-data writes to the deployed API"
+  ]
+}

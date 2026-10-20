@@ -24,6 +24,7 @@ final class EvaluationFlowModel {
 
     enum Problem: Equatable {
         case incompleteApplicant
+        case existingApplicant
         case missingBureauConsent
         /// El consentimiento venció o fue revocado: hay que registrar uno nuevo.
         case consentInvalid
@@ -33,7 +34,25 @@ final class EvaluationFlowModel {
 
     // Paso 1: solicitante
     var segment: Segment = .person
-    var document = ""
+    var document = "" {
+        didSet {
+            guard oldValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() != trimmedDocument.uppercased() else { return }
+            // Cambiar de titular invalida toda autorización de la solicitud anterior.
+            registeredApplicant = nil
+            registeredDocument = ""
+            applicantId = nil
+            consentId = nil
+            consentBureau = false
+            consentBank = false
+            consentWallet = false
+            sources = .idle
+            result = nil
+            paymentCapacity = nil
+            problem = nil
+            step = .applicant
+            idempotencyKey = UUID().uuidString
+        }
+    }
     var activity = ""
     var seniorityMonths: Int? = 0
     var monthlyIncome: Decimal?
@@ -50,6 +69,12 @@ final class EvaluationFlowModel {
     private(set) var isBusy = false
     private(set) var problem: Problem?
     private(set) var applicantId: UUID?
+    private var registeredApplicant: Applicant?
+    private var registeredDocument = ""
+
+    var existingApplicant: Applicant? {
+        trimmedDocument.uppercased() == registeredDocument ? registeredApplicant : nil
+    }
     private(set) var consentId: UUID?
     private(set) var sources: Loadable<[Integration]> = .idle
     private(set) var result: Assessment?
@@ -70,14 +95,18 @@ final class EvaluationFlowModel {
 
     /// Hay algo que retomar: datos escritos y aún sin resultado.
     var isInProgress: Bool {
-        result == nil && (!trimmedDocument.isEmpty || !activity.isEmpty || monthlyIncome != nil || step != .applicant)
+        result == nil && (!trimmedDocument.isEmpty || !activity.isEmpty || monthlyIncome != nil
+            || requestedAmount != nil || purpose != nil || segment != .person
+            || (seniorityMonths ?? 0) != 0 || termMonths != 12 || step != .applicant)
     }
 
     var isApplicantValid: Bool {
         trimmedDocument.count >= 3
-            && activity.trimmingCharacters(in: .whitespaces).count >= 2
-            && (monthlyIncome ?? 0) > 0
             && purpose != nil
+            && (existingApplicant != nil || (activity.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2
+                && (monthlyIncome ?? 0) > 0 && (seniorityMonths ?? 0) >= 0))
+            && (requestedAmount.map { $0 > 0 } ?? true)
+            && (termMonths.map { (3...120).contains($0) } ?? true)
     }
 
     var primaryActionTitle: String {
@@ -95,7 +124,15 @@ final class EvaluationFlowModel {
     var pendingRequirement: String? {
         switch step {
         case .applicant:
-            isApplicantValid ? nil : "Completa documento, actividad, ingreso mensual y destino del crédito para continuar."
+            if let requestedAmount, requestedAmount <= 0 {
+                "El monto solicitado debe ser mayor que cero o quedar vacío."
+            } else if let termMonths, !(3...120).contains(termMonths) {
+                "Elige un plazo entre 3 y 120 meses."
+            } else if existingApplicant != nil {
+                isApplicantValid ? nil : "Elige el destino de esta nueva solicitud para continuar."
+            } else {
+                isApplicantValid ? nil : "Completa documento, actividad, ingreso positivo, antigüedad válida y destino del crédito para continuar."
+            }
         case .consent:
             consentBureau ? nil : "El cliente debe autorizar la consulta a burós para continuar."
         case .sources, .result:
@@ -103,10 +140,13 @@ final class EvaluationFlowModel {
         }
     }
 
-    func prefill(document: String) {
+    func prefill(document: String, applicant: Applicant? = nil) {
         guard !isInProgress else { return }
         restart()
         self.document = document
+        registeredApplicant = applicant
+        registeredDocument = trimmedDocument.uppercased()
+        applicantId = applicant?.id
     }
 
     func next() async {
@@ -142,6 +182,8 @@ final class EvaluationFlowModel {
         step = .applicant
         problem = nil
         applicantId = nil
+        registeredApplicant = nil
+        registeredDocument = ""
         consentId = nil
         sources = .idle
         result = nil
@@ -153,44 +195,49 @@ final class EvaluationFlowModel {
 
     /// Reutiliza el solicitante si el documento ya existe; si no, lo crea.
     private func saveApplicant() async {
-        guard isApplicantValid, let monthlyIncome, let purpose else {
+        guard isApplicantValid, let purpose else {
             problem = .incompleteApplicant
             return
         }
         problem = nil
-        do {
-            if let existing = try await existingApplicantId() {
-                applicantId = existing
-            } else {
-                applicantId = try await createApplicant(income: monthlyIncome, purpose: purpose)
-            }
+        if let existingApplicant {
+            applicantId = existingApplicant.id
             step = .consent
+            return
+        }
+        do {
+            if let existing = try await findExistingApplicant() {
+                useExistingApplicant(existing)
+            } else {
+                guard let monthlyIncome else { return }
+                let created = try await service.createApplicant(NewApplicant(
+                    document: trimmedDocument, activity: activity.trimmingCharacters(in: .whitespacesAndNewlines),
+                    activitySeniorityMonths: seniorityMonths ?? 0, monthlyIncome: monthlyIncome.apiString,
+                    currency: .bob, creditPurpose: purpose.rawValue, segment: segment
+                ))
+                applicantId = created.id
+                step = .consent
+            }
+        } catch let error as APIError where error.code == .applicantAlreadyExists {
+            do {
+                guard let existing = try await findExistingApplicant() else { throw error }
+                useExistingApplicant(existing)
+            } catch { fail(with: error) }
         } catch {
             fail(with: error)
         }
     }
 
-    private func existingApplicantId() async throws -> UUID? {
+    private func findExistingApplicant() async throws -> Applicant? {
         // El documento viaja en la cabecera X-Documento, nunca en la URL (B-08).
-        try await service.applicants(page: 1, size: 1, segment: nil, document: trimmedDocument).items.first?.id
+        try await service.applicants(page: 1, size: 1, segment: nil, document: trimmedDocument).items.first
     }
 
-    private func createApplicant(income: Decimal, purpose: CreditPurpose) async throws -> UUID {
-        do {
-            return try await service.createApplicant(NewApplicant(
-                document: trimmedDocument,
-                activity: activity.trimmingCharacters(in: .whitespacesAndNewlines),
-                activitySeniorityMonths: max(0, seniorityMonths ?? 0),
-                monthlyIncome: income.apiString,
-                currency: .bob,
-                creditPurpose: purpose.rawValue,
-                segment: segment
-            )).id
-        } catch let error as APIError where error.code == .applicantAlreadyExists {
-            // Alta simultánea del mismo documento (409): se reutiliza el que ganó.
-            guard let id = try await existingApplicantId() else { throw error }
-            return id
-        }
+    private func useExistingApplicant(_ applicant: Applicant) {
+        registeredApplicant = applicant
+        registeredDocument = trimmedDocument.uppercased()
+        applicantId = applicant.id
+        problem = .existingApplicant
     }
 
     // MARK: Paso 2

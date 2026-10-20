@@ -70,3 +70,54 @@ struct LoadingView: View {
             .padding(.vertical, 40)
     }
 }
+
+/// Estado de actualización que acompaña contenido conservado, sin bloquearlo.
+struct RefreshStatusView: View {
+    let isRefreshing: Bool
+    let lastUpdatedAt: Date?
+    let error: APIError?
+    let retry: () async -> Void
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let error {
+                NoticeCard(title: "No pudimos actualizar", message: error.message, tone: .warning) {
+                    Button("Reintentar actualización") { Task { await retry() } }
+                        .disabled(isRefreshing)
+                }
+            }
+            if isRefreshing {
+                ProgressView("Actualizando…")
+            } else if let lastUpdatedAt {
+                Text("Última actualización: \(lastUpdatedAt.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(locale)))")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// Reintento explícito para páginas incompletas; no depende de una fila visible.
+struct PaginationFooter: View {
+    let isLoading: Bool
+    let error: APIError?
+    var title = "Cargar más"
+    let load: () async -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let error {
+                NoticeCard(title: "No pudimos cargar más resultados", message: error.message, tone: .warning)
+            }
+            if isLoading {
+                ProgressView("Cargando más resultados…")
+            } else {
+                Button(error == nil ? title : "Reintentar carga") { Task { await load() } }
+                    .dcSecondaryButtonStyle()
+                    .controlSize(.large)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}

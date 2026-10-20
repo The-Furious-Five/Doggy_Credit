@@ -41,6 +41,9 @@ struct ReviewQueueView: View {
         guard queue.phase == .loaded else { return nil }
         let total = queue.total == 1 ? "1 caso pendiente" : "\(Format.number(queue.total)) casos pendientes"
         guard queue.filter != .all else { return total }
+        if queue.hasMore {
+            return "\(queue.filter.rawValue): \(Format.number(queue.visibleCases.count)) entre \(Format.number(queue.cases.count)) casos cargados"
+        }
         return "\(queue.filter.rawValue): \(Format.number(queue.visibleCases.count)) de \(total)"
     }
 
@@ -77,12 +80,23 @@ struct ReviewQueueView: View {
     private var list: some View {
         List {
             Section {
+                RefreshStatusView(isRefreshing: queue.isRefreshing, lastUpdatedAt: queue.lastUpdatedAt,
+                                  error: queue.phase.error) { await queue.refresh() }
+            }
+            Section {
                 if queue.visibleCases.isEmpty {
-                    ContentUnavailableView(
-                        "Sin casos con este filtro",
-                        systemImage: "line.3.horizontal.decrease.circle",
-                        description: Text("Elige otro filtro para ver los demás casos pendientes.")
-                    )
+                    ContentUnavailableView {
+                        Label {
+                            Text(queue.hasMore ? "Sin coincidencias aún" : "Sin casos con este filtro")
+                                .fixedSize(horizontal: false, vertical: true)
+                        } icon: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                        }
+                    } description: {
+                        Text(queue.hasMore
+                            ? "Hay más casos por cargar. Pulsa Buscar más casos para continuar."
+                            : "Elige otro filtro para ver los demás casos pendientes.")
+                    }
                 }
                 ForEach(queue.visibleCases) { reviewCase in
                     Button {
@@ -124,8 +138,12 @@ struct ReviewQueueView: View {
                     }
                     .task { await queue.loadMoreIfNeeded(after: reviewCase) }
                 }
-                if queue.isLoadingMore {
-                    ProgressView().frame(maxWidth: .infinity)
+                if queue.hasMore {
+                    PaginationFooter(isLoading: queue.isLoadingMore, error: queue.loadMoreError,
+                                     title: queue.filter == .all ? "Cargar más casos" : "Buscar más casos") {
+                        await queue.loadMore()
+                    }
+                    .disabled(queue.isRefreshing)
                 }
             } footer: {
                 Text("Del más antiguo al más reciente. Aprobar o rechazar lo decide una persona y queda en la auditoría.")

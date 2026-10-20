@@ -209,13 +209,16 @@ struct ReasonRow: View {
     let reason: ScoreReason
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: reason.symbol)
-                .foregroundStyle(reason.tone.color)
-                .font(.title3)
-                .accessibilityHidden(true)
-            Text(reason.label)
-            Spacer()
+        AdaptiveStack(verticalAlignment: .firstTextBaseline, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: reason.symbol)
+                    .foregroundStyle(reason.tone.color)
+                    .font(.title3)
+                    .accessibilityHidden(true)
+                Text(reason.label)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             if let points = reason.points, points != 0 {
                 Text(points > 0 ? "+\(points)" : "\(points)")
                     .font(.subheadline.weight(.semibold))

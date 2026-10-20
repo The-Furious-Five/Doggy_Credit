@@ -18,6 +18,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,12 +29,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import com.doggycredit.app.data.Server
 import com.doggycredit.app.ui.DoggyCreditApp
 import com.doggycredit.app.ui.theme.*
+import com.doggycredit.app.ui.components.BrandButton
 
 class MainActivity : FragmentActivity() {
     private val model: AppViewModel by viewModels()
@@ -66,12 +72,14 @@ class MainActivity : FragmentActivity() {
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 }
                 Surface(Modifier.fillMaxSize()) {
-                    Box(Modifier.fillMaxSize()) {
-                        val protected = authenticated && (locked || covered)
-                        BackHandler(enabled = protected) { }
-                        val focus = LocalFocusManager.current
-                        LaunchedEffect(protected) { if (protected) focus.clearFocus(force = true) }
-                        Box(if (protected) Modifier.clearAndSetSemantics { } else Modifier) {
+                    val protected = authenticated && (locked || covered)
+                    ProtectedSession(protected = protected, onLeave = { moveTaskToBack(true) }, cover = {
+                        LockScreen(
+                            unlock = if (covered) null else { { authenticate { locked = false; lockMessage = null } } },
+                            message = lockMessage,
+                            signOut = if (covered) null else { { locked = false; model.signOut() } }
+                        )
+                    }) {
                         DoggyCreditApp(model, signIn = {
                             try { authLauncher.launch(model.auth.authorizationIntent()) }
                             catch (_: Exception) { model.notice = "No se encontró un navegador compatible. Instala o habilita un navegador para iniciar sesión." }
@@ -82,12 +90,6 @@ class MainActivity : FragmentActivity() {
                                 locked = false
                             }
                         }, openConsole = { plans -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Server.CONSOLE + if (plans) "/configuracion" else ""))) }, privacyProtected = protected)
-                        }
-                        if (protected) LockScreen(
-                            unlock = if (covered) null else { { authenticate { locked = false; lockMessage = null } } },
-                            message = lockMessage,
-                            signOut = if (covered) null else { { locked = false; model.signOut() } }
-                        )
                     }
                 }
             }
@@ -121,16 +123,32 @@ class MainActivity : FragmentActivity() {
         super.onStop()
     }
 }
+/** La salida protegida abandona la tarea sin revelar ni desmontar el contenido. */
+@Composable internal fun ProtectedSession(protected: Boolean, onLeave: () -> Unit,
+                                         cover: @Composable () -> Unit, content: @Composable () -> Unit) {
+    val focus = LocalFocusManager.current
+    LaunchedEffect(protected) { if (protected) focus.clearFocus(force = true) }
+    Box(Modifier.fillMaxSize()) {
+        Box(if (protected) Modifier.clearAndSetSemantics { } else Modifier) { content() }
+        if (protected) cover()
+    }
+    // Se registra al entrar en la portada, después del NavHost y sus manejadores.
+    // Mantenerlo instalado antes del contenido permite que la navegación cubierta lo preceda.
+    if (protected) BackHandler(onBack = onLeave)
+}
 @Composable internal fun LockScreen(unlock: (() -> Unit)?, message: String?, signOut: (() -> Unit)? = null) {
-    Column(Modifier.fillMaxSize().background(Pine).pointerInput(Unit) { detectTapGestures(onTap = {}) }.safeDrawingPadding().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Image(painterResource(R.drawable.brand_horizontal_inverted), "DoggyCredit", Modifier.fillMaxWidth().height(90.dp))
-        Spacer(Modifier.height(32.dp))
-        if (unlock != null) {
-            Text("Tu información está protegida", color = Ivory, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = unlock, colors = ButtonDefaults.buttonColors(containerColor = Ivory, contentColor = Pine)) { Text("Desbloquear") }
-            message?.let { Text(it, color = Ivory, modifier = Modifier.padding(top = 16.dp)) }
-            signOut?.let { TextButton(onClick = it) { Text("Cerrar sesión", color = Ivory) } }
+    BoxWithConstraints(Modifier.fillMaxSize().background(Pine).pointerInput(Unit) { detectTapGestures(onTap = {}) }.safeDrawingPadding()) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Image(painterResource(R.drawable.brand_horizontal_inverted), "DoggyCredit", Modifier.fillMaxWidth().height(90.dp))
+            Spacer(Modifier.height(32.dp))
+            if (unlock != null) {
+                Text("Tu información está protegida", color = Ivory, style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(24.dp))
+                BrandButton("Desbloquear", unlock)
+                message?.let { Text(it, color = Ivory, modifier = Modifier.padding(top = 16.dp).semantics { liveRegion = LiveRegionMode.Polite }) }
+                signOut?.let { TextButton(onClick = it) { Text("Cerrar sesión", color = Ivory) } }
+            }
         }
     }
 }

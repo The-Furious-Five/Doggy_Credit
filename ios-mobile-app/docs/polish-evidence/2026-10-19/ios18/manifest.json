@@ -1,0 +1,138 @@
+[
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "Acceso y servidor con texto máximo.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "Acceso y servidor con texto máximo_0_3AA3BD0B-05BD-40FC-B6C6-1BD5A18C5C51.png",
+        "timestamp": 1792461961.293
+      }
+    ],
+    "testIdentifier": "ScreenTourUITests/testMaximumTextKeepsSignInAndServerReachable()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appUITests/ScreenTourUITests/testMaximumTextKeepsSignInAndServerReachable",
+    "resultBundle": "/tmp/doggycredit-ios-polish-verified-ios18.xcresult"
+  },
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "welcome-dark-accessibility-middle.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-dark-accessibility-middle_0_47AE538E-FE95-4F6B-942F-15BBD8BC0DF2.png",
+        "timestamp": 1792462176.618
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "draft-conflict-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "draft-conflict-dark-accessibility-bottom_0_DC6D4694-658F-45E8-94E0-A825EC2B0733.png",
+        "timestamp": 1792462175.861
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "draft-conflict-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "draft-conflict-dark-accessibility_0_BBC6EDA2-49EE-4865-9433-AB186B170A0F.png",
+        "timestamp": 1792462175.716
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "result-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "result-dark-accessibility-bottom_0_46164561-1CC2-4D2C-B134-98CAD49E2F9A.png",
+        "timestamp": 1792462175.207
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "existing-applicant-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "existing-applicant-dark-accessibility-bottom_0_C35EFE42-4B14-4482-B240-1D83F6CEA35F.png",
+        "timestamp": 1792462174.226
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "existing-applicant-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "existing-applicant-dark-accessibility_0_7EC652D6-9C80-4D79-803B-B4107DFAD566.png",
+        "timestamp": 1792462173.75
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "clients-error-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "clients-error-dark-accessibility_0_5D4BA645-EBB0-406E-96DD-48DA17B1FAA9.png",
+        "timestamp": 1792462171.752
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "welcome-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-light_0_354429ED-42CD-42D1-A0A5-5C31E0096AA1.png",
+        "timestamp": 1792462171.244
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "review-filter-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "review-filter-light_0_86FDC83C-63FE-4582-B59C-38923C70EFF7.png",
+        "timestamp": 1792462169.129
+      }
+    ],
+    "testIdentifier": "HardeningScreensTests/testHardenedScreens()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appTests/HardeningScreensTests/testHardenedScreens",
+    "resultBundle": "/tmp/doggycredit-ios-polish-layout-ios18.xcresult"
+  },
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "draft-conflict-dark-accessibility-landscape-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "draft-conflict-dark-accessibility-landscape-bottom_0_EEF62C84-7598-4107-9E8C-7BCBC47E0B44.png",
+        "timestamp": 1792462184.371
+      }
+    ],
+    "testIdentifier": "HardeningScreensTests/testPolishedLandscapeScreens()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appTests/HardeningScreensTests/testPolishedLandscapeScreens",
+    "resultBundle": "/tmp/doggycredit-ios-polish-layout-ios18.xcresult"
+  },
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "7168EEE2-0BC5-42C7-9C61-AE21439BDC3B",
+        "deviceName": "DoggyCredit iPhone 16 (iOS 18.4)",
+        "exportedFileName": "Acceso en horizontal.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "Acceso en horizontal_0_A6A53227-4CE0-4061-808A-6DC3CEB21EE7.png",
+        "timestamp": 1792462192.976
+      }
+    ],
+    "testIdentifier": "ScreenTourUITests/testWelcomeInLandscape()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appUITests/ScreenTourUITests/testWelcomeInLandscape",
+    "resultBundle": "/tmp/doggycredit-ios-polish-layout-ios18.xcresult"
+  }
+]

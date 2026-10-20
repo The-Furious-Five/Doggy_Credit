@@ -4,6 +4,7 @@ import SwiftUI
 struct EvaluationFlowView: View {
     @Environment(SessionStore.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FocusState private var focusedField: EvaluationField?
 
     private var flow: EvaluationFlowModel { session.evaluation }
@@ -18,6 +19,7 @@ struct EvaluationFlowView: View {
                 case .result: resultStep
                 }
             }
+            .disabled(flow.isBusy)
             .dcTopBar {
                 StepProgressView(current: flow.step)
                     .padding(.horizontal)
@@ -79,7 +81,7 @@ struct EvaluationFlowView: View {
 
     private var actionBar: some View {
         VStack(spacing: 8) {
-            if let requirement = flow.pendingRequirement {
+            if let requirement = flow.pendingRequirement, !dynamicTypeSize.isAccessibilitySize {
                 Text(requirement)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -134,6 +136,7 @@ struct EvaluationFlowView: View {
                     }
                     .dcProminentButtonStyle()
                     .disabled(flow.isBusy || flow.pendingRequirement != nil)
+                    .accessibilityHint(flow.pendingRequirement ?? "")
                     .accessibilityIdentifier("evaluation.primary")
                 }
             }
@@ -169,14 +172,14 @@ struct StepProgressView: View {
                         .frame(height: 4)
                 }
             }
-            HStack {
+            AdaptiveStack(verticalAlignment: .firstTextBaseline, spacing: 6) {
                 Text("Paso \(current.rawValue + 1) de \(EvaluationFlowModel.Step.allCases.count)")
                     .foregroundStyle(.secondary)
                 Text(current.title)
                     .fontWeight(.semibold)
-                Spacer()
             }
             .font(.footnote)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Paso \(current.rawValue + 1) de \(EvaluationFlowModel.Step.allCases.count): \(current.title)")

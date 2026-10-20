@@ -26,6 +26,13 @@ final class SessionStore {
     let search: ClientSearchModel
     let evaluation: EvaluationFlowModel
 
+    struct EvaluationRequest {
+        let document: String?
+        let applicant: Applicant?
+    }
+
+    var pendingEvaluation: EvaluationRequest?
+
     init(user: UserSession, configuration: AuthConfiguration, service: any DoggyCreditService) {
         self.user = user
         self.configuration = configuration
@@ -68,8 +75,35 @@ final class SessionStore {
     }
 
     /// Abre la evaluación; con documento, la precarga (búsqueda sin resultados, reevaluar).
-    func startEvaluation(document: String? = nil) {
-        if let document { evaluation.prefill(document: document) }
+    func startEvaluation(document: String? = nil, applicant: Applicant? = nil) {
+        guard !evaluation.isBusy else { return }
+        let requestedDocument = document ?? applicant?.document
+        if evaluation.isInProgress {
+            let sameApplicant = requestedDocument.map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() == evaluation.trimmedDocument.uppercased()
+            } ?? false
+            if !sameApplicant {
+                pendingEvaluation = EvaluationRequest(document: requestedDocument, applicant: applicant)
+                return
+            }
+        } else if let requestedDocument {
+            evaluation.prefill(document: requestedDocument, applicant: applicant)
+        }
+        router.isEvaluationPresented = true
+    }
+
+    func continueEvaluation() {
+        pendingEvaluation = nil
+        router.isEvaluationPresented = true
+    }
+
+    func replaceEvaluation(_ confirmedRequest: EvaluationRequest? = nil) {
+        guard let request = confirmedRequest ?? pendingEvaluation, !evaluation.isBusy else { return }
+        evaluation.restart()
+        if let document = request.document {
+            evaluation.prefill(document: document, applicant: request.applicant)
+        }
+        pendingEvaluation = nil
         router.isEvaluationPresented = true
     }
 

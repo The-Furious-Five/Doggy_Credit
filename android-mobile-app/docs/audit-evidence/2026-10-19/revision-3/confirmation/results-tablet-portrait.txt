@@ -1,0 +1,8 @@
+
+com.doggycredit.app.AuditRemediationTests:....
+
+Time: 10,636
+
+OK (4 tests)
+
+

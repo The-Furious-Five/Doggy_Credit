@@ -1,0 +1,17 @@
+{
+  "audit_probes": 4,
+  "previous_polish_runs": {
+    "phone": 17,
+    "narrow": 3,
+    "phone-landscape": 3,
+    "tablet-portrait": 3,
+    "tablet-landscape": 3
+  },
+  "previous_unit_results": {
+    "tests": 42,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "release_bytes": 2568857
+}

@@ -7,6 +7,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.doggycredit.app.auth.*
@@ -22,32 +24,36 @@ import java.io.File
 /** Fixtures compiladas solo en el APK de instrumentación, sin modificar datos del VPS. */
 class AuthenticatedFlowTests {
     @get:Rule val compose = createComposeRule()
-    private fun launch(dark: Boolean = false, fontScale: Float = 1f, privacy: State<Boolean>? = null): AppViewModel {
+    private fun launch(dark: Boolean = false, fontScale: Float = 1f, privacy: State<Boolean>? = null,
+        api: DoggyCreditApi = FixtureApi(), lock: MutableState<Boolean>? = null, session: SessionController = FixtureSession()): AppViewModel {
         val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as DoggyCreditApplication
-        val vm = AppViewModel(context, FixtureSession(), FixtureApi())
+        val vm = AppViewModel(context, session, api)
         compose.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                DoggyCreditTheme(darkTheme = dark) { DoggyCreditApp(vm, {}, false, false, {}, {}, privacyProtected = privacy?.value ?: false) }
+                DoggyCreditTheme(darkTheme = dark) { DoggyCreditApp(vm, {}, lock?.value ?: false, lock != null,
+                    { lock?.value = it }, {}, privacyProtected = privacy?.value ?: false) }
             }
         }
-        compose.waitUntil(10_000) { !vm.restoring && vm.home.value != null && vm.reviews.value != null }
+        compose.waitUntil(10_000) { !vm.restoring && vm.home.value != null && (vm.reviews.value != null || vm.reviews.error != null) }
         compose.waitForIdle()
         compose.mainClock.advanceTimeBy(1000)
         return vm
     }
     @Test fun clientsOpenFinancialProfileAndAssessment() {
         launch()
-        compose.onNodeWithText("Clientes").performClick()
+        navigate("Clientes")
         compose.onNodeWithText("CLIENT-001").performClick()
         compose.onNodeWithText("Perfil Financiero 360").assertExists()
-        compose.onNodeWithText("Historial de evaluaciones").performScrollTo()
-        compose.onNodeWithText("Preaprobado").performScrollTo().performClick()
+        profileNode("Historial de evaluaciones")
+        profileNode("Preaprobado").performClick()
         compose.onNodeWithContentDescription("Score 710 de 1000, banda B").assertExists()
         capture("assessment")
+        compose.onNodeWithContentDescription("Volver").performClick()
+        compose.onNodeWithText("Preaprobado").assertIsDisplayed()
     }
     @Test fun evaluationCompletesFourNativeSteps() {
-        launch()
+        val vm = launch()
         compose.onNodeWithContentDescription("Nueva evaluación").performClick()
         field("CI o NIT", "CLIENT-001")
         field("Actividad económica", "Comercio")
@@ -60,10 +66,14 @@ class AuthenticatedFlowTests {
         compose.waitUntil(10_000) { compose.onAllNodesWithContentDescription("Score 710 de 1000, banda B").fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodesWithText("Sin mora en los últimos 12 meses").onLast().assertExists()
         capture("evaluation-result")
+        compose.onNodeWithText("Listo").performClick()
+        compose.onNodeWithContentDescription("Nueva evaluación").performClick()
+        compose.onNode(hasSetTextAction() and hasText("CI o NIT")).assertExists()
+        compose.runOnIdle { org.junit.Assert.assertEquals("", vm.draft.document); org.junit.Assert.assertNull(vm.draft.result) }
     }
     @Test fun reviewRequiresJustificationAndRecordsResolution() {
         launch()
-        compose.onNodeWithText("Revisión").performClick()
+        navigate("Revisión")
         compose.onNodeWithText("Resolver caso").performClick()
         compose.onNodeWithText("Rechazado").performScrollTo().performClick()
         field("Justificación obligatoria", "Capacidad de pago verificada durante la visita")
@@ -74,7 +84,7 @@ class AuthenticatedFlowTests {
     }
     @Test fun analyticsAndAccountExposePlanAndPrivacy() {
         launch()
-        compose.onNodeWithText("Analítica").performClick()
+        navigate("Analítica")
         compose.onNodeWithText("Necesidades detectadas").performScrollTo().assertExists()
         capture("analytics")
         compose.onNodeWithContentDescription("Cuenta de Analista de pruebas").performClick()
@@ -85,9 +95,13 @@ class AuthenticatedFlowTests {
     }
     @Test fun rootUsesBrandAndKeepsDraftAcrossNavigation() {
         val vm = launch()
+        compose.onNodeWithText("Resolver caso").assertIsDisplayed()
+        val action = compose.onNodeWithText("Resolver caso").fetchSemanticsNode().boundsInRoot
+        val fab = compose.onNodeWithContentDescription("Nueva evaluación").fetchSemanticsNode().boundsInRoot
+        org.junit.Assert.assertTrue("La primera resolución debe verse sin desplazarse ni quedar bajo el FAB", action.bottom <= fab.top)
         capture("home")
         compose.runOnIdle { vm.draft.document = "CLIENT-001" }
-        compose.onNodeWithText("Clientes").performClick()
+        navigate("Clientes")
         compose.onNodeWithText("Retomar").assertExists().performClick()
         compose.onNode(hasSetTextAction() and hasText("CLIENT-001")).assertExists()
     }
@@ -105,14 +119,14 @@ class AuthenticatedFlowTests {
     @Test fun darkThemeSupportsLargeSystemText() {
         launch(dark = true, fontScale = 1.4f)
         compose.onNodeWithContentDescription("Nueva evaluación").assertExists().assertHasClickAction()
-        compose.onNodeWithText("Clientes").performClick()
+        navigate("Clientes")
         compose.onNodeWithText("CLIENT-001").assertExists()
         capture("clients-dark-large-text")
     }
     @Test fun privacyHidesEvaluationWithoutLosingDraftOrNavigation() {
         val privacy = mutableStateOf(false)
         val vm = launch(privacy = privacy)
-        compose.onNodeWithText("Clientes").performClick()
+        navigate("Clientes")
         compose.onNodeWithContentDescription("Nueva evaluación").performClick()
         field("CI o NIT", "CLIENT-001")
         compose.runOnIdle { privacy.value = true }
@@ -122,6 +136,196 @@ class AuthenticatedFlowTests {
         compose.onNodeWithContentDescription("Cerrar y conservar borrador").performClick()
         compose.onNode(hasText("Clientes") and isSelected()).assertExists()
         compose.runOnIdle { org.junit.Assert.assertEquals("CLIENT-001", vm.draft.document) }
+    }
+    @Test fun newEvaluationFromAnotherProfileRequiresAnExplicitChoice() {
+        val vm = launch()
+        compose.runOnIdle { vm.draft.document = "OLD-001"; vm.draft.income = "3500" }
+        navigate("Clientes")
+        compose.onNodeWithText("CLIENT-001").performClick()
+        compose.onNodeWithText("Nueva evaluación").performClick()
+        compose.onNodeWithText("Tienes una evaluación en curso").assertExists()
+        compose.onNodeWithText("El borrador corresponde a OLD-001.").assertExists()
+        compose.onNodeWithText("Quieres iniciar una evaluación para CLIENT-001.").assertExists()
+        compose.onNodeWithText("Cancelar").performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals("OLD-001", vm.draft.document) }
+        compose.onNodeWithText("Nueva evaluación").performClick()
+        compose.onNodeWithText("Retomar evaluación").performClick()
+        compose.onNode(hasSetTextAction() and hasText("OLD-001")).assertExists()
+        compose.onNodeWithContentDescription("Cerrar y conservar borrador").performClick()
+        compose.onNodeWithText("Nueva evaluación").performClick()
+        compose.onNodeWithText("Descartar y crear nueva").performClick()
+        compose.onNode(hasSetTextAction() and hasText("CLIENT-001")).assertExists()
+        compose.runOnIdle { org.junit.Assert.assertEquals("", vm.draft.income) }
+    }
+    @Test fun draftConflictRespectsMaskingPrivacyAndBusyState() {
+        val privacy = mutableStateOf(false)
+        val api = object : DoggyCreditApi by FixtureApi() { override suspend fun preferences() = Preferences(true) }
+        val vm = launch(fontScale = 1.4f, dark = true, privacy = privacy, api = api, session = FixtureSession(listOf("ANALYST")))
+        compose.runOnIdle {
+            vm.draft.document = "OLD-001"
+            vm.draft.busy = true
+            vm.startEvaluation("CLIENT-001")
+        }
+        compose.onNodeWithText("El borrador corresponde a ${Display.document("OLD-001", true)}.").assertExists()
+        compose.onNodeWithText("El borrador corresponde a OLD-001.").assertDoesNotExist()
+        compose.onNodeWithText("Descartar y crear nueva").assertIsNotEnabled()
+        compose.runOnIdle { privacy.value = true }
+        compose.onNodeWithText("Tienes una evaluación en curso").assertDoesNotExist()
+        compose.runOnIdle { privacy.value = false; vm.draft.busy = false }
+        compose.onNodeWithText("Descartar y crear nueva").assertIsEnabled()
+        compose.onNodeWithText("Cancelar").performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals("OLD-001", vm.draft.document) }
+    }
+    @Test fun validationIdentifiesAndFocusesTheInvalidField() {
+        val vm = launch()
+        compose.onNodeWithContentDescription("Nueva evaluación").performClick()
+        field("CI o NIT", "CLIENT-001")
+        field("Actividad económica", "Comercio")
+        field("Ingreso mensual declarado (Bs)", "5000,50")
+        field("Plazo (meses)", "361")
+        compose.onNodeWithText("Capital de trabajo").performScrollTo().performClick()
+        compose.onAllNodesWithText("Continuar").onLast().performClick()
+        compose.onNodeWithText("El plazo debe estar entre 1 y 360 meses.").assertIsDisplayed()
+        compose.onNode(hasSetTextAction() and hasText("Plazo (meses)")).assertIsFocused()
+        compose.runOnIdle { org.junit.Assert.assertEquals(0, vm.draft.step) }
+        field("Plazo (meses)", "12")
+        compose.onNodeWithText("El plazo debe estar entre 1 y 360 meses.").assertDoesNotExist()
+        compose.onAllNodesWithText("Continuar").onLast().performClick()
+        compose.onNodeWithText("Autorización del cliente").assertExists()
+    }
+    @Test fun filteredInboxDoesNotClaimAnEmptyQueueBeforeAllPagesAreLoaded() {
+        val first = ReviewCase("r1", "a1", "PENDING-1", "2026-10-01T00:00:00Z", 550, "C", "REVISION_MANUAL", false, emptyList())
+        val second = first.copy(assessmentId = "r2", document = "PARTIAL-2", partial = true)
+        val api = object : DoggyCreditApi by FixtureApi() {
+            override suspend fun reviewCases(page: Int, size: Int) = ReviewPage(listOf(if (page == 1) first else second), 2, emptyList())
+        }
+        launch(api = api)
+        navigate("Revisión")
+        compose.onNodeWithText("Parciales").performScrollTo().performClick()
+        compose.onNodeWithText("Sin coincidencias en los casos cargados").assertExists()
+        compose.onNodeWithText("Sin casos pendientes").assertDoesNotExist()
+        capture("reviews-partial-filter")
+        compose.onNodeWithText("Cargar más casos").performScrollTo().performClick()
+        compose.onNodeWithText("PARTIAL-2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Sin coincidencias en los casos cargados").assertDoesNotExist()
+    }
+    @Test fun accountLockCanBeToggledByItsAccessibleLabel() {
+        val lock = mutableStateOf(false)
+        launch(lock = lock)
+        compose.onNodeWithContentDescription("Cuenta de Analista de pruebas").performClick()
+        compose.onNode(hasText("Bloquear la aplicación") and isToggleable()).performScrollTo().assertIsOff().performClick().assertIsOn()
+        compose.runOnIdle { org.junit.Assert.assertTrue(lock.value) }
+    }
+    @Test fun homeLayoutKeepsWorkReachableWithLargeTextAndLongContent() {
+        val base = FixtureApi()
+        val api = object : DoggyCreditApi by base {
+            override suspend fun tenant() = base.tenant().copy(name = "Cooperativa de ahorro y crédito para emprendedores y pequeñas empresas de Bolivia")
+            override suspend fun usage() = TenantUsage(Int.MAX_VALUE, Int.MAX_VALUE)
+            override suspend fun applicants(page: Int, size: Int, segment: String?, document: String?) =
+                base.applicants(page, size, segment, document).copy(total = Int.MAX_VALUE)
+            override suspend fun reviewCases(page: Int, size: Int): ReviewPage {
+                val response = base.reviewCases(page, size)
+                return response.copy(items = response.items.map { it.copy(score = 1000,
+                    purpose = "Inversión productiva para ampliar la actividad económica y renovar equipamiento",
+                    reasons = listOf("La información consolidada requiere verificar la capacidad de pago y contrastar las fuentes autorizadas durante la visita.")) })
+            }
+        }
+        val vm = launch(dark = true, fontScale = 2f, api = api)
+        compose.runOnIdle { vm.draft.document = "CLIENT-001" }
+        compose.onNodeWithText("Continuar").performScrollTo().assertIsDisplayed()
+        assertAboveLargeTextActions(compose.onNodeWithText("Continuar"))
+        capture("home-draft-large-text")
+        compose.onNodeWithContentDescription("Score 1000 de 1000, banda C").performScrollTo().assertIsDisplayed()
+        assertAboveLargeTextActions(compose.onNodeWithContentDescription("Score 1000 de 1000, banda C"))
+        capture("home-large-text-score")
+        compose.onNodeWithText("Resolver caso").performScrollTo().assertIsDisplayed()
+        assertAboveLargeTextActions(compose.onNodeWithText("Resolver caso"))
+        capture("home-large-text-review")
+        compose.onNodeWithText("Ver bandeja").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Clientes en cartera").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Actividad de este mes").performScrollTo().assertIsDisplayed()
+        assertAboveLargeTextActions(compose.onNodeWithText("Actividad de este mes"))
+        capture("home-large-text-summary")
+        compose.onNodeWithText("Retomar").performClick()
+        compose.onNode(hasSetTextAction() and hasText("CLIENT-001")).assertExists()
+    }
+    private fun assertAboveLargeTextActions(node: SemanticsNodeInteraction) {
+        val content = node.fetchSemanticsNode().boundsInRoot
+        val actions = compose.onNodeWithTag("large-text-actions").fetchSemanticsNode().boundsInRoot
+        org.junit.Assert.assertTrue("El contenido debe quedar completamente por encima de las acciones fijas", content.bottom <= actions.top)
+    }
+    @Test fun homeEmptyAndErrorStatesKeepRecoveryReachable() {
+        var available = false
+        val base = FixtureApi()
+        val api = object : DoggyCreditApi by base {
+            override suspend fun reviewCases(page: Int, size: Int): ReviewPage {
+                if (!available) throw java.io.IOException("Revisa tu conexión y vuelve a intentarlo.")
+                return ReviewPage(emptyList(), 0, emptyList())
+            }
+            override suspend fun assessments(applicantId: String?, page: Int, size: Int, since: String?) = Page<AssessmentSummary>(emptyList(), 0)
+        }
+        val vm = launch(api = api)
+        compose.onNodeWithText("Reintentar").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Todo al día").assertDoesNotExist()
+        capture("home-error")
+        available = true
+        compose.onNodeWithText("Reintentar").performClick()
+        compose.waitUntil(10_000) { vm.reviews.value != null }
+        compose.onNodeWithText("Todo al día").assertIsDisplayed()
+        capture("home-empty")
+        compose.onNodeWithText("Nueva evaluación").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("CI o NIT")).assertExists()
+    }
+    @Test fun polishedPathKeepsProfileResultReviewAndAnalyticsLegible() {
+        val base = FixtureApi()
+        val api = object : DoggyCreditApi by base {
+            override suspend fun assessment(id: String) = base.assessment(id).copy(score = 1000)
+            override suspend fun analytics(from: String, to: String) = base.analytics(from, to).copy(assessments = Int.MAX_VALUE)
+        }
+        launch(dark = true, fontScale = 2f, api = api)
+        compose.onNodeWithContentDescription("Cuenta de Analista de pruebas").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        navigate("Clientes")
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("CLIENT-001"))
+        compose.onNodeWithText("CLIENT-001").performClick()
+        profileNode("Capacidad de pago").assertIsDisplayed()
+        capture("polish-profile-large-text")
+        profileNode("Preaprobado").performClick()
+        compose.onNodeWithContentDescription("Score 1000 de 1000, banda B").performScrollTo().assertIsDisplayed()
+        capture("polish-result-large-text")
+        compose.onNodeWithText("Resultado de la evaluación").performScrollTo().assertIsDisplayed()
+        navigate("Revisión")
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Resolver caso"))
+        compose.onNodeWithText("Resolver caso").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Score 550 de 1000, banda C").performScrollTo().assertIsDisplayed()
+        capture("polish-resolution-large-text")
+        compose.onNodeWithText("Ver evaluación").performScrollTo().assertIsDisplayed()
+        navigate("Analítica")
+        val count = compose.onNodeWithText(Display.number(Int.MAX_VALUE)).performScrollTo().assertIsDisplayed()
+        val textLayouts = mutableListOf<TextLayoutResult>()
+        count.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(textLayouts) }
+        capture("polish-analytics-metrics-large-text")
+
+        compose.onNodeWithContentDescription("Distribución de 12 necesidades registradas.", substring = true).performScrollTo().assertIsDisplayed()
+        capture("polish-analytics-chart-large-text")
+        // Los anchos intrínsecos pueden diferir por una fracción de píxel al redondear.
+        org.junit.Assert.assertTrue("El contador debe ser legible sin recortar sus cifras: " + textLayouts.joinToString {
+            "${it.size}, líneas=${it.lineCount}, borde=${it.getLineRight(it.lineCount - 1)}"
+        }, textLayouts.isNotEmpty() && textLayouts.none { layout ->
+            layout.didOverflowHeight || (0 until layout.lineCount).any { line ->
+                layout.getLineRight(line) > layout.size.width + 1f || layout.getLineLeft(line) < -1f
+            }
+        })
+    }
+    private fun navigate(label: String) {
+        val menu = compose.onAllNodesWithContentDescription("Abrir navegación")
+        if (menu.fetchSemanticsNodes().isNotEmpty()) {
+            menu.onFirst().performClick()
+            compose.onNode(hasText(label) and hasClickAction()).performScrollTo().performClick()
+        } else compose.onNode(hasText(label) and hasClickAction()).performClick()
+    }
+    private fun profileNode(text: String): SemanticsNodeInteraction {
+        compose.onNodeWithTag("page-scroll").performScrollToNode(hasText(text))
+        return compose.onNodeWithText(text)
     }
     private fun field(label: String, text: String) { compose.onNode(hasSetTextAction() and hasText(label)).performScrollTo().performTextReplacement(text) }
     private fun capture(name: String) {
@@ -133,8 +337,8 @@ class AuthenticatedFlowTests {
         }
     }
 }
-private class FixtureSession : SessionController {
-    override val user = MutableStateFlow<UserSession?>(UserSession("Analista de pruebas", "test", "t1", listOf("TENANT_ADMIN")))
+internal class FixtureSession(roles: List<String> = listOf("TENANT_ADMIN")) : SessionController {
+    override val user = MutableStateFlow<UserSession?>(UserSession("Analista de pruebas", "test", "t1", roles))
     override fun authorizationIntent() = Intent()
     override suspend fun complete(data: Intent): SessionTokens? = null
     override suspend fun restore() {}
@@ -143,7 +347,7 @@ private class FixtureSession : SessionController {
     override suspend fun accessToken(rejectedToken: String?) = "test-only"
     override suspend fun reject(token: String) { user.value = null }
 }
-private class FixtureApi : DoggyCreditApi {
+internal class FixtureApi : DoggyCreditApi {
     private val applicant = ApiJson.decodeFromString<Applicant>("""{"id":"a1","documento":"CLIENT-001","actividad":"Comercio","antiguedadActividadMeses":24,"ingresosMensuales":"5000.00","moneda":"BOB","destinoCredito":"Capital de trabajo","segmento":"PERSONA","creadoEn":"2026-10-01T14:03:22Z","perfil":{"id":"profile-1","hash":"test-hash","creadoEn":"2026-10-01T14:03:22Z","ingresoMensual":{"amount":"5000.00","currency":"BOB"},"origenIngreso":"DECLARADO","fuentes":[{"fuente":"BURO","estado":"COMPLETA"}]}}""")
     private val summary = AssessmentSummary("e1", "a1", "PREAPROBADO", "PREAPROBADO", 710, "B", "12000.00", 12, "2026-10-01T14:03:22Z")
     private val consent = Consent("c1", "CLIENT-001", listOf("BURO"), "Evaluación de crédito", status = "ACTIVO")

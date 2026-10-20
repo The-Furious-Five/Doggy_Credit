@@ -1,0 +1,23 @@
+
+com.doggycredit.app.AuditNavigationProbeTests:
+Error in protectedBackMustWinOverRealFinancialNavigation(com.doggycredit.app.AuditNavigationProbeTests):
+java.lang.AssertionError: La salida protegida debe recibir Atrás incluso con Cuenta abierta expected:<1> but was:<0>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.doggycredit.app.AuditNavigationProbeTests.protectedBackMustWinOverRealFinancialNavigation(AuditNavigationProbeTests.kt:48)
+
+
+Time: 2,65
+There was 1 failure:
+1) protectedBackMustWinOverRealFinancialNavigation(com.doggycredit.app.AuditNavigationProbeTests)
+java.lang.AssertionError: La salida protegida debe recibir Atrás incluso con Cuenta abierta expected:<1> but was:<0>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.doggycredit.app.AuditNavigationProbeTests.protectedBackMustWinOverRealFinancialNavigation(AuditNavigationProbeTests.kt:48)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+

@@ -78,6 +78,51 @@ consola web desde Cuenta.
 
 ## Pruebas
 
+### Resiliencia y componentes de estado
+
+`DesignSystem/Components/LoadState.swift` incluye los componentes nativos
+`RefreshStatusView` (actualización, antigüedad de los datos y reintento) y
+`PaginationFooter` (carga adicional y recuperación de errores). Ambos reutilizan
+`NoticeCard`, estilos semánticos y controles de SwiftUI. Clientes y Revisión
+conservan el contenido ante errores transitorios y muestran el reintento; un 403
+de actualización retira el contenido conservado. Los filtros de Revisión solo
+declaran un resultado vacío definitivo cuando no quedan páginas pendientes.
+
+Al elegir otro cliente con un borrador abierto, la app permite continuar el
+actual, descartar y empezar otro, o cancelar. La reevaluación de una ficha
+conocida presenta sus datos registrados en solo lectura. Si el documento se
+reconoce durante el alta, se muestra la ficha antes de continuar: actividad e
+ingreso escritos no sustituyen los datos del servidor. La API móvil actual no
+incluye actualización de solicitantes.
+
+`HardeningTests` cubre conflictos de borrador, reevaluación, paginación filtrada,
+reintentos, pérdida de permisos y respuestas antiguas de búsqueda o segmento.
+`HardeningScreensTests` adjunta capturas de las vistas reales con datos sintéticos
+del target de pruebas, en claro y oscuro con texto de accesibilidad. Incluye
+orientación horizontal en iPhone; la rotación física de iPad se comprueba mediante
+`ScreenTourUITests`. No modifica
+el acceso institucional ni incorpora demostraciones a la app distribuida.
+
+### Acabado y texto accesible
+
+La bienvenida integra el acceso en el contenido de iPad y en tamaños de
+accesibilidad. Con texto accesible, «Servidor» despliega el dominio bajo demanda.
+El progreso de evaluación reutiliza `AdaptiveStack`; los requisitos pendientes
+forman parte del formulario desplazable y del nombre de ayuda de la acción.
+`RowHeadline` permite que la fecha ocupe varias líneas con tamaños de accesibilidad.
+`PaginationFooter` usa el tamaño grande del control nativo.
+Las razones del score colocan los puntos debajo de la explicación con texto
+accesible, conservando el ancho de lectura.
+
+El conflicto entre borradores utiliza una hoja nativa con titulares protegidos,
+acciones desplazables y cancelación. La evaluación se abre al terminar de cerrar
+esa hoja. En el resultado, «Copiar identificador» copia la correlación completa,
+también mediante una acción de VoiceOver.
+
+Evidencia y validación del acabado: [polish del 19 de octubre](docs/polish-2026-10-19.md).
+
+### Ejecutar
+
 ```bash
 xcodebuild test -project ios-mobile-app.xcodeproj -scheme ios-mobile-app \
   -destination 'platform=iOS Simulator,name=iPhone 17'

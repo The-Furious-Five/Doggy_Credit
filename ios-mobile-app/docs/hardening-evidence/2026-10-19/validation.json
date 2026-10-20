@@ -1,0 +1,99 @@
+{
+  "iphone": {
+    "result": "Passed",
+    "totalTestCount": 73,
+    "passedTests": 70,
+    "skippedTests": 3,
+    "failedTests": 0,
+    "startTime": 1792460903.895,
+    "finishTime": 1792460944.2,
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+          "deviceName": "iPhone 18 Pro",
+          "modelName": "iPhone 18 Pro",
+          "osBuildNumber": "24A434",
+          "osVersion": "27.0",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 83,
+        "skippedTests": 3,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "resultBundlePath": "/tmp/doggycredit-ios-harden-final-iphone.xcresult"
+  },
+  "ipad": {
+    "result": "Passed",
+    "totalTestCount": 1,
+    "passedTests": 1,
+    "skippedTests": 0,
+    "failedTests": 0,
+    "startTime": 1792460974.635,
+    "finishTime": 1792460990.504,
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+          "deviceName": "iPad Air 11-inch (M4)",
+          "modelName": "iPad Air 11-inch (M4)",
+          "osBuildNumber": "24A434",
+          "osVersion": "27.0",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "resultBundlePath": "/tmp/doggycredit-ios-harden-final-ipad.xcresult"
+  },
+  "access_ui": {
+    "result": "Passed",
+    "totalTestCount": 2,
+    "passedTests": 2,
+    "skippedTests": 0,
+    "failedTests": 0,
+    "startTime": 1792460974.635,
+    "finishTime": 1792461011.904,
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "69C0CD7F-CCAE-47EB-BA95-9DAEBE6AE3BB",
+          "deviceName": "iPhone 18 Pro",
+          "modelName": "iPhone 18 Pro",
+          "osBuildNumber": "24A434",
+          "osVersion": "27.0",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 2,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "resultBundlePath": "/tmp/doggycredit-ios-harden-auth-ui.xcresult"
+  },
+  "captureCounts": {
+    "iphone": 15,
+    "ipad": 14
+  }
+}

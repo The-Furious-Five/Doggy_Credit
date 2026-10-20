@@ -4,6 +4,12 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(SessionStore.self) private var session
     @Environment(AppRouter.self) private var router
+    @State private var conflictAction: ConflictAction?
+
+    private enum ConflictAction {
+        case resume
+        case replace(SessionStore.EvaluationRequest)
+    }
 
     var body: some View {
         @Bindable var router = router
@@ -37,6 +43,24 @@ struct MainTabView: View {
         .sheet(isPresented: $router.isAccountPresented) {
             AccountView()
         }
+        .sheet(isPresented: Binding(
+            get: { session.pendingEvaluation != nil },
+            set: { if !$0 { session.pendingEvaluation = nil } }
+        ), onDismiss: resolveConflict) {
+            if let request = session.pendingEvaluation {
+                EvaluationConflictSheet(
+                    currentDocument: session.evaluation.trimmedDocument.isEmpty ? "Sin documento" : session.privacy.document(session.evaluation.trimmedDocument),
+                    requestedDocument: request.document.map { session.privacy.document($0) } ?? "Sin documento",
+                    resume: {
+                        conflictAction = .resume
+                        session.pendingEvaluation = nil
+                    }, replace: {
+                        conflictAction = .replace(request)
+                        session.pendingEvaluation = nil
+                    }, cancel: { session.pendingEvaluation = nil }
+                )
+            }
+        }
         .sensoryFeedback(.success, trigger: router.completedResolutions)
         .task {
             #if DEBUG
@@ -44,6 +68,57 @@ struct MainTabView: View {
             #endif
             await session.bootstrap()
         }
+    }
+
+    private func resolveConflict() {
+        let action = conflictAction
+        conflictAction = nil
+        // Presentar la evaluación solo cuando haya terminado de cerrarse la confirmación.
+        switch action {
+        case .resume: session.continueEvaluation()
+        case let .replace(request): session.replaceEvaluation(request)
+        case nil: break
+        }
+    }
+}
+
+/// Confirmación desplazable: conserva los dos titulares y las acciones con texto máximo.
+private struct EvaluationConflictSheet: View {
+    let currentDocument: String
+    let requestedDocument: String
+    let resume: () -> Void
+    let replace: () -> Void
+    let cancel: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("En curso") {
+                    Text(currentDocument).documentStyle()
+                    Button("Continuar borrador", action: resume)
+                        .frame(minHeight: 44, alignment: .leading)
+                }
+                Section {
+                    Text(requestedDocument).documentStyle()
+                    Button("Descartar y empezar", role: .destructive, action: replace)
+                        .frame(minHeight: 44, alignment: .leading)
+                } header: {
+                    Text("Nueva solicitud")
+                } footer: {
+                    Text("Descartar borra el borrador. Lo ya registrado se conserva en el servidor.")
+                }
+            }
+            .navigationTitle("Evaluación en curso")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCancelButton(action: cancel)
+                }
+            }
+        }
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
 

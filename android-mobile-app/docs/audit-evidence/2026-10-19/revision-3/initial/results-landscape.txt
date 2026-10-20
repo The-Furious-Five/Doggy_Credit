@@ -1,0 +1,35 @@
+
+com.doggycredit.app.AuditRemediationTests:..
+Error in protectedBackWinsOverRealNavigationAndKeepsEachRouteAndDraft(com.doggycredit.app.AuditRemediationTests):
+java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'CLIENT-001' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:402)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:60)
+	at com.doggycredit.app.AuditRemediationTests.protectedBackWinsOverRealNavigationAndKeepsEachRouteAndDraft(AuditRemediationTests.kt:52)
+
+com.doggycredit.app.ProtectedSessionTests:...
+com.doggycredit.app.AuthenticatedFlowTests:.
+
+Time: 21,615
+There was 1 failure:
+1) protectedBackWinsOverRealNavigationAndKeepsEachRouteAndDraft(com.doggycredit.app.AuditRemediationTests)
+java.lang.AssertionError: Failed to inject touch input.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains 'CLIENT-001' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performTouchInput(Actions.kt:402)
+	at androidx.compose.ui.test.AndroidActions.performClickImpl(Actions.android.kt:23)
+	at androidx.compose.ui.test.ActionsKt.performClick(Actions.kt:60)
+	at com.doggycredit.app.AuditRemediationTests.protectedBackWinsOverRealNavigationAndKeepsEachRouteAndDraft(AuditRemediationTests.kt:52)
+
+FAILURES!!!
+Tests run: 7,  Failures: 1
+
+

@@ -6,6 +6,12 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var usesInlineActions: Bool {
+        dynamicTypeSize.isAccessibilitySize || horizontalSizeClass == .regular
+    }
 
     var body: some View {
         @Bindable var app = app
@@ -15,9 +21,12 @@ struct WelcomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     header
+                        .padding(.horizontal, 24)
+                    if dynamicTypeSize.isAccessibilitySize { actions }
                     highlights
+                        .padding(.horizontal, 24)
+                    if usesInlineActions && !dynamicTypeSize.isAccessibilitySize { actions }
                 }
-                .padding(.horizontal, 24)
                 .padding(.top, 24)
                 .padding(.bottom, 24)
                 .frame(maxWidth: 560, alignment: .leading)
@@ -25,9 +34,11 @@ struct WelcomeView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                actions
-                    .frame(maxWidth: .infinity)
-                    .background(Brand.pine)
+                if !usesInlineActions {
+                    actions
+                        .frame(maxWidth: .infinity)
+                        .background(Brand.pine)
+                }
             }
         }
         .environment(\.colorScheme, .dark)
@@ -94,11 +105,25 @@ struct WelcomeView: View {
                 .tint(Brand.ivory)
                 .controlSize(.large)
                 .disabled(app.isSigningIn)
+                .accessibilityIdentifier("welcome.sign-in")
 
-                Label(app.server.host() ?? app.server.absoluteString, systemImage: "server.rack")
+                if dynamicTypeSize.isAccessibilitySize {
+                    DisclosureGroup {
+                        serverLabel
+                            .padding(.top, 4)
+                    } label: {
+                        Label("Servidor", systemImage: "server.rack")
+                    }
                     .font(.footnote)
+                    .tint(Brand.ivory)
                     .foregroundStyle(Brand.ivory.opacity(0.7))
-                    .padding(.top, 4)
+                    .accessibilityIdentifier("welcome.connection")
+                } else {
+                    Label { serverLabel } icon: { Image(systemName: "server.rack") }
+                        .font(.footnote)
+                        .foregroundStyle(Brand.ivory.opacity(0.7))
+                        .padding(.top, 4)
+                }
             }
         }
         .padding(.horizontal, 24)
@@ -106,19 +131,27 @@ struct WelcomeView: View {
         .padding(.bottom, 12)
         .frame(maxWidth: 560)
     }
+
+    private var serverLabel: some View {
+        Text(app.server.host() ?? app.server.absoluteString)
+            .font(.footnote)
+            .foregroundStyle(Brand.ivory.opacity(0.7))
+            .fixedSize(horizontal: false, vertical: true)
+    }
 }
 
 private struct HighlightRow: View {
     let symbol: String
     let title: String
     let detail: String
+    @ScaledMetric(relativeTo: .title3) private var iconWidth: CGFloat = 30
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: symbol)
                 .font(.title3)
                 .foregroundStyle(Brand.honey)
-                .frame(width: 30)
+                .frame(width: iconWidth)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)

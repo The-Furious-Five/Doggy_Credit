@@ -6,7 +6,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -67,6 +66,7 @@ class ResolutionModel(private val api: DoggyCreditApi, val id: String, preset: S
         }
     }
 }
+@OptIn(ExperimentalLayoutApi::class)
 @Composable fun ResolveScreen(id: String, preset: String?, vm: AppViewModel, client: (String) -> Unit, assessment: (String) -> Unit, done: () -> Unit) {
     val model: ResolutionModel = viewModel(key = id, factory = factory { ResolutionModel(vm.api, id, preset) })
     PageColumn {
@@ -78,18 +78,13 @@ class ResolutionModel(private val api: DoggyCreditApi, val id: String, preset: S
             DataRow("Fecha", Display.date(resolution.resolvedAt))
             Button(onClick = done, modifier = Modifier.fillMaxWidth()) { Text("Volver a la bandeja") }
         } ?: RemoteContent(model.reviewCase, model::load) { item ->
-            BrandPanel {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Score(item.score, item.band, onDark = true)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Eyebrow("Caso en revisión", color = com.doggycredit.app.ui.theme.Gold)
-                        Text(Display.document(item.document, vm.mask), style = MaterialTheme.typography.titleLarge)
-                        item.purpose?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                    }
-                }
+            ScorePanel(item.score, item.band) {
+                Text(Display.document(item.document, vm.mask), style = MaterialTheme.typography.titleLarge)
+                Text("Caso en revisión", style = MaterialTheme.typography.bodySmall, color = com.doggycredit.app.ui.theme.Gold)
+                item.purpose?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             }
             item.reasons.take(3).forEach { Text(Display.reason(it)) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { client(item.applicantId) }) { Text("Perfil 360") }
                 TextButton(onClick = { assessment(item.assessmentId) }) { Text("Ver evaluación") }
             }

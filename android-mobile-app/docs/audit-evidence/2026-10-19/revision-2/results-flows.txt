@@ -1,0 +1,8 @@
+
+com.doggycredit.app.AuthenticatedFlowTests:................
+
+Time: 58,299
+
+OK (16 tests)
+
+

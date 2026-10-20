@@ -30,6 +30,26 @@ class EvaluationTests {
     @Test fun existingApplicantIsReused() = runTest { val draft = draft(); val api = RecordingApi(); draft.next(api) {}; assertTrue(draft.existingApplicant); assertEquals(0, api.createdApplicants) }
     @Test fun backDoesNotEraseUserInput() = runTest { val draft = draft(); draft.next(RecordingApi()) {}; draft.back(); assertEquals(0, draft.step); assertEquals("CLIENT-001", draft.document); assertEquals("5000", draft.income) }
     @Test fun negativeOrMalformedAmountsDoNotEnableContinue() { val draft = draft(); draft.income = "-1"; assertFalse(draft.validApplicant); draft.income = "5000"; draft.amount = "1.2.3"; assertFalse(draft.validApplicant) }
+    @Test fun invalidTermIsIdentifiedAndCannotReachApiUntilCorrected() = runTest {
+        val draft = draft(); val api = RecordingApi()
+        draft.term = "361"
+        assertFalse(draft.validateApplicant())
+        assertEquals(setOf(ApplicantField.TERM), draft.applicantErrors.keys)
+        draft.next(api) {}
+        assertEquals(0, api.calls)
+        draft.term = "360"
+        assertTrue(draft.validateApplicant())
+        draft.next(api) {}
+        assertEquals(1, draft.step)
+    }
+    @Test fun decimalCommaAndBoundaryValuesRemainValid() {
+        val draft = draft().apply { income = "5000,50"; amount = ""; seniority = "1200"; term = "1" }
+        assertTrue(draft.validApplicant)
+        draft.seniority = "1201"
+        assertEquals(setOf(ApplicantField.SENIORITY), draft.applicantErrors.keys)
+        draft.seniority = "0"; draft.income = "1,,2"
+        assertEquals(setOf(ApplicantField.INCOME), draft.applicantErrors.keys)
+    }
 }
 internal open class RecordingApi : DoggyCreditApi {
     var calls = 0; var createdApplicants = 0; var authorized: List<String> = emptyList(); val keys = mutableListOf<String>(); var assessmentFailure: Exception? = null

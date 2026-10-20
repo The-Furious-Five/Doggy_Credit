@@ -5,6 +5,9 @@ import SwiftUI
 struct ApplicantStepView: View {
     @Bindable var flow: EvaluationFlowModel
     var focusedField: FocusState<EvaluationField?>.Binding
+    @Environment(SessionStore.self) private var session
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var confirmsChange = false
 
     /// Plazos habituales de los productos del catálogo (3 a 120 meses).
     private static let terms = [3, 6, 9, 12, 18, 24, 36, 48, 60, 72, 84, 120]
@@ -14,50 +17,68 @@ struct ApplicantStepView: View {
             if let problem = flow.problem {
                 EvaluationProblemSection(problem: problem)
             }
-            Section("Tipo de cliente") {
-                Picker("Segmento", selection: $flow.segment) {
-                    ForEach(Segment.allCases) { Text($0.label).tag($0) }
+            if let applicant = flow.existingApplicant {
+                Section {
+                    LabeledContent("Documento", value: session.privacy.document(flow.trimmedDocument))
+                    LabeledContent("Segmento", value: applicant.resolvedSegment.label)
+                    LabeledContent("Actividad", value: applicant.activity)
+                    LabeledContent("Antigüedad", value: Format.months(applicant.activitySeniorityMonths))
+                    LabeledContent("Ingreso registrado", value: session.privacy.amount(Format.money(
+                        Money(amount: applicant.monthlyIncome, currency: applicant.currency))))
+                    Button("Cambiar de cliente") { confirmsChange = true }
+                } header: {
+                    Text("Cliente registrado")
+                } footer: {
+                    Text("Esta evaluación utiliza la ficha registrada. Los datos del cliente no se modifican desde este formulario.")
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-
-            Section("Identificación") {
-                TextField("Documento de identidad o NIT", text: $flow.document)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-                    .keyboardType(.asciiCapable)
-                    .focused(focusedField, equals: .document)
-                    .accessibilityIdentifier("evaluation.document")
-                    .submitLabel(.next)
-                    .onSubmit { focusedField.wrappedValue = .activity }
-                TextField("Actividad económica", text: $flow.activity)
-                    .textInputAutocapitalization(.sentences)
-                    .focused(focusedField, equals: .activity)
-                    .accessibilityIdentifier("evaluation.activity")
-                LabeledContent("Antigüedad") {
-                    HStack(spacing: 4) {
-                        TextField("0", value: $flow.seniorityMonths, format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .focused(focusedField, equals: .seniority)
-                        Text("meses").foregroundStyle(.secondary)
+            } else {
+                Section("Tipo de cliente") {
+                    Picker("Segmento", selection: $flow.segment) {
+                        ForEach(Segment.allCases) { Text($0.label).tag($0) }
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
                 }
-                .accessibilityLabel("Antigüedad de la actividad, en meses")
+
+                Section("Identificación") {
+                    TextField("Documento de identidad o NIT", text: $flow.document)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .keyboardType(.asciiCapable)
+                        .focused(focusedField, equals: .document)
+                        .accessibilityIdentifier("evaluation.document")
+                        .submitLabel(.next)
+                        .onSubmit { focusedField.wrappedValue = .activity }
+                    TextField("Actividad económica", text: $flow.activity)
+                        .textInputAutocapitalization(.sentences)
+                        .focused(focusedField, equals: .activity)
+                        .accessibilityIdentifier("evaluation.activity")
+                    LabeledContent("Antigüedad") {
+                        HStack(spacing: 4) {
+                            TextField("0", value: $flow.seniorityMonths, format: .number)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                                .focused(focusedField, equals: .seniority)
+                            Text("meses").foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityLabel("Antigüedad de la actividad, en meses")
+                }
             }
 
             Section {
-                LabeledContent("Ingreso mensual") {
-                    HStack(spacing: 4) {
-                        Spacer(minLength: 0)
-                        Text("Bs").foregroundStyle(.secondary)
-                        TextField("0", value: $flow.monthlyIncome, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .fixedSize()
-                            .focused(focusedField, equals: .income)
-                            .accessibilityIdentifier("evaluation.income")
+                if flow.existingApplicant == nil {
+                    LabeledContent("Ingreso mensual") {
+                        HStack(spacing: 4) {
+                            Spacer(minLength: 0)
+                            Text("Bs").foregroundStyle(.secondary)
+                            TextField("0", value: $flow.monthlyIncome, format: .number)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .focused(focusedField, equals: .income)
+                                .accessibilityLabel("Ingreso mensual, en bolivianos")
+                                .accessibilityIdentifier("evaluation.income")
+                        }
                     }
                 }
                 LabeledContent("Monto solicitado") {
@@ -67,8 +88,8 @@ struct ApplicantStepView: View {
                         TextField("0", value: $flow.requestedAmount, format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
-                            .fixedSize()
                             .focused(focusedField, equals: .amount)
+                            .accessibilityLabel("Monto solicitado, en bolivianos")
                             .accessibilityIdentifier("evaluation.amount")
                     }
                 }
@@ -76,9 +97,11 @@ struct ApplicantStepView: View {
                     ForEach(Self.terms, id: \.self) { Text(Format.months($0)).tag(Int?.some($0)) }
                 }
             } header: {
-                Text("Ingresos y solicitud")
+                Text(flow.existingApplicant == nil ? "Ingresos y solicitud" : "Nueva solicitud")
             } footer: {
-                Text("El monto es opcional. El ingreso es el declarado por el cliente; si autoriza su banco, el perfil usa el promedio de 6 meses.")
+                Text(flow.existingApplicant == nil
+                    ? "El monto es opcional. El ingreso es el declarado por el cliente; si autoriza su banco, el perfil usa el promedio de 6 meses."
+                    : "El monto es opcional. Elige el plazo y destino de esta nueva solicitud.")
             }
 
             Section {
@@ -92,8 +115,16 @@ struct ApplicantStepView: View {
                 .accessibilityIdentifier("evaluation.purpose")
             } footer: {
                 Text("Ayuda a detectar la necesidad real y el producto adecuado.")
+                if dynamicTypeSize.isAccessibilitySize, let requirement = flow.pendingRequirement {
+                    Text(requirement)
+                }
             }
 
+        }
+        .confirmationDialog("¿Cambiar de cliente?", isPresented: $confirmsChange, titleVisibility: .visible) {
+            Button("Descartar borrador y cambiar", role: .destructive) { flow.restart() }
+        } message: {
+            Text("Se borrarán los datos de esta solicitud. Lo ya registrado se conserva en el servidor.")
         }
     }
 }
@@ -127,6 +158,7 @@ struct PurposeSelectionView: View {
 struct ConsentStepView: View {
     @Bindable var flow: EvaluationFlowModel
     let institution: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         Form {
@@ -166,6 +198,9 @@ struct ConsentStepView: View {
                 Text("Opcional")
             } footer: {
                 Text("Nada viene preseleccionado: el cliente elige cada permiso.")
+                if dynamicTypeSize.isAccessibilitySize, let requirement = flow.pendingRequirement {
+                    Text(requirement)
+                }
             }
 
         }
@@ -258,6 +293,10 @@ struct EvaluationProblemSection: View {
                 NoticeCard(title: "Faltan datos del solicitante",
                            message: "Completa documento (3 caracteres o más), actividad, ingreso mensual y destino del crédito.",
                            tone: .warning)
+            case .existingApplicant:
+                NoticeCard(title: "Este cliente ya está registrado",
+                           message: "Revisa su ficha antes de continuar. La actividad y el ingreso que escribiste no se guardaron: se utilizarán los datos registrados.",
+                           tone: .info)
             case .missingBureauConsent:
                 NoticeCard(title: "Falta el consentimiento obligatorio",
                            message: "Sin la consulta a burós no podemos calcular el score.", tone: .warning)

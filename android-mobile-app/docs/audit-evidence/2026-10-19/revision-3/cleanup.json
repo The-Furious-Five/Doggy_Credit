@@ -1,0 +1,18 @@
+{
+  "display_after_restore": {
+    "size": "Physical size: 1280x2856",
+    "density": "Physical density: 480"
+  },
+  "animation_after_restore": {
+    "animator_duration_scale": "null",
+    "transition_animation_scale": "1.0",
+    "window_animation_scale": "1.0"
+  },
+  "owned_capture_directories_removed": [
+    "remediation-initial",
+    "remediation-confirmation"
+  ],
+  "owned_emulator_stop_response": "OK: killing emulator, bye bye\nOK\n",
+  "normal_project_test_apk_installed": true,
+  "real_session_file_modified": false
+}

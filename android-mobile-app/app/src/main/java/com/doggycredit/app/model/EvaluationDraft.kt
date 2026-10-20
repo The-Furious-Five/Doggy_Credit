@@ -7,6 +7,8 @@ import java.util.UUID
 
 val creditPurposes = listOf("Capital de trabajo", "Inversión productiva", "Eficiencia energética", "Consumo o consolidación")
 
+enum class ApplicantField { DOCUMENT, ACTIVITY, SENIORITY, INCOME, AMOUNT, TERM, PURPOSE }
+
 /** Borrador en memoria de sesión. No se guarda PII en SavedState ni en preferencias. */
 class EvaluationDraft {
     var step by mutableIntStateOf(0)
@@ -29,17 +31,29 @@ class EvaluationDraft {
     var busy by mutableStateOf(false)
     var error by mutableStateOf<String?>(null)
     var existingApplicant by mutableStateOf(false)
+    var validationAttempted by mutableStateOf(false); private set
     private var idempotencyKey = UUID.randomUUID().toString()
     private var submittedRequest: NewAssessment? = null
-    val inProgress get() = result == null && (document.isNotBlank() || activity.isNotBlank() || income.isNotBlank() || step > 0)
-    val validApplicant get() = document.trim().length in 3..64 && activity.trim().length in 2..120 &&
-        (Display.decimal(income)?.signum() ?: 0) > 0 && purpose != null &&
-        seniority.toIntOrNull()?.let { it in 0..1200 } == true && (amount.isBlank() || (Display.decimal(amount)?.signum() ?: 0) > 0) &&
-        term.toIntOrNull()?.let { it in 1..360 } == true
+    val inProgress get() = result == null && (document.isNotBlank() || activity.isNotBlank() || income.isNotBlank() ||
+        amount.isNotBlank() || purpose != null || seniority != "0" || term != "12" || segment != "PERSONA" || step > 0)
+    val applicantErrors: Map<ApplicantField, String> get() = buildMap {
+        if (document.trim().length !in 3..64) put(ApplicantField.DOCUMENT, "Escribe un CI o NIT de 3 a 64 caracteres.")
+        if (activity.trim().length !in 2..120) put(ApplicantField.ACTIVITY, "Describe la actividad con 2 a 120 caracteres.")
+        if (seniority.toIntOrNull()?.let { it in 0..1200 } != true) put(ApplicantField.SENIORITY, "La antigüedad debe estar entre 0 y 1200 meses.")
+        if ((Display.decimal(income)?.signum() ?: 0) <= 0) put(ApplicantField.INCOME, "Escribe un ingreso mensual mayor que 0.")
+        if (amount.isNotBlank() && (Display.decimal(amount)?.signum() ?: 0) <= 0) put(ApplicantField.AMOUNT, "Escribe un monto mayor que 0 o deja el campo vacío.")
+        if (term.toIntOrNull()?.let { it in 1..360 } != true) put(ApplicantField.TERM, "El plazo debe estar entre 1 y 360 meses.")
+        if (purpose !in creditPurposes) put(ApplicantField.PURPOSE, "Selecciona el destino del crédito.")
+    }
+    val validApplicant get() = applicantErrors.isEmpty()
     val requirement get() = when (step) {
-        0 -> if (validApplicant) null else "Completa documento, actividad, ingreso, antigüedad, plazo y destino. Los montos deben ser positivos."
+        0 -> applicantErrors.values.firstOrNull()
         1 -> if (bureau) null else "El cliente debe autorizar la consulta al buró para continuar."
         else -> null
+    }
+    fun validateApplicant(): Boolean {
+        validationAttempted = true
+        return validApplicant
     }
     suspend fun next(api: DoggyCreditApi, onCreated: suspend () -> Unit) {
         if (busy || requirement != null) return

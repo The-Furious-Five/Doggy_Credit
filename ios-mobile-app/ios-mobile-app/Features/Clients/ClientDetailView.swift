@@ -112,7 +112,7 @@ struct ClientDetailView: View {
                 .foregroundStyle(.secondary)
             if allowsStartingEvaluation {
                 Button {
-                    session.startEvaluation(document: applicant.document)
+                    session.startEvaluation(document: applicant.document, applicant: applicant)
                 } label: {
                     Label("Reevaluar", systemImage: "arrow.clockwise")
                         .fontWeight(.semibold)

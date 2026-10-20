@@ -23,9 +23,6 @@ struct ClientSearchView: View {
                 .textInputAutocapitalization(.characters)
                 .autocorrectionDisabled()
                 .onSubmit(of: .search) { Task { await search.search() } }
-                .onChange(of: search.query) { _, query in
-                    if query.isEmpty { search.clear() }
-                }
         }
     }
 
@@ -49,7 +46,7 @@ struct ClientSearchView: View {
                 }
                 Section {
                     Button {
-                        session.startEvaluation(document: applicant.document)
+                        session.startEvaluation(document: search.normalizedQuery, applicant: applicant)
                     } label: {
                         Label("Reevaluar a este cliente", systemImage: "arrow.clockwise")
                     }
@@ -60,7 +57,7 @@ struct ClientSearchView: View {
             ContentUnavailableView {
                 Label("Sin cliente con ese documento", systemImage: "person.crop.circle.badge.questionmark")
             } description: {
-                Text("No hay ningún cliente registrado como \(document) en tu institución.")
+                Text("No hay ningún cliente registrado como \(session.privacy.document(document)) en tu institución.")
             } actions: {
                 Button("Evaluar como cliente nuevo") {
                     session.startEvaluation(document: document)

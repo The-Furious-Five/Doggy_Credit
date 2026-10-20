@@ -1,0 +1,44 @@
+npm notice run doggycredit-web@0.0.0 prebuild
+npm notice run npm run ds:check
+npm notice run doggycredit-web@0.0.0 ds:check
+npm notice run node scripts/check-design-system.mjs
+Design System: componentes, tokens e imports conformes.
+npm notice run doggycredit-web@0.0.0 build
+npm notice run ng build
+❯ Building...
+✔ Building...
+Initial chunk files | Names            |  Raw size | Estimated transfer size
+main-36BXBL3A.js    | main             | 264.92 kB |                58.48 kB
+chunk-KN_u7Ubo.js   | -                | 216.00 kB |                62.63 kB
+styles-WMFG567B.css | styles           |  43.88 kB |                 6.98 kB
+
+                    | Initial total    | 524.81 kB |               128.08 kB
+
+Lazy chunk files    | Names            |  Raw size | Estimated transfer size
+chunk-C3tfzyo4.js   | -                |  39.30 kB |                 8.83 kB
+chunk-Bw_hRMpj.js   | catalog          |  34.93 kB |                 9.39 kB
+chunk-DVGZdDvL.js   | settings         |  27.27 kB |                 7.37 kB
+chunk-B5eIB7Fc.js   | developers       |  24.95 kB |                 6.68 kB
+chunk-Ci_FHksf.js   | integrations     |  20.62 kB |                 5.82 kB
+chunk-B4rM7Gfa.js   | evaluation       |  19.46 kB |                 5.90 kB
+chunk-DR7p2PYO.js   | manual-review    |  19.43 kB |                 6.08 kB
+chunk-C1J7T4sO.js   | -                |  14.70 kB |                 3.75 kB
+chunk-BoXeufxb.js   | client-profile   |  14.13 kB |                 4.47 kB
+chunk-sAooLb09.js   | -                |  14.05 kB |                 4.59 kB
+chunk-BkvnxkcA.js   | console          |  11.94 kB |                 3.76 kB
+chunk-D0wSbQ_1.js   | -                |  10.85 kB |                 3.64 kB
+chunk-lIj2psIR.js   | -                |  10.67 kB |                 3.36 kB
+chunk-D3XsOiti.js   | products         |   9.76 kB |                 3.28 kB
+chunk-BJrs2NON.js   | platform-tenants |   9.61 kB |                 3.17 kB
+...and 18 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation complete. [2.005 seconds] - 2026-10-20T00:30:54.184Z
+
+▲ [WARNING] bundle initial exceeded maximum budget. Budget 500.00 kB was not met by 24.81 kB with a total of 524.81 kB.
+
+
+▲ [WARNING] src/app/landing/landing.scss exceeded maximum budget. Budget 4.00 kB was not met by 1.84 kB with a total of 5.84 kB.
+
+
+Output location: /Users/franco/Documents/UCB/Arquitectura de Software/DoggyCredit/Doggy_Credit/web/dist/web
+

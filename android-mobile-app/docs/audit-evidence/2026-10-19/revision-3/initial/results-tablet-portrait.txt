@@ -1,0 +1,10 @@
+
+com.doggycredit.app.AuditRemediationTests:...
+com.doggycredit.app.ProtectedSessionTests:...
+com.doggycredit.app.AuthenticatedFlowTests:.
+
+Time: 22,754
+
+OK (7 tests)
+
+

@@ -1,0 +1,21 @@
+
+com.doggycredit.app.ProfileHistoryTests:
+Error in thousandLoadedAssessmentsComposeOnlyTheWindow(com.doggycredit.app.ProfileHistoryTests):
+java.lang.AssertionError: El historial debe componer solo una ventana de las 1000 evaluaciones; compuso 1000
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.doggycredit.app.ProfileHistoryTests.thousandLoadedAssessmentsComposeOnlyTheWindow(ProfileHistoryTests.kt:37)
+
+
+Time: 5,158
+There was 1 failure:
+1) thousandLoadedAssessmentsComposeOnlyTheWindow(com.doggycredit.app.ProfileHistoryTests)
+java.lang.AssertionError: El historial debe componer solo una ventana de las 1000 evaluaciones; compuso 1000
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.doggycredit.app.ProfileHistoryTests.thousandLoadedAssessmentsComposeOnlyTheWindow(ProfileHistoryTests.kt:37)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+

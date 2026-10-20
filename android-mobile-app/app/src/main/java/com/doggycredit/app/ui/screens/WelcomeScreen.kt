@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.doggycredit.app.R
 import com.doggycredit.app.ui.theme.*
+import com.doggycredit.app.ui.components.BrandButton
 
 @Composable fun WelcomeScreen(busy: Boolean, error: String?, signIn: () -> Unit, clearError: () -> Unit) {
     Box(Modifier.fillMaxSize().background(Pine).safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
@@ -32,11 +33,8 @@ import com.doggycredit.app.ui.theme.*
                 WelcomeFeature(Icons.Rounded.AccountBalance, "Perfil Financiero 360", "Buró, banco y billetera en una sola vista.")
             }
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = signIn, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Ivory, contentColor = Pine)) {
-                    if (busy) { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp); Spacer(Modifier.width(12.dp)) }
-                    Text(if (busy) "Conectando con tu institución…" else "Iniciar sesión con tu institución")
-                }
+                BrandButton(label = if (busy) "Conectando con tu institución…" else "Iniciar sesión con tu institución",
+                    onClick = signIn, busy = busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Rounded.Lock, null, Modifier.size(16.dp), tint = Ivory.copy(alpha = .7f))
                     Text("doggycredit.los5furiosos.cloud", color = Ivory.copy(alpha = .7f), style = MaterialTheme.typography.labelMedium)

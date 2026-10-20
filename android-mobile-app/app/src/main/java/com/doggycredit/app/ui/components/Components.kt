@@ -5,9 +5,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -15,12 +20,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +38,38 @@ import com.doggycredit.app.ui.theme.*
 
 val LocalPrivacyProtected = staticCompositionLocalOf { false }
 val LocalPageBottomPadding = staticCompositionLocalOf { 24.dp }
+
+/** Variante de página para secciones o historiales que pueden acumular elementos. */
+@Composable fun PageList(modifier: Modifier = Modifier, state: LazyListState = rememberLazyListState(), content: LazyListScope.() -> Unit) {
+    val bottom = LocalPageBottomPadding.current
+    Box(Modifier.fillMaxSize().testTag("page-viewport"), contentAlignment = Alignment.TopCenter) {
+        LazyColumn(modifier.widthIn(max = 880.dp).fillMaxSize().imePadding().testTag("page-scroll"), state = state,
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = bottom),
+            verticalArrangement = Arrangement.spacedBy(24.dp), content = content)
+    }
+}
+
+/** Conserva los estados de RemoteContent sin convertir una lista lazy en una sola fila. */
+fun <T> LazyListScope.remoteItems(key: String, state: Remote<T>, retry: () -> Unit, content: LazyListScope.(T) -> Unit) {
+    state.error?.let { message -> item(key = "$key/error") { Notice("No pudimos actualizar la información", message, retry) } }
+    if (state.loading) item(key = "$key/progress") { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+    val value = state.value
+    if (value != null) content(value)
+    else if (state.loading || state.error == null) item(key = "$key/loading") { Loading() }
+}
+
+/** Acción Material sobre pino; la carga conserva contraste y bloquea la repetición. */
+@Composable fun BrandButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, busy: Boolean = false) {
+    Button(onClick = onClick, enabled = !busy, modifier = modifier.semantics { if (busy) liveRegion = LiveRegionMode.Polite },
+        colors = ButtonDefaults.buttonColors(containerColor = BrandActionColors.container, contentColor = BrandActionColors.content,
+            disabledContainerColor = BrandActionColors.busyContainer, disabledContentColor = BrandActionColors.busyContent)) {
+        if (busy) {
+            CircularProgressIndicator(Modifier.size(20.dp).clearAndSetSemantics { }, color = BrandActionColors.busyContent, strokeWidth = 2.dp)
+            Spacer(Modifier.width(12.dp))
+        }
+        Text(label)
+    }
+}
 
 @Composable fun PageColumn(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val bottom = LocalPageBottomPadding.current
@@ -80,7 +119,8 @@ val LocalPageBottomPadding = staticCompositionLocalOf { 24.dp }
     }
 }
 @Composable fun Notice(title: String, message: String, onRetry: (() -> Unit)? = null) {
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = .55f), shape = MaterialTheme.shapes.medium) {
+    Surface(modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = .55f), shape = MaterialTheme.shapes.medium) {
         Row(Modifier.fillMaxWidth().padding(18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Icons.Rounded.Info, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -90,6 +130,29 @@ val LocalPageBottomPadding = staticCompositionLocalOf { 24.dp }
             }
         }
     }
+}
+/** Campo Material con validación tras perder el foco o intentar continuar. */
+@Composable fun ValidatedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    validationError: String? = null,
+    hint: String? = null,
+    submitted: Boolean = false,
+    enabled: Boolean = true,
+    singleLine: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+) {
+    var hadFocus by remember { mutableStateOf(false) }
+    var touched by remember { mutableStateOf(false) }
+    val visibleError = validationError.takeIf { submitted || touched }
+    OutlinedTextField(value, onValueChange, label = { Text(label) }, enabled = enabled, singleLine = singleLine,
+        keyboardOptions = keyboardOptions, isError = visibleError != null,
+        supportingText = if (visibleError != null || hint != null) { { Text(visibleError ?: hint.orEmpty()) } } else null,
+        modifier = modifier.onFocusChanged {
+            if (it.isFocused) hadFocus = true else if (hadFocus) touched = true
+        }.semantics { visibleError?.let { error(it) } })
 }
 @Composable fun Loading(label: String = "Cargando datos del servidor…") {
     Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -133,7 +196,8 @@ val LocalPageBottomPadding = staticCompositionLocalOf { 24.dp }
 @Composable fun SimulatedBadge() { StatusBadge("PARCIAL", "Datos simulados") }
 @Composable fun Score(score: Int?, band: String?, modifier: Modifier = Modifier, size: Dp = 96.dp, onDark: Boolean = false) {
     val color = if (onDark) Gold else when (band) { "A", "B" -> MaterialTheme.colorScheme.primary; "D", "E" -> MaterialTheme.colorScheme.error; else -> MaterialTheme.colorScheme.tertiary }
-    Box(modifier.size(size).semantics(mergeDescendants = true) { contentDescription = if (score == null) "Score no disponible" else "Score $score de 1000, banda ${band ?: "no disponible"}" }, contentAlignment = Alignment.Center) {
+    val footprint = size * LocalDensity.current.fontScale.coerceAtLeast(1f)
+    Box(modifier.size(footprint).semantics(mergeDescendants = true) { contentDescription = if (score == null) "Score no disponible" else "Score $score de 1000, banda ${band ?: "no disponible"}" }, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize().padding(5.dp)) {
             drawArc(color.copy(alpha = .14f), 135f, 270f, false, style = Stroke(7.dp.toPx(), cap = StrokeCap.Round))
             score?.let { drawArc(color, 135f, 270f * (it / 1000f).coerceIn(0f, 1f), false, style = Stroke(7.dp.toPx(), cap = StrokeCap.Round)) }
@@ -144,18 +208,27 @@ val LocalPageBottomPadding = staticCompositionLocalOf { 24.dp }
         }
     }
 }
+/** Panel de score compartido por resultado y revisión; apila el contexto cuando no cabe. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable fun ScorePanel(score: Int?, band: String?, content: @Composable ColumnScope.() -> Unit) {
+    BrandPanel {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val minimumWidth = minOf(160.dp * LocalDensity.current.fontScale, maxWidth)
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+                Score(score, band, onDark = true)
+                Column(Modifier.weight(1f).widthIn(min = minimumWidth), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+            }
+        }
+    }
+}
 @Composable fun AssessmentContent(value: Assessment, mask: Boolean, capacity: Money? = null, onClient: (() -> Unit)? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         if (value.simulated) SimulatedBadge()
-        BrandPanel {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Score(value.score, value.band, onDark = true)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Eyebrow("Resultado de la evaluación", color = Gold)
-                    Text(Display.label(value.decision ?: value.status), style = MaterialTheme.typography.titleLarge)
-                    if (value.status == "PARCIAL") Text("Una fuente no respondió. Este resultado requiere revisión humana.", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+        ScorePanel(value.score, value.band) {
+            Text(Display.label(value.decision ?: value.status), style = MaterialTheme.typography.titleLarge)
+            Text("Resultado de la evaluación", style = MaterialTheme.typography.bodySmall, color = Gold)
+            if (value.status == "PARCIAL") Text("Una fuente no respondió. Este resultado requiere revisión humana.", style = MaterialTheme.typography.bodyMedium)
         }
         SectionTitle("Razones del score")
         if (value.reasons.isEmpty()) Text("El servidor no devolvió razones para esta evaluación.")
@@ -179,6 +252,18 @@ val LocalPageBottomPadding = staticCompositionLocalOf { 24.dp }
             icon?.let { Icon(it, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) }
             Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+/** Mismo ancho mínimo legible para métricas en Inicio, Perfil 360 y Analítica. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable fun MetricGrid(values: List<Pair<String, String>>, icons: List<ImageVector> = emptyList()) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val minimumWidth = minOf(160.dp * LocalDensity.current.fontScale, maxWidth)
+        FlowRow(maxItemsInEachRow = 2, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            values.forEachIndexed { index, (label, value) ->
+                Metric(label, value, Modifier.weight(1f).widthIn(min = minimumWidth).fillMaxRowHeight(), icons.getOrNull(index))
+            }
         }
     }
 }

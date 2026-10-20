@@ -63,6 +63,10 @@ struct ClientsView: View {
                 }
             } else {
                 List {
+                    Section {
+                        RefreshStatusView(isRefreshing: clients.isRefreshing, lastUpdatedAt: clients.lastUpdatedAt,
+                                          error: clients.phase.error) { await clients.refresh() }
+                    }
                     if let segment = clients.segment {
                         Section {
                             Label("Mostrando: \(segment.label)", systemImage: segment.symbol)
@@ -76,8 +80,11 @@ struct ClientsView: View {
                             }
                             .task { await clients.loadMoreIfNeeded(after: applicant) }
                         }
-                        if clients.isLoadingMore {
-                            ProgressView().frame(maxWidth: .infinity)
+                        if clients.hasMore {
+                            PaginationFooter(isLoading: clients.isLoadingMore, error: clients.loadMoreError) {
+                                await clients.loadMore()
+                            }
+                            .disabled(clients.isRefreshing)
                         }
                     }
                 }

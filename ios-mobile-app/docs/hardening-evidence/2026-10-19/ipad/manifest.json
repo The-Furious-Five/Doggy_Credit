@@ -1,0 +1,134 @@
+[
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "welcome-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-dark-accessibility-bottom_0_825E014C-82E7-4B16-8791-0F4D011D49E8.png",
+        "timestamp": 1792460988.034
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "welcome-dark-accessibility-middle.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-dark-accessibility-middle_0_9C238F9F-4A30-417D-80BE-536928229123.png",
+        "timestamp": 1792460987.454
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "welcome-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-dark-accessibility_0_9B37B697-60FF-43F4-ADB2-B4C1EBB3389A.png",
+        "timestamp": 1792460986.964
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "draft-conflict-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "draft-conflict-dark-accessibility_0_BF9CC72C-3B6D-41B0-ABEA-F7433E210B3E.png",
+        "timestamp": 1792460986.233
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "existing-applicant-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "existing-applicant-dark-accessibility-bottom_0_E6775072-A3AC-4E72-AA0E-B6FA0FAA00C1.png",
+        "timestamp": 1792460985.44
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "existing-applicant-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "existing-applicant-dark-accessibility_0_6AEEE5FC-A9B5-49F2-A301-BC923D5B42C3.png",
+        "timestamp": 1792460984.834
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "review-filter-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "review-filter-dark-accessibility_0_ED8CA2AE-F6A2-43F6-96E5-423A4C3B7253.png",
+        "timestamp": 1792460984.055
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "clients-error-dark-accessibility-bottom.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "clients-error-dark-accessibility-bottom_0_926F03EE-7324-46D4-8292-CEFB573DA3B9.png",
+        "timestamp": 1792460983.302
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "clients-error-dark-accessibility.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "clients-error-dark-accessibility_0_E6930F5D-C34E-4E7A-973B-5A22F0008CD5.png",
+        "timestamp": 1792460982.723
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "welcome-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "welcome-light_0_3D80AD2B-35CA-4960-A812-59266A0054D9.png",
+        "timestamp": 1792460981.945
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "draft-conflict-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "draft-conflict-light_0_507B4566-ADF7-4F3A-A62E-743D8EF47DE2.png",
+        "timestamp": 1792460981.207
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "existing-applicant-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "existing-applicant-light_0_63EAFDF6-8C3D-4031-B2D0-CC98BBE36C74.png",
+        "timestamp": 1792460980.448
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "review-filter-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "review-filter-light_0_E039FA57-01DA-43EB-8E4C-1B671C69E887.png",
+        "timestamp": 1792460979.686
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "8873CBD6-A785-4E04-B592-CC9BC04695D6",
+        "deviceName": "iPad Air 11-inch (M4)",
+        "exportedFileName": "clients-error-light.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "clients-error-light_0_C90A61EA-99F0-448E-BEBE-EE980E42CE2C.png",
+        "timestamp": 1792460978.933
+      }
+    ],
+    "testIdentifier": "HardeningScreensTests/testHardenedScreens()",
+    "testIdentifierURL": "test://com.apple.xcode/ios-mobile-app/ios-mobile-appTests/HardeningScreensTests/testHardenedScreens"
+  }
+]

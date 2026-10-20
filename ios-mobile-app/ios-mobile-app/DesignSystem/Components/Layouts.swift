@@ -94,7 +94,7 @@ struct RowHeadline: View {
         Text(detail)
             .font(.subheadline)
             .foregroundStyle(.secondary)
-            .lineLimit(1)
+            .lineLimit(dynamicTypeSize.prefersVerticalLayout ? nil : 1)
     }
 }
 

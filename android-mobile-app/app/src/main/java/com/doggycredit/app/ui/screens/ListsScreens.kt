@@ -103,7 +103,18 @@ import com.doggycredit.app.ui.theme.*
                 val visible = page.items.filter { item -> when (vm.reviewFilter) {
                     "Revisión manual" -> item.motive == "REVISION_MANUAL"; "Solicitar datos" -> item.motive == "SOLICITAR_DATOS"; "Parciales" -> item.partial; else -> true
                 } }
-                if (visible.isEmpty()) item { EmptyState("Sin casos pendientes", "Prueba otro filtro o vuelve a actualizar la bandeja.") }
+                val hasMore = page.items.size < page.total
+                if (vm.reviewFilter != "Todos") item {
+                    Text("${Display.number(visible.size)} ${if (visible.size == 1) "coincidencia" else "coincidencias"} entre ${Display.number(page.items.size)} de ${Display.number(page.total)} casos cargados.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (visible.isEmpty() && !vm.reviews.loading && vm.reviews.error == null) item {
+                    when {
+                        hasMore -> EmptyState("Sin coincidencias en los casos cargados", "Todavía quedan casos por cargar. Usa «Cargar más casos» para ampliar la búsqueda.")
+                        vm.reviewFilter != "Todos" -> EmptyState("Sin coincidencias con este filtro", "No hay casos cargados que coincidan. Cambia a «Todos» para consultar la bandeja.")
+                        else -> EmptyState("Sin casos pendientes", "Los casos que requieran revisión aparecerán aquí.")
+                    }
+                }
                 items(visible, key = { it.assessmentId }) { item ->
                     val swipe = rememberSwipeToDismissBoxState()
                     LaunchedEffect(item.assessmentId) {
@@ -119,9 +130,10 @@ import com.doggycredit.app.ui.theme.*
                         }
                     }) { ReviewCard(item, vm.mask, { resolve(item.assessmentId, null) }, { client(item.applicantId) }, { resolve(item.assessmentId, it) }) }
                 }
-                if (page.items.size < page.total) item {
-                    vm.reviewPageError?.let { Notice("No pudimos cargar más casos", it) }
-                    OutlinedButton(onClick = vm::moreReviews, enabled = !vm.loadingMoreReviews, modifier = Modifier.fillMaxWidth()) { Text(if (vm.loadingMoreReviews) "Cargando…" else "Cargar más casos") }
+                if (hasMore) item {
+                    vm.reviewPageError?.let { Notice("No pudimos cargar más casos", it, vm::refreshReviews) }
+                    OutlinedButton(onClick = vm::moreReviews, enabled = !vm.reviews.loading && !vm.loadingMoreReviews,
+                        modifier = Modifier.fillMaxWidth()) { Text(if (vm.loadingMoreReviews) "Cargando…" else "Cargar más casos") }
                 }
                 item { Text("Aprobar o rechazar requiere una justificación y queda en la auditoría.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }

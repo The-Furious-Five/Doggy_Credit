@@ -1,0 +1,18 @@
+npm notice run doggycredit-web@0.0.0 ds:test
+npm notice run node --test scripts/check-design-system.test.mjs
+✔ rechaza controles propios incluso dentro de bloques Angular (8.37625ms)
+✔ rechaza controles con interfaz del navegador y orienta al componente propio (2.169417ms)
+✔ rechaza estilos inline y bindings (0.237167ms)
+✔ exige colores sólidos: sin degradados ni desenfoques, también con tokens (1.379708ms)
+✔ el propio Design System no define degradados, desenfoques ni brillos (0.652834ms)
+✔ rechaza colores, tamaños y tokens desconocidos (0.341125ms)
+✔ no permite rodear la regla con componentes inline ni imports internos (3.673416ms)
+✔ temas y superficie de marca: texto 4.5:1, bordes y foco 3:1 (32.96ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 377.313416

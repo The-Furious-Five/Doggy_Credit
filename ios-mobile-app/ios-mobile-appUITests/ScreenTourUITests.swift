@@ -30,6 +30,44 @@ final class ScreenTourUITests: XCTestCase {
     }
 
     @MainActor
+    func testMaximumTextKeepsSignInAndServerReachable() {
+        XCUIDevice.shared.orientation = .portrait
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let app = launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let signIn = app.buttons["welcome.sign-in"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 10))
+        for _ in 0..<6 where !signIn.isHittable { app.swipeUp() }
+        XCTAssertTrue(signIn.isHittable, "El acceso debe quedar al alcance al desplazarse con texto máximo")
+
+        let server = app.buttons["welcome.connection"]
+        for _ in 0..<4 where !server.isHittable { app.swipeUp() }
+        XCTAssertTrue(server.isHittable)
+        server.tap()
+        let domain = app.staticTexts["doggycredit.los5furiosos.cloud"]
+        XCTAssertTrue(domain.waitForExistence(timeout: 3))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Acceso y servidor con texto máximo"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testWelcomeInLandscape() {
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let app = launch()
+        let signIn = app.buttons["welcome.sign-in"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(app.frame.width, app.frame.height, "La ventana debe estar en horizontal")
+        for _ in 0..<5 where !signIn.isHittable { app.swipeUp() }
+        XCTAssertTrue(signIn.isHittable)
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = "Acceso en horizontal"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
     func testSignInOpensDeployedKeycloak() {
         let app = launch()
         let signIn = app.buttons["Iniciar sesión con tu institución"]

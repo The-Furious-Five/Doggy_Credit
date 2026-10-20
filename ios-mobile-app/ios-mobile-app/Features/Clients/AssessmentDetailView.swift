@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Una evaluación: score, decisión de las políticas y sus razones. Un score nunca
 /// reemplaza una explicación, así que las razones van junto al número.
@@ -86,9 +87,19 @@ struct AssessmentResultList<Footer: View>: View {
                 LabeledContent("Modelo", value: assessment.modelVersion ?? "—")
                 if let correlationId = assessment.correlationId {
                     LabeledContent("Correlación") {
-                        Text(correlationId.prefix(13) + "…")
+                        Text(correlationId)
                             .fontDesign(.monospaced)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                             .textSelection(.enabled)
+                            .contextMenu {
+                                Button("Copiar identificador", systemImage: "doc.on.doc") {
+                                    UIPasteboard.general.string = correlationId
+                                }
+                            }
+                            .accessibilityAction(named: "Copiar identificador") {
+                                UIPasteboard.general.string = correlationId
+                            }
                     }
                 }
             }

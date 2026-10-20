@@ -1,0 +1,99 @@
+{
+  "dateLocal": "2026-10-19",
+  "scope": "ios-mobile-app",
+  "critiqueSnapshot": "2026-10-20T00-57-05Z__ios-mobile-app-app-rootview-swift.md",
+  "runs": [
+    {
+      "device": "iphone",
+      "phase": "suite_and_access",
+      "summary": "iphone/summary.json",
+      "result": "Passed",
+      "passedTests": 75,
+      "failedTests": 0,
+      "skippedTests": 3,
+      "totalTestCount": 78
+    },
+    {
+      "device": "iphone",
+      "phase": "final_layout",
+      "summary": "iphone/layout-summary.json",
+      "result": "Passed",
+      "passedTests": 3,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 3
+    },
+    {
+      "device": "ipad",
+      "phase": "suite_and_access",
+      "summary": "ipad/summary.json",
+      "result": "Passed",
+      "passedTests": 3,
+      "failedTests": 0,
+      "skippedTests": 1,
+      "totalTestCount": 4
+    },
+    {
+      "device": "ipad",
+      "phase": "final_layout",
+      "summary": "ipad/layout-summary.json",
+      "result": "Passed",
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 1,
+      "totalTestCount": 3
+    },
+    {
+      "device": "ios18",
+      "phase": "suite_and_access",
+      "summary": "ios18/summary.json",
+      "result": "Passed",
+      "passedTests": 73,
+      "failedTests": 0,
+      "skippedTests": 3,
+      "totalTestCount": 76
+    },
+    {
+      "device": "ios18",
+      "phase": "final_layout",
+      "summary": "ios18/layout-summary.json",
+      "result": "Passed",
+      "passedTests": 3,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 3
+    }
+  ],
+  "checks": {
+    "build_for_testing": "passed",
+    "ds_check": "passed",
+    "ds_test": {
+      "passed": 8,
+      "failed": 0
+    },
+    "web_build": "passed",
+    "web_build_warnings": [
+      "initial bundle 524.81 kB > 500 kB",
+      "landing.scss 5.84 kB > 4 kB"
+    ],
+    "git_diff_check": "passed"
+  },
+  "evidence": "Capturas representativas sin edición; cada manifiesto conserva el test y resultado de origen. Las capturas completas permanecen en los xcresult indicados.",
+  "limitations": [
+    "Simuladores y fixtures, sin sesión institucional autenticada ni hardware físico.",
+    "La rotación de escenas en modo de ventanas de iPad se omite; testWelcomeInLandscape gira el dispositivo real del simulador y verifica que el acceso es alcanzable.",
+    "Las pruebas opcionales de servidor se omiten al no aportar credenciales ni habilitar acceso real."
+  ],
+  "sourceFingerprints": {
+    "App/AppLock.swift": "84ebf39960e13be0f97d6b608d16a7ad9156d3e3336a8ada1ac36c590d952f8e",
+    "App/AppModel.swift": "845df0a3f51836ed79602f74aed4d8d40b925a99ea8b175223caa7e3c3b76717",
+    "App/MainTabView.swift": "d0355ce18a5d49556d731ab66019e1495cce6256499b67b0f3a4ef7238ec6af2",
+    "DesignSystem/Components/Layouts.swift": "a58538574b9295f96fc1ae4e2f62a26573e1aa8d5db716211d8a5a211fc1a9c6",
+    "DesignSystem/Components/LoadState.swift": "7fa1265577af449980dc393b578741e02a98003f825269f5c6d267517453e35f",
+    "Features/Welcome/WelcomeView.swift": "f7fbd95c10313e27d9bc9dee3a6580f84be53932653f9d6cbae7a58f264fcbf0",
+    "Features/Evaluation/EvaluationFlowView.swift": "20570cb5432d9664807b8728dc52bb7904c3155b3d01b1cefda778f3a3ca1046",
+    "Features/Evaluation/EvaluationSteps.swift": "c0441af81fbe3366995fa019b0424b1c929446908b2842f1caf9850160c2d119",
+    "Features/Clients/AssessmentDetailView.swift": "38b1b43f984e6f66c183cc93b7bfd6336e186af85718a93ae92c650a4adf67ff",
+    "Features/Review/ResolveCaseView.swift": "c24e32e0d27d93966d875ccb173c78c53b05a966f9db4c3c4d35c03e78176a1b"
+  }
+}

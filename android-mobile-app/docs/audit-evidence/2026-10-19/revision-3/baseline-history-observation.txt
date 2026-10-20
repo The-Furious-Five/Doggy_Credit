@@ -1,0 +1,1 @@
+10-19 20:27:44.575  4271  4298 I System.out: HISTORY_WINDOW loaded=1000 composed_status_nodes=1000

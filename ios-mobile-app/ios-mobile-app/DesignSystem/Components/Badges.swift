@@ -184,7 +184,7 @@ struct NoticeCard<Actions: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        AdaptiveStack(horizontalAlignment: .leading, verticalAlignment: .top, spacing: 12) {
             Image(systemName: symbol)
                 .font(.title3)
                 .foregroundStyle(tone.color)
@@ -198,7 +198,7 @@ struct NoticeCard<Actions: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
                 actions
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .contain)
     }

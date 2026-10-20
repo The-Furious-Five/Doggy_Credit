@@ -1,0 +1,23 @@
+{
+  "app/src/main/java/com/doggycredit/app/AppViewModel.kt": "832f07c9f9d592b684f4808d284638530aa7b0458be0c52ac7532a4fb48ab432",
+  "app/src/main/java/com/doggycredit/app/DoggyCreditApplication.kt": "a28861d77cf47aaefabc55589159dc21de934a130e821e8bb4e17f3a33276ad4",
+  "app/src/main/java/com/doggycredit/app/MainActivity.kt": "21d4b0b6a01f8d4d7d87782b4f097fc180a9aeacd0cbe93233fac1e2d6f4910b",
+  "app/src/main/java/com/doggycredit/app/auth/AuthManager.kt": "266810bdac7984fdacf1458e2ffe11ba159b94b559c399c56480d2eb3fb4df18",
+  "app/src/main/java/com/doggycredit/app/auth/SecureSessionStore.kt": "aefb5dc10c9a12bf8869db5f818944515b68fe77355a5d9a6243a6ea044dcc2f",
+  "app/src/main/java/com/doggycredit/app/data/Api.kt": "aa3727d307bb68c0e993bc42059b96d10ffe8aa4bc84b99553cd251c57b2c4e8",
+  "app/src/main/java/com/doggycredit/app/model/EvaluationDraft.kt": "d4088bd1e3aa1882ba6bde845e3c2f3368a8a0c6873ace94451cf67ee00dc283",
+  "app/src/main/java/com/doggycredit/app/model/Models.kt": "5eae4dcfa998cbe45461038f1b82d8d1eca256d28c18e99d489b9d4c95d80974",
+  "app/src/main/java/com/doggycredit/app/ui/DoggyCreditApp.kt": "8867eaefb21c58e555a3c84b77beea63f815a900404763fcb83086786e74a788",
+  "app/src/main/java/com/doggycredit/app/ui/components/Components.kt": "c3a518f7256addfd626f4dca4e329095c1f796a929cce060ada511b513e0473b",
+  "app/src/main/java/com/doggycredit/app/ui/screens/AccountScreen.kt": "1890d68a2c1a06988cf0ebecaa09f2ba9407cc094c9e826b23f3101f0be5970e",
+  "app/src/main/java/com/doggycredit/app/ui/screens/AnalyticsScreen.kt": "d579c98ab0d9a3c08ed5d538de157473ca93da0753dfe0430ee1f4485aa22f16",
+  "app/src/main/java/com/doggycredit/app/ui/screens/DetailScreens.kt": "20c7e42ac909eaa1b1f6865811240572e232be83151753ac0d4c2eb56bcc1176",
+  "app/src/main/java/com/doggycredit/app/ui/screens/EvaluationScreen.kt": "28474c04dfc376d9cd9efb21d20ddfaecb70c1717c6183f4e9688510ae85bc2d",
+  "app/src/main/java/com/doggycredit/app/ui/screens/HomeScreen.kt": "dfa374d11b8b64e43f03a924bea24777b58238a0829334d197acde95dc9470a0",
+  "app/src/main/java/com/doggycredit/app/ui/screens/ListsScreens.kt": "8993be232b164de947f9d9ef581f459af7d322a5b4bb233c1053f3b583f2295d",
+  "app/src/main/java/com/doggycredit/app/ui/screens/ResolveScreen.kt": "f8073bfe1ab343c24fc04c1b8eabe4849dbc87c9571d8fbbd0aad7dbac3f3c08",
+  "app/src/main/java/com/doggycredit/app/ui/screens/WelcomeScreen.kt": "df6e4e2b0ac37db1311e213d77ac3173593ede4e015a4c68cdde239105c06ae7",
+  "app/src/main/java/com/doggycredit/app/ui/theme/Color.kt": "9cf51d5e04084fe4f77f554dd1fdd39d37fee6a5c865410cd8f8de58ed36fcb2",
+  "app/src/main/java/com/doggycredit/app/ui/theme/Theme.kt": "b2fb9af9775a84422a118f6fc2bf3f66927f1e464dca789c661b13d65199301d",
+  "app/src/main/java/com/doggycredit/app/ui/theme/Type.kt": "6ee16b57ed950e21ae010cd9b6ac27ac86f1dec3b2120e59d8d01afefd4e4632"
+}

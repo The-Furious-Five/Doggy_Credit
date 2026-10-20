@@ -1,0 +1,66 @@
+[
+  {
+    "label": "Desbloquear",
+    "bounds": [
+      348.0,
+      1371.0,
+      933.0,
+      1531.0
+    ],
+    "viewport": [
+      0.0,
+      0.0,
+      1280.0,
+      2856.0
+    ],
+    "positive_visible_area": true
+  },
+  {
+    "label": "Cerrar sesión",
+    "bounds": [
+      371.0,
+      2107.0,
+      910.0,
+      2267.0
+    ],
+    "viewport": [
+      0.0,
+      0.0,
+      1280.0,
+      2856.0
+    ],
+    "positive_visible_area": true
+  },
+  {
+    "label": "Desbloquear",
+    "bounds": [
+      1136.0,
+      811.0,
+      1721.0,
+      971.0
+    ],
+    "viewport": [
+      0.0,
+      0.0,
+      2856.0,
+      1280.0
+    ],
+    "positive_visible_area": true
+  },
+  {
+    "label": "Cerrar sesión",
+    "bounds": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "viewport": [
+      0.0,
+      0.0,
+      2856.0,
+      1280.0
+    ],
+    "positive_visible_area": false
+  }
+]

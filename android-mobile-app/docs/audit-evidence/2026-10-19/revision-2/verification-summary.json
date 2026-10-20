@@ -1,0 +1,241 @@
+{
+  "review": "Android technical audit revision 2",
+  "recorded_at_utc": "2026-10-20T00:23:26.640135+00:00",
+  "scope": "android-mobile-app; documentation-only review",
+  "score": {
+    "accessibility": 3,
+    "performance": 3,
+    "appearance_and_theming": 3,
+    "platform_conformance": 2,
+    "adaptivity": 3,
+    "total": 14,
+    "maximum": 20,
+    "rating": "Good"
+  },
+  "open_findings": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 3,
+    "P3": 0,
+    "ids": [
+      "AUD-01",
+      "AUD-03",
+      "AUD-04",
+      "AUD-05"
+    ]
+  },
+  "closed_findings": [
+    "AUD-02"
+  ],
+  "prior_kotlin_fingerprints_compared": 21,
+  "changed_since_first_audit": [
+    "app/src/main/java/com/doggycredit/app/MainActivity.kt"
+  ],
+  "source_fingerprints": "source-fingerprints.json",
+  "path_base_for_sources_and_artifacts": "android-mobile-app",
+  "reused_unit_results": {
+    "counts": {
+      "tests": 42,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reports": [
+      {
+        "class": "com.doggycredit.app.AppViewModelTests",
+        "counts": {
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "1ccebe92bfc8d3412b5bf63dcc504a9796d69b7cae26da2e7733f1d1cbf5a032",
+        "report_modified_utc": "2026-10-20T00:11:03.648029+00:00"
+      },
+      {
+        "class": "com.doggycredit.app.ContractTests",
+        "counts": {
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "a33f4683b851dcedeacc6b2c945ed729a49b8048a2503fd32e5c8ecf31d4295f",
+        "report_modified_utc": "2026-10-20T00:11:03.648912+00:00"
+      },
+      {
+        "class": "com.doggycredit.app.EvaluationTests",
+        "counts": {
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "6ea493ebab70a4566fe22b0bddd4a1d350f29f73c24a3e57ef9b53d420c37fc4",
+        "report_modified_utc": "2026-10-20T00:11:03.648965+00:00"
+      },
+      {
+        "class": "com.doggycredit.app.LiveApiTests",
+        "counts": {
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "e883bd634b6f9f95dac27b25f1d693c96554f92e4ccb8b119b4a21f6bbbd8887",
+        "report_modified_utc": "2026-10-20T00:11:03.649117+00:00"
+      },
+      {
+        "class": "com.doggycredit.app.ResolutionTests",
+        "counts": {
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "report_sha256": "80ee9312ad01480252dba822aa7576fa6e6a69b73ef200de296c72f509c564ea",
+        "report_modified_utc": "2026-10-20T00:11:03.648025+00:00"
+      }
+    ],
+    "new_executions_this_audit": 0
+  },
+  "reused_instrumentation_results": {
+    "total_executions": 32,
+    "runs": [
+      {
+        "configuration": "flows",
+        "tests": 16,
+        "result": "passed",
+        "evidence": "results-flows.txt",
+        "sha256": "de7675ff148723fbfacffe412625a27a3d9a59aab10a9866513e68faf178e9d6",
+        "original_modified_utc": "2026-10-20T00:13:33.778935+00:00"
+      },
+      {
+        "configuration": "landscape",
+        "tests": 3,
+        "result": "passed",
+        "evidence": "results-landscape.txt",
+        "sha256": "7c55144d9437a8114e9f593962864df2af50feb226936b1002e0df71ea1c4c7c",
+        "original_modified_utc": "2026-10-20T00:12:17.307159+00:00"
+      },
+      {
+        "configuration": "narrow",
+        "tests": 3,
+        "result": "passed",
+        "evidence": "results-narrow.txt",
+        "sha256": "5fbcbd9ff964eb4b24a6f11902f5494848f5ebf107f3b3eccee3183feb847e99",
+        "original_modified_utc": "2026-10-20T00:12:09.685496+00:00"
+      },
+      {
+        "configuration": "phone",
+        "tests": 4,
+        "result": "passed",
+        "evidence": "results-phone.txt",
+        "sha256": "a4ea089dd56bad56828c62f1500d80e1d282a9e2cda3770ad85007aacb0add7e",
+        "original_modified_utc": "2026-10-20T00:12:00.332752+00:00"
+      },
+      {
+        "configuration": "tablet-landscape",
+        "tests": 3,
+        "result": "passed",
+        "evidence": "results-tablet-landscape.txt",
+        "sha256": "87cf0344c1c3325545d566043293d2a59dd4f8a376a0a6b9f8cbac6e84db5144",
+        "original_modified_utc": "2026-10-20T00:12:33.303681+00:00"
+      },
+      {
+        "configuration": "tablet-portrait",
+        "tests": 3,
+        "result": "passed",
+        "evidence": "results-tablet-portrait.txt",
+        "sha256": "ebbf3cbdc49095b3fd467f5f0a5761a64299bc21b43cdf37c9a02770a39ca872",
+        "original_modified_utc": "2026-10-20T00:12:25.603319+00:00"
+      }
+    ],
+    "new_executions_this_audit": 0,
+    "device": "Pixel 9 Pro emulator; API 37; five size/density configurations on one emulator"
+  },
+  "lint": {
+    "invoked_this_audit": true,
+    "command": ":app:lintDebug --console=plain",
+    "result": "BUILD SUCCESSFUL",
+    "analysis_reused_by_gradle": true,
+    "errors": 0,
+    "warnings": 41,
+    "warnings_by_id": {
+      "OldTargetApi": 1,
+      "AndroidGradlePluginVersion": 2,
+      "GradleDependency": 8,
+      "NewerVersionAvailable": 8,
+      "ModifierParameter": 2,
+      "ObsoleteSdkInt": 1,
+      "VectorPath": 12,
+      "MonochromeLauncherIcon": 2,
+      "UseKtx": 5
+    },
+    "report_sha256": "f182a9625e4ab2cd2727dd9da2da86f834aaf7d0b8a9194ca463770291ee34de",
+    "task_log": "lint-task.txt"
+  },
+  "artifacts": {
+    "app/build/outputs/apk/debug/app-debug.apk": {
+      "sha256": "35c761c841d90a0284bf1575648bdab918ac6ea541e8560e0f971870734fd8bb",
+      "bytes": 21403153,
+      "modified_utc": "2026-10-20T00:11:03.759613+00:00"
+    },
+    "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk": {
+      "sha256": "d8c4a71d3b442436c82ebd3636f13ab47637ff0e81b9f433d07bdd912353ea5b",
+      "bytes": 1104450,
+      "modified_utc": "2026-10-20T00:22:31.949364+00:00"
+    },
+    "app/build/outputs/apk/release/app-release-unsigned.apk": {
+      "sha256": "62c1e4f84b224c9be1ca9a9046bd608336fa76d89455bfa40fe18d7f349f5416",
+      "bytes": 2568857,
+      "modified_utc": "2026-10-20T00:11:34.161798+00:00"
+    }
+  },
+  "visually_reviewed_existing_captures": [
+    "../lock-harden/landscape-actions-fixed.png",
+    "../lock-harden/narrow-unicode-actions-fixed.png",
+    "../navigation-large-text.png",
+    "../welcome-busy-light.png",
+    "../welcome-busy-dark.png"
+  ],
+  "new_emulator_sessions": 1,
+  "limitations": [
+    "No physical-device tests",
+    "No real TalkBack or physical keyboard review",
+    "No manual predictive Back or biometric testing",
+    "No 60/120 Hz performance measurement",
+    "No multiwindow or foldable posture tests",
+    "Only API 37 execution evidence",
+    "No production financial session or business-data writes"
+  ],
+  "reopened_findings": {
+    "AUD-01": "The real DoggyCreditApp NavHost consumes Back while covered on Account; isolated ProtectedSessionTests did not cover this integration."
+  },
+  "new_diagnostic": {
+    "tests": 1,
+    "failures": 1,
+    "test_class": "com.doggycredit.app.AuditNavigationProbeTests",
+    "method": "protectedBackMustWinOverRealFinancialNavigation",
+    "device": "Pixel 9 Pro emulator API 37; default phone display",
+    "result": "Assertion failure reproduces AUD-01 with real DoggyCreditApp and NavHost",
+    "observed_protected_leave_calls": 0,
+    "expected_protected_leave_calls": 1,
+    "observed_account_retained": false,
+    "expected_account_retained": true,
+    "source": "AuditNavigationProbeTests.kt",
+    "temporary_gradle_init": "probes.gradle",
+    "result_evidence": "results-navigation-back.txt",
+    "observations": "probe-observations.txt",
+    "network": "Synthetic SessionController and DoggyCreditApi; no deployed API calls"
+  },
+  "cleanup": {
+    "normal_instrumentation_apk_restored": true,
+    "restore_build_log": "restore-test-apk.txt",
+    "restore_install_log": "restore-install.txt",
+    "owned_emulator_stopped": true,
+    "stop_log": "emulator-stop.txt",
+    "display_settings_changed": false,
+    "real_financial_session_changed": false
+  }
+}

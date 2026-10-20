@@ -10,6 +10,9 @@ import com.doggycredit.app.data.*
 import com.doggycredit.app.model.*
 import kotlinx.coroutines.*
 import java.time.LocalDate
+import java.util.Locale
+
+data class NewEvaluationRequest(val document: String?)
 
 class AppViewModel @JvmOverloads constructor(
     application: Application,
@@ -40,11 +43,15 @@ class AppViewModel @JvmOverloads constructor(
     var searchDocument by mutableStateOf(""); private set
     var draft by mutableStateOf(EvaluationDraft()); private set
     var showEvaluation by mutableStateOf(false)
+    var pendingEvaluation by mutableStateOf<NewEvaluationRequest?>(null); private set
     private var sessionJob = SupervisorJob(viewModelScope.coroutineContext[Job])
     private var sessionScope = CoroutineScope(viewModelScope.coroutineContext + sessionJob)
     private var searchJob: Job? = null
     private var analyticsJob: Job? = null
     private var clientsJob: Job? = null
+    private var reviewsJob: Job? = null
+    private var moreReviewsJob: Job? = null
+    private var reviewGeneration = 0
     val mask get() = user?.shouldMask(preferences.value) ?: true
 
     init {
@@ -84,11 +91,13 @@ class AppViewModel @JvmOverloads constructor(
         sessionJob.cancel()
         sessionJob = SupervisorJob(viewModelScope.coroutineContext[Job])
         sessionScope = CoroutineScope(viewModelScope.coroutineContext + sessionJob)
-        draft = EvaluationDraft(); showEvaluation = false
+        draft = EvaluationDraft(); showEvaluation = false; pendingEvaluation = null
         institution = Remote(); usage = Remote(); preferences = Remote(); home = Remote(); clients = Remote()
         reviews = Remote(); analytics = Remote(); search = Remote(); searchDocument = ""
         clientPage = 1; reviewPage = 1; segment = null; reviewFilter = "Todos"
-        searchJob?.cancel(); analyticsJob?.cancel(); clientsJob?.cancel()
+        reviewGeneration++
+        loadingMoreReviews = false; reviewPageError = null
+        searchJob?.cancel(); analyticsJob?.cancel(); clientsJob?.cancel(); reviewsJob?.cancel(); moreReviewsJob?.cancel()
     }
     private fun <T> load(current: Remote<T>, set: (Remote<T>) -> Unit, block: suspend () -> T): Job = sessionScope.launch {
         set(current.copy(loading = true, error = null))
@@ -124,22 +133,49 @@ class AppViewModel @JvmOverloads constructor(
             finally { loadingMoreClients = false }
         }
     }
-    fun refreshReviews() = load(reviews, { reviews = it }) { api.reviewCases().also { reviewPage = 1 } }
+    fun refreshReviews() {
+        val generation = ++reviewGeneration
+        reviewsJob?.cancel(); moreReviewsJob?.cancel()
+        loadingMoreReviews = false; reviewPageError = null
+        val previous = reviews.value
+        reviews = Remote(value = previous, loading = true)
+        reviewsJob = sessionScope.launch {
+            try {
+                val response = api.reviewCases()
+                ensureActive()
+                if (generation == reviewGeneration) {
+                    reviewPage = 1
+                    reviews = Remote(value = response)
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                if (generation == reviewGeneration) reviews = Remote(value = previous, error = failure.userMessage(), status = (failure as? ApiException)?.status)
+            }
+        }
+    }
     fun moreReviews() {
         val page = reviews.value ?: return
-        if (loadingMoreReviews || page.items.size >= page.total) return
+        if (reviews.loading || loadingMoreReviews || page.items.size >= page.total) return
+        val generation = reviewGeneration
         loadingMoreReviews = true; reviewPageError = null
-        sessionScope.launch {
+        moreReviewsJob = sessionScope.launch {
             try {
                 val next = api.reviewCases(page = reviewPage + 1)
+                ensureActive()
+                if (generation != reviewGeneration) return@launch
+                if (next.items.isEmpty() && page.items.size < next.total) {
+                    reviewPageError = "La bandeja cambió mientras cargabas. Actualízala para consultar los casos pendientes."
+                    return@launch
+                }
                 reviews = Remote(value = ReviewPage((page.items + next.items).distinctBy { it.assessmentId }, next.total, next.products)); reviewPage++
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (failure: Exception) { reviewPageError = failure.userMessage() }
-            finally { loadingMoreReviews = false }
+            catch (failure: Exception) { if (generation == reviewGeneration) reviewPageError = failure.userMessage() }
+            finally { if (generation == reviewGeneration) loadingMoreReviews = false }
         }
     }
     fun removeReview(id: String) {
         reviews.value?.let { page -> reviews = Remote(value = page.copy(items = page.items.filterNot { it.assessmentId == id }, total = (page.total - 1).coerceAtLeast(0))) }
+        refreshReviews()
         refreshHome()
     }
     fun search(document: String) {
@@ -159,10 +195,29 @@ class AppViewModel @JvmOverloads constructor(
         analyticsJob = load(Remote(), { analytics = it }) { api.analytics(from.toString(), today.toString()) }
     }
     fun startEvaluation(document: String? = null) {
-        if (!draft.inProgress && document != null) { draft = EvaluationDraft(); draft.document = document }
+        val request = NewEvaluationRequest(document?.trim()?.uppercase(Locale.ROOT)?.takeIf { it.isNotBlank() })
+        if (draft.inProgress || draft.busy) {
+            pendingEvaluation = request
+            return
+        }
+        openNewEvaluation(request)
+    }
+    private fun openNewEvaluation(request: NewEvaluationRequest) {
+        draft = EvaluationDraft().apply { document = request.document.orEmpty() }
+        pendingEvaluation = null
         showEvaluation = true
     }
-    fun nextEvaluation() { sessionScope.launch { draft.next(api) { refreshSession() } } }
+    fun resumeEvaluation() { pendingEvaluation = null; showEvaluation = true }
+    fun cancelNewEvaluation() { pendingEvaluation = null }
+    fun confirmNewEvaluation() {
+        val request = pendingEvaluation ?: return
+        if (!draft.busy) openNewEvaluation(request)
+    }
+    fun nextEvaluation() {
+        if (draft.step == 0 && !draft.validateApplicant()) return
+        val current = draft
+        sessionScope.launch { current.next(api) { refreshSession() } }
+    }
     fun reloadSources() { sessionScope.launch { draft.loadSources(api) } }
     fun discardDraft() { if (!draft.busy) { draft = EvaluationDraft(); showEvaluation = false } }
     fun restartDraft() { if (!draft.busy) draft = EvaluationDraft() }

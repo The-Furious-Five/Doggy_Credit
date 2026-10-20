@@ -19,6 +19,9 @@ final class AppLock {
         isLocked = isEnabled
     }
 
+    // No hay limpieza aislada; evita el deinit de MainActor retrocompatible en iOS 18.
+    nonisolated deinit {}
+
     /// Nombre del método disponible para mostrarlo en Ajustes.
     var methodName: String {
         let context = LAContext()

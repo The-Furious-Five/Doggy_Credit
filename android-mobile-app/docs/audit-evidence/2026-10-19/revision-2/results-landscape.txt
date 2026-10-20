@@ -1,0 +1,8 @@
+
+com.doggycredit.app.ProtectedSessionTests:...
+
+Time: 5,804
+
+OK (3 tests)
+
+

@@ -2,6 +2,8 @@ package com.doggycredit.app.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -45,9 +47,10 @@ import com.doggycredit.app.ui.theme.*
         Card {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconTile(Icons.Rounded.VerifiedUser)
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = lockEnabled, enabled = lockAvailable,
+                    role = Role.Switch, onValueChange = toggleLock), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text("Bloquear la aplicación", style = MaterialTheme.typography.titleSmall); Text("Huella, rostro o bloqueo del dispositivo", style = MaterialTheme.typography.bodySmall) }
-                    Switch(lockEnabled, onCheckedChange = toggleLock, enabled = lockAvailable)
+                    Switch(lockEnabled, onCheckedChange = null, enabled = lockAvailable)
                 }
                 if (!lockAvailable) Text("Configura un bloqueo de pantalla en tu dispositivo para activar esta opción.", style = MaterialTheme.typography.bodySmall)
                 DataRow("Documentos y montos", if (vm.mask) "Enmascarados" else "Visibles para tu rol")
