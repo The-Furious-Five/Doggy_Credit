@@ -41,6 +41,13 @@ docker compose --env-file .env -f infra/compose.yaml up -d --build --wait
 cd backend && ./mvnw test   # opcional: pruebas, incluye ApplicationModulesTest
 ```
 
+## Integrar con la API
+
+Para crear evaluaciones desde otro sistema con una clave de API (token
+`client_credentials`, `Idempotency-Key`, errores RFC 9457):
+[`docs/guia-inicio-rapido-api.md`](docs/guia-inicio-rapido-api.md). El contrato completo
+es [`contracts/openapi/doggycredit-api.v1.yaml`](contracts/openapi/doggycredit-api.v1.yaml).
+
 El CI/CD (`.github/workflows/ci-cd.yml`, despliegue en [`docs/runbooks/despliegue-vps.md`](docs/runbooks/despliegue-vps.md)) exige Docker, corre ArchUnit + Spring
 Modulith + tests y falla ante cualquier test omitido que no esté en la lista
 blanca con vencimiento: ver [`docs/runbooks/tests-omitidos.md`](docs/runbooks/tests-omitidos.md).
