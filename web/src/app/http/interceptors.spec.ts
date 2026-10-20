@@ -18,6 +18,7 @@ import {
 import { appConfig } from '../app.config';
 import { DsToastOutlet, DsToastService } from '../design-system';
 import { HANDLED_PROBLEMS } from './api-error.interceptor';
+import { TenantSuspensionService } from './tenant-suspension.service';
 
 describe('Interceptores HTTP registrados en la aplicación', () => {
   let http: HttpClient;
@@ -212,6 +213,16 @@ describe('Interceptores HTTP registrados en la aplicación', () => {
       { status: 500, statusText: 'Server Error' },
     );
     expect(toast.message()).toContain('Error interno');
+  });
+
+  it('TENANT_SUSPENDED activa el aviso de suspensión y no muestra el toast genérico', () => {
+    http.get(`${api}/clientes`).subscribe({ error: () => undefined });
+    requests.expectOne(`${api}/clientes`).flush(
+      { title: 'Tenant suspendido', code: 'TENANT_SUSPENDED' },
+      { status: 403, statusText: 'Forbidden' },
+    );
+    expect(TestBed.inject(TenantSuspensionService).suspended()).toBe(true);
+    expect(toast.message()).toBe('');
   });
 
   it('interpreta Problem Details de peticiones con responseType text', () => {

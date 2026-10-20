@@ -4,6 +4,7 @@ import { catchError, throwError } from 'rxjs';
 import { BASE_PATH } from '../api';
 import { DsToastService } from '../design-system';
 import { isApiRequest } from './api-request';
+import { TenantSuspensionService } from './tenant-suspension.service';
 
 function nonEmptyText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -52,10 +53,17 @@ export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => {
     return next(request);
   }
   const toast = inject(DsToastService);
+  const suspension = inject(TenantSuspensionService);
   const handled = request.context.get(HANDLED_PROBLEMS);
   return next(request).pipe(
     catchError((error: unknown) => {
+      // TENANT_SUSPENDED (RF-TEN-04): la consola muestra un aviso fijo, no un toast.
       if (
+        error instanceof HttpErrorResponse &&
+        problemBody(error.error)['code'] === 'TENANT_SUSPENDED'
+      ) {
+        suspension.suspended.set(true);
+      } else if (
         error instanceof HttpErrorResponse &&
         !handled.includes(nonEmptyText(problemBody(error.error)['code']))
       ) {

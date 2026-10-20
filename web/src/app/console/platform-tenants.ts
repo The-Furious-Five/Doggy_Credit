@@ -1,12 +1,12 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AdminService, TenantActual, TenantPatchPlanEnum } from '../api';
-import { DsAlert, DsBadge, DsButton, DsCard, DsField, DsOption, DsSelect, DsTable, DsToastService } from '../design-system';
+import { DsAlert, DsBadge, DsButton, DsCard, DsDialog, DsField, DsOption, DsSelect, DsTable, DsToastService } from '../design-system';
 
 @Component({
   selector: 'dc-platform-tenants',
-  imports: [FormsModule, DsAlert, DsBadge, DsButton, DsCard, DsField, DsSelect, DsTable],
+  imports: [FormsModule, DsAlert, DsBadge, DsButton, DsCard, DsDialog, DsField, DsSelect, DsTable],
   styleUrl: './page.scss',
   template: `
     <header class="page-header">
@@ -28,7 +28,7 @@ import { DsAlert, DsBadge, DsButton, DsCard, DsField, DsOption, DsSelect, DsTabl
         <div class="ds-table-scroll" tabindex="0" aria-label="Instituciones registradas">
           <table dsTable>
             <caption class="ds-sr-only">Instituciones registradas y estado de sus planes</caption>
-            <thead><tr><th scope="col">Institución</th><th scope="col">NIT</th><th scope="col">Plan</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+            <thead><tr><th scope="col">Institución</th><th scope="col">NIT</th><th scope="col">Plan</th><th scope="col">Consumo del mes</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
             <tbody>
               @for (tenant of tenants(); track tenant.id) {
                 <tr>
@@ -45,10 +45,11 @@ import { DsAlert, DsBadge, DsButton, DsCard, DsField, DsOption, DsSelect, DsTabl
                         (click)="savePlan(tenant)">Guardar plan</button>
                     </div>
                   </td>
-                  <td><ds-badge [tone]="tenant.activo ? 'success' : 'danger'">{{ tenant.activo ? 'Activo' : 'Inactivo' }}</ds-badge></td>
+                  <td>{{ usageText(tenant) }}</td>
+                  <td><ds-badge [tone]="tenant.activo ? 'success' : 'danger'">{{ tenant.activo ? 'Activo' : 'Suspendido' }}</ds-badge></td>
                   <td>
                     <button dsButton variant="secondary" [busy]="busy().has(tenant.id)"
-                      (click)="toggleActive(tenant)">{{ tenant.activo ? 'Desactivar' : 'Activar' }} institución</button>
+                      (click)="tenant.activo ? askSuspend(tenant) : reactivate(tenant)">{{ tenant.activo ? 'Suspender' : 'Reactivar' }} institución</button>
                   </td>
                 </tr>
               }
@@ -57,6 +58,19 @@ import { DsAlert, DsBadge, DsButton, DsCard, DsField, DsOption, DsSelect, DsTabl
         </div>
       </ds-card>
     }
+
+    <ds-dialog [heading]="'Suspender ' + (pending()?.nombre ?? 'institución')" (dismissed)="pending.set(null)">
+      <div class="ds-stack">
+        <p>
+          Los usuarios y las claves de API de esta institución dejarán de operar de inmediato.
+          No se borra ningún dato: al reactivarla todo vuelve a funcionar.
+        </p>
+        <div class="ds-actions">
+          <button dsButton variant="secondary" (click)="dialog().close()">Cancelar</button>
+          <button dsButton variant="danger" [busy]="!!pending() && busy().has(pending()!.id)" (click)="confirmSuspend()">Suspender institución</button>
+        </div>
+      </div>
+    </ds-dialog>
   `,
 })
 export class PlatformTenants {
@@ -66,6 +80,8 @@ export class PlatformTenants {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly busy = signal(new Set<string>());
+  readonly pending = signal<TenantActual | null>(null);
+  readonly dialog = viewChild.required(DsDialog);
   readonly planOptions: DsOption<TenantPatchPlanEnum>[] = [
     { value: TenantPatchPlanEnum.Free, label: 'Gratis' },
     { value: TenantPatchPlanEnum.Pro, label: 'Pro' },
@@ -95,19 +111,39 @@ export class PlatformTenants {
     await this.updateTenant(tenant, { plan }, 'Plan actualizado.');
   }
 
-  async toggleActive(tenant: TenantActual): Promise<void> {
-    await this.updateTenant(tenant, { activo: !tenant.activo }, tenant.activo ? 'Institución desactivada.' : 'Institución activada.');
+  askSuspend(tenant: TenantActual): void {
+    this.pending.set(tenant);
+    this.dialog().show();
   }
 
-  private async updateTenant(tenant: TenantActual, patch: { activo?: boolean; plan?: TenantPatchPlanEnum }, success: string): Promise<void> {
+  async confirmSuspend(): Promise<void> {
+    const tenant = this.pending();
+    if (!tenant) return;
+    if (await this.updateTenant(tenant, { activo: false }, 'Institución suspendida.')) this.dialog().close();
+  }
+
+  async reactivate(tenant: TenantActual): Promise<void> {
+    await this.updateTenant(tenant, { activo: true }, 'Institución reactivada.');
+  }
+
+  /** `X de Y`, o `X · sin límite` cuando el plan no tiene cuota (límite 0). */
+  usageText(tenant: TenantActual): string {
+    const used = tenant.evaluacionesMes ?? 0;
+    const limit = tenant.limiteMensual ?? 0;
+    return limit > 0 ? `${used} de ${limit}` : `${used} · sin límite`;
+  }
+
+  private async updateTenant(tenant: TenantActual, patch: { activo?: boolean; plan?: TenantPatchPlanEnum }, success: string): Promise<boolean> {
     this.setBusy(tenant.id, true);
     try {
       const updated = await firstValueFrom(this.admin.actualizarTenant(tenant.id, patch));
       this.tenants.update((items) => items.map((item) => item.id === updated.id ? updated : item));
       this.choosePlan(updated.id, this.asPlan(updated.plan));
       this.toast.show(success);
+      return true;
     } catch {
       this.toast.show('No se pudo guardar. Revisa tu rol e inténtalo de nuevo.');
+      return false;
     } finally {
       this.setBusy(tenant.id, false);
     }
