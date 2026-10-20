@@ -2,9 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
+  AnalyticsAceptacionProducto,
+  AnalyticsBanda,
   AnalyticsModeloEstadoEnum,
   AnalyticsNecesidad,
   AnalyticsNecesidadCategoriaEnum,
+  AnalyticsOverride,
   AnalyticsProductoTipoEnum,
   AnalyticsService,
 } from '../api';
@@ -73,12 +76,7 @@ const modelStates: Record<AnalyticsModeloEstadoEnum, { label: string; tone: DsTo
           <ds-date-picker name="hasta" [(ngModel)]="hastaDraft" required />
         </ds-field>
         <div class="ds-row">
-          <button
-            dsButton
-            type="submit"
-            variant="secondary"
-            [disabled]="filters.invalid"
-          >
+          <button dsButton type="submit" variant="secondary" [disabled]="filters.invalid">
             Aplicar período
           </button>
           <button
@@ -181,7 +179,71 @@ const modelStates: Record<AnalyticsModeloEstadoEnum, { label: string; tone: DsTo
               [value]="duration(pro.tiempoDecisionMedianaMs)"
               detail="Mediana del procesamiento registrado"
           /></ds-card>
+          @if (pro.tasaOverride; as override) {
+            <ds-card padding="compact"
+              ><ds-stat
+                label="Tasa de override"
+                [value]="percent(override.porcentaje)"
+                [detail]="overrideDetail(override)"
+            /></ds-card>
+          }
         </div>
+        @if (pro.distribucionBandas; as bands) {
+          <ds-card>
+            <div class="card-head">
+              <h2>Distribución por banda</h2>
+              <span class="ds-caption">Evaluaciones con score del período</span>
+            </div>
+            @if (hasCases(bands)) {
+              <div class="bars">
+                @for (band of bands; track band.banda) {
+                  <ds-progress
+                    [label]="'Banda ' + band.banda + ' · ' + number(band.cantidad)"
+                    [value]="band.porcentaje"
+                  />
+                }
+              </div>
+            } @else {
+              <ds-empty-state
+                heading="Sin evaluaciones en este período"
+                description="La distribución aparece cuando hay evaluaciones con score en las fechas elegidas."
+              />
+            }
+          </ds-card>
+        }
+        @if (pro.aceptacionPorProducto; as acceptance) {
+          <ds-card>
+            <div class="card-head">
+              <h2>Aceptación por producto</h2>
+              <span class="ds-caption">Aceptadas sobre recomendadas en primer lugar</span>
+            </div>
+            @if (hasRecommendations(acceptance)) {
+              <div class="bars">
+                @for (product of acceptance; track product.tipo) {
+                  <ds-progress
+                    [label]="
+                      productLabel(product.tipo) +
+                      ' · ' +
+                      number(product.aceptados) +
+                      ' de ' +
+                      number(product.recomendados)
+                    "
+                    [value]="product.porcentaje"
+                  />
+                }
+              </div>
+              <p class="ds-caption">
+                Aceptada: preaprobada o aprobada en revisión manual con un producto del mismo tipo.
+                No mide desembolsos.
+              </p>
+            } @else {
+              <ds-empty-state
+                heading="Sin recomendaciones en este período"
+                description="La aceptación se calcula sobre las evaluaciones con un producto recomendado."
+              />
+            }
+          </ds-card>
+        }
         <ds-card>
           <div class="card-head"><h2>Recomendaciones por producto</h2></div>
           @if (pro.recomendacionesPorProducto.length) {
@@ -254,8 +316,9 @@ const modelStates: Record<AnalyticsModeloEstadoEnum, { label: string; tone: DsTo
         </ds-alert>
       } @else {
         <ds-alert heading="Analítica avanzada disponible con Pro">
-          Conversión, tiempo de decisión, montos, recomendaciones por producto y monitoreo de
-          modelos requieren un plan con analítica avanzada.
+          Los KPIs de tu cartera, la distribución por banda, la tasa de override y la aceptación por
+          producto, junto con la conversión, el tiempo de decisión, los montos, las recomendaciones
+          por producto y el monitoreo de modelos, requieren un plan con analítica avanzada.
         </ds-alert>
       }
     }
@@ -281,6 +344,28 @@ export class AnalyticsDashboard {
 
   hasNeeds(needs: AnalyticsNecesidad[]): boolean {
     return needs.some((need) => need.cantidad > 0);
+  }
+
+  /** D-13: las cinco bandas llegan siempre, con 0; sin casos se explica en vez de dibujar ceros. */
+  hasCases(bands: AnalyticsBanda[]): boolean {
+    return bands.some((band) => band.cantidad > 0);
+  }
+
+  hasRecommendations(products: AnalyticsAceptacionProducto[]): boolean {
+    return products.some((product) => product.recomendados > 0);
+  }
+
+  /** El contrato repite el enum de tipo de producto por esquema; los valores son los mismos. */
+  productLabel(tipo: string): string {
+    return productLabels[tipo as AnalyticsProductoTipoEnum] ?? tipo;
+  }
+
+  overrideDetail(override: AnalyticsOverride): string {
+    const cases =
+      override.overrides === 1
+        ? '1 caso resuelto'
+        : `${this.number(override.overrides)} casos resueltos`;
+    return `${cases} en la bandeja de ${this.number(override.evaluaciones)} evaluaciones`;
   }
 
   apply(form: NgForm): void {

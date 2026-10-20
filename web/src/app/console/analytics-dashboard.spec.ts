@@ -5,6 +5,8 @@ import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import {
+  AnalyticsAceptacionProductoTipoEnum,
+  AnalyticsBandaBandaEnum,
   AnalyticsModeloEstadoEnum,
   AnalyticsNecesidadCategoriaEnum,
   AnalyticsProductoTipoEnum,
@@ -270,5 +272,109 @@ describe('KPIs de Resumen y Analítica (E-02 / E-05)', () => {
     expect(api.obtenerResumenAnalytics.mock.calls[1]).toEqual(
       api.obtenerResumenAnalytics.mock.calls[0],
     );
+  });
+
+  describe('KPIs de cartera (D-13 / RF-ANA-02)', () => {
+    const portfolio = (): AnalyticsResumen => {
+      const data = summary(true);
+      data.pro = {
+        ...data.pro!,
+        distribucionBandas: [
+          { banda: AnalyticsBandaBandaEnum.A, cantidad: 5, porcentaje: 25 },
+          { banda: AnalyticsBandaBandaEnum.B, cantidad: 8, porcentaje: 40 },
+          { banda: AnalyticsBandaBandaEnum.C, cantidad: 4, porcentaje: 20 },
+          { banda: AnalyticsBandaBandaEnum.D, cantidad: 2, porcentaje: 10 },
+          { banda: AnalyticsBandaBandaEnum.E, cantidad: 1, porcentaje: 5 },
+        ],
+        tasaOverride: { overrides: 3, evaluaciones: 20, porcentaje: 15 },
+        aceptacionPorProducto: [
+          {
+            tipo: AnalyticsAceptacionProductoTipoEnum.Microcredito,
+            recomendados: 10,
+            aceptados: 4,
+            porcentaje: 40,
+          },
+          {
+            tipo: AnalyticsAceptacionProductoTipoEnum.Verde,
+            recomendados: 0,
+            aceptados: 0,
+            porcentaje: 0,
+          },
+          {
+            tipo: AnalyticsAceptacionProductoTipoEnum.Pyme,
+            recomendados: 2,
+            aceptados: 1,
+            porcentaje: 50,
+          },
+        ],
+      };
+      return data;
+    };
+    const bars = (f: ComponentFixture<unknown>) =>
+      [...f.nativeElement.querySelectorAll('ds-progress')].map((bar: HTMLElement) =>
+        bar.textContent?.replace(/\s+/g, ' ').trim(),
+      );
+
+    it('muestra las cinco bandas, la tasa de override y la aceptación por producto en Pro', async () => {
+      api.obtenerResumenAnalytics.mockReturnValue(of(portfolio()));
+      const f = await render();
+      expect(stats(f)).toContain('Tasa de override');
+      expect(stats(f)).toContain('15 %');
+      expect(stats(f)).toContain('3 casos resueltos en la bandeja de 20 evaluaciones');
+      expect(text(f)).toContain('Distribución por banda');
+      for (const label of [
+        'Banda A · 5',
+        'Banda B · 8',
+        'Banda C · 4',
+        'Banda D · 2',
+        'Banda E · 1',
+      ]) {
+        expect(bars(f).some((bar) => bar?.includes(label))).toBe(true);
+      }
+      expect(text(f)).toContain('Aceptación por producto');
+      expect(text(f)).toContain('Microcrédito · 4 de 10');
+      expect(text(f)).toContain('Crédito PYME · 1 de 2');
+      expect(text(f)).toContain('No mide desembolsos');
+    });
+
+    it('explica un período sin casos en vez de dibujar barras en cero', async () => {
+      const empty = portfolio();
+      empty.pro!.distribucionBandas = empty.pro!.distribucionBandas!.map((band) => ({
+        ...band,
+        cantidad: 0,
+        porcentaje: 0,
+      }));
+      empty.pro!.aceptacionPorProducto = empty.pro!.aceptacionPorProducto!.map((product) => ({
+        ...product,
+        recomendados: 0,
+        aceptados: 0,
+        porcentaje: 0,
+      }));
+      empty.pro!.tasaOverride = { overrides: 0, evaluaciones: 0, porcentaje: 0 };
+      api.obtenerResumenAnalytics.mockReturnValue(of(empty));
+      const f = await render();
+      expect(text(f)).toContain('Sin evaluaciones en este período');
+      expect(text(f)).toContain('Sin recomendaciones en este período');
+      expect(bars(f).some((bar) => bar?.startsWith('Banda'))).toBe(false);
+      expect(stats(f)).toContain('0 casos resueltos en la bandeja de 0 evaluaciones');
+    });
+
+    it('no muestra los KPIs de cartera si el servidor todavía no los envía', async () => {
+      api.obtenerResumenAnalytics.mockReturnValue(of(summary(true)));
+      const f = await render();
+      expect(text(f)).not.toContain('Distribución por banda');
+      expect(text(f)).not.toContain('Aceptación por producto');
+      expect(stats(f)).not.toContain('Tasa de override');
+      expect(text(f)).toContain('Recomendaciones por producto');
+    });
+
+    it('en Gratis la invitación a Pro menciona estos KPIs, sin error', async () => {
+      const f = await render();
+      expect(text(f)).toContain('Analítica avanzada disponible con Pro');
+      expect(text(f)).toContain('la tasa de override');
+      expect(text(f)).toContain('la distribución por banda');
+      expect(stats(f)).not.toContain('Tasa de override');
+      expect(text(f)).not.toContain('No pudimos cargar');
+    });
   });
 });
