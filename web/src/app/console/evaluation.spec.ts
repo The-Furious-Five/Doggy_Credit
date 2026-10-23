@@ -5,6 +5,9 @@ import { provideRouter } from '@angular/router';
 import { NEVER, of, throwError } from 'rxjs';
 import {
   ConsentimientosService,
+  CriterioElegibilidadCodigoEnum,
+  ElegibilidadProductoMonedaEnum,
+  ElegibilidadProductoTipoProductoEnum,
   Evaluacion,
   EvaluacionBandaEnum,
   EvaluacionDecisionEnum,
@@ -241,7 +244,39 @@ describe('Nueva evaluación conectada a la API (C-07)', () => {
     f.componentInstance.restart();
     assessments.crearEvaluacion.mockReturnValue(of(result()));
     await goToResult(f);
-    expect(text(f)).toContain('disponibles en el plan Pro');
+    // C-16: sin ranking por el plan es una invitación al plan Pro, no un error.
+    expect(text(f)).toContain('Ranking disponible en el plan Pro');
+  });
+
+  it('C-16: muestra la elegibilidad de cada producto con sus criterios en el Resultado', async () => {
+    assessments.crearEvaluacion.mockReturnValue(
+      of(
+        result({
+          elegibilidad: [
+            {
+              productoId: 'p-verde',
+              tipoProducto: ElegibilidadProductoTipoProductoEnum.Verde,
+              moneda: ElegibilidadProductoMonedaEnum.Bob,
+              elegible: false,
+              criterios: [
+                {
+                  codigo: CriterioElegibilidadCodigoEnum.Destino,
+                  cumple: false,
+                  detalle: 'El crédito ecológico requiere un destino verde',
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+    const f = render();
+    await goToResult(f);
+    expect(text(f)).toContain('Productos elegibles');
+    expect(text(f)).toContain('Crédito ecológico');
+    expect(text(f)).toContain('No elegible');
+    expect(text(f)).toContain('Destino · El crédito ecológico requiere un destino verde');
+    expect(text(f)).toContain('Recomendación, no aprobación');
   });
 
   it('PARCIAL: avisa que faltó una fuente y que no se preaprueba', async () => {

@@ -80,7 +80,7 @@ const merged = {
   /** C-14 (LOS-130) y D-13 (LOS-133): KPIs de cartera en AnalyticsPro y su vista en Analítica. */
   kpisCartera: false,
   /** E-16: productos elegibles con sus criterios (✓/✗) y ranking con monto y plazo en el resultado. */
-  elegibilidad: false,
+  elegibilidad: true,
 };
 const enabled = new Set((process.env['E2E_DEPENDENCIAS'] ?? '').split(',').map((name) => name.trim()));
 

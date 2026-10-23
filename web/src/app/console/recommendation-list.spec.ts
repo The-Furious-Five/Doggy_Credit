@@ -10,15 +10,50 @@ const item = (tipo: RecomendacionTipoProductoEnum, monto: string, razon: string)
 });
 
 describe('Lista de recomendaciones (C-06)', () => {
-  function render(items: Recomendacion[] | undefined) {
+  function render(items: Recomendacion[] | undefined, partial = false) {
     const fixture = TestBed.createComponent(RecommendationList);
     fixture.componentRef.setInput('items', items);
+    fixture.componentRef.setInput('partial', partial);
     fixture.detectChanges();
     return fixture.nativeElement as HTMLElement;
   }
 
-  it('sin recomendaciones disponibles explica que son del plan Pro y no de parciales', () => {
-    expect(render(undefined).textContent).toContain('disponibles en el plan Pro');
+  it('C-16: sin ranking por el plan, invita al plan Pro sin mostrar un error', () => {
+    const page = render(undefined);
+    expect(page.querySelector('ds-alert')?.getAttribute('data-tone')).toBe('info');
+    expect(page.textContent).toContain('Ranking disponible en el plan Pro');
+    expect(page.textContent).not.toContain('resultado parcial');
+  });
+
+  it('C-16: sin ranking por un resultado parcial, lo explica y no invita al plan Pro', () => {
+    const page = render(undefined, true);
+    expect(page.textContent).toContain('resultado parcial');
+    expect(page.querySelector('ds-alert')).toBeNull();
+  });
+
+  it('C-16: muestra el plazo sugerido y las razones del ajuste (E-16)', () => {
+    const page = render([
+      {
+        ...item(RecomendacionTipoProductoEnum.Microcredito, '3000.00', 'Elegible: cumple banda, monto y plazo'),
+        plazoSugeridoMeses: 12,
+        razones: ['Banda B cumple la mínima C', 'Cuota BOB 280 no supera la capacidad mensual BOB 900'],
+      },
+    ]);
+    expect(page.textContent).toContain('a 12 meses');
+    const reasons = [...page.querySelectorAll('[data-reasons="Microcrédito"] > span')].map((s) => s.textContent);
+    expect(reasons).toEqual(['Banda B cumple la mínima C', 'Cuota BOB 280 no supera la capacidad mensual BOB 900']);
+  });
+
+  it('C-16: con el monto enmascarado por el servidor no muestra la cifra', () => {
+    const page = render([item(RecomendacionTipoProductoEnum.Pyme, '••••••', 'Elegible')]);
+    expect(page.textContent).toContain('••••••');
+    expect(page.textContent).not.toMatch(/Bs \d/);
+  });
+
+  it('una recomendación anterior a E-16 (sin plazo ni razones) se sigue mostrando', () => {
+    const page = render([item(RecomendacionTipoProductoEnum.Pyme, '5000.00', 'Banda A')]);
+    expect(page.textContent).not.toContain('meses');
+    expect(page.querySelector('[data-reasons]')).toBeNull();
   });
 
   it('si se evaluaron y ninguna aplica, lo dice', () => {

@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
@@ -48,7 +49,8 @@ class AssessmentController implements EvaluacionesApi {
 		AssessmentResult result = assessments.create(new AssessmentCommand(tenantId, body.getTitularDocumento(),
 				body.getConsentId(), body.getProposito(), amount, term, idempotencyKey,
 				Objects.requireNonNullElse(MDC.get("correlationId"), "unavailable")));
-		return ResponseEntity.status(HttpStatus.CREATED).header("X-Simulated", "true").body(toContract(result));
+		return ResponseEntity.status(HttpStatus.CREATED).header("X-Simulated", "true")
+			.body(toContract(result, sensitiveData.forCurrentUser()));
 	}
 
 	/** C-09. El tenant sale del JWT; nunca de los parámetros. */
@@ -64,7 +66,7 @@ class AssessmentController implements EvaluacionesApi {
 
 	@Override
 	public ResponseEntity<Evaluacion> obtenerEvaluacion(UUID id) {
-		return ResponseEntity.ok(toContract(assessments.get(currentTenantId(), id)));
+		return ResponseEntity.ok(toContract(assessments.get(currentTenantId(), id), sensitiveData.forCurrentUser()));
 	}
 
 	private UUID currentTenantId() {
@@ -89,7 +91,21 @@ class AssessmentController implements EvaluacionesApi {
 			.creadoEn(summary.createdAt().atOffset(ZoneOffset.UTC));
 	}
 
-	private Evaluacion toContract(AssessmentResult result) {
+	/**
+	 * C-16 (LOS-140), A-10: los textos de elegibilidad y del ranking traen montos del titular
+	 * (monto propuesto, cuota y capacidad mensual). Con el enmascarado activo se ocultan esos
+	 * montos y se conserva el resto del texto; el rango del producto es del catálogo y se ve.
+	 * DEBT-021: depende del formato de los textos de EligibilityEngine.
+	 */
+	private static final Pattern HOLDER_AMOUNT = Pattern
+		.compile("\\b((?:Monto|Cuota|capacidad mensual) (?:Bs|BOB|USD) )\\d[\\d.]*(?:,\\d+)?");
+
+	private static String maskAmounts(String text, Masker mask) {
+		return text == null || !mask.active() ? text
+				: HOLDER_AMOUNT.matcher(text).replaceAll("$1" + SensitiveDataPolicy.MASK);
+	}
+
+	private static Evaluacion toContract(AssessmentResult result, Masker mask) {
 		return new Evaluacion()
 			.id(result.id())
 			.estado(Evaluacion.EstadoEnum.fromValue(result.status().published().name()))
@@ -110,17 +126,18 @@ class AssessmentController implements EvaluacionesApi {
                     .elegible(p.eligible())
                     .criterios(p.criteria().stream().map(c -> new CriterioElegibilidad()
                         .codigo(CriterioElegibilidad.CodigoEnum.fromValue(c.code().name()))
-                        .cumple(c.met()).detalle(c.detail())).toList()))
+                        .cumple(c.met()).detalle(maskAmounts(c.detail(), mask))).toList()))
                 .toList())
 			// C-06: ausente si no corresponden (plan sin la función o PARCIAL); [] si ninguna aplica.
 			.recomendaciones(result.recommendations() == null ? null : result.recommendations().stream()
 				.map(r -> new Recomendacion()
 					.tipoProducto(Recomendacion.TipoProductoEnum.fromValue(r.productType()))
 					.moneda(Recomendacion.MonedaEnum.fromValue(r.currency()))
-					.montoSugerido(r.suggestedAmount().toPlainString())
-					.razon(r.reason())
+					.montoSugerido(mask.amount(r.suggestedAmount().toPlainString()))
+					.razon(maskAmounts(r.reason(), mask))
                     .plazoSugeridoMeses(r.suggestedTermMonths())
-                    .razones(r.reasons()))
+                    .razones(r.reasons() == null ? null
+                        : r.reasons().stream().map(reason -> maskAmounts(reason, mask)).toList()))
 				.toList());
 	}
 

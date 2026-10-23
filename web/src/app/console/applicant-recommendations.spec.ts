@@ -2,6 +2,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import {
+  CriterioElegibilidadCodigoEnum,
+  ElegibilidadProductoMonedaEnum,
+  ElegibilidadProductoTipoProductoEnum,
   EvaluacionBandaEnum,
   EvaluacionEstadoEnum,
   EvaluacionResumenBandaEnum,
@@ -63,11 +66,38 @@ describe('Recomendaciones del perfil (C-06)', () => {
     expect(text(f)).toContain('no una aprobación');
   });
 
-  it('si la evaluación no trae recomendaciones (FREE o parcial) lo explica', async () => {
+  it('si la evaluación salió parcial explica que no se recomienda con fuentes fallidas', async () => {
     api.listarEvaluaciones.mockReturnValue(of({ items: [summary], total: 1 }));
     api.obtenerEvaluacion.mockReturnValue(of({ id: 'ev-1', estado: EvaluacionEstadoEnum.Parcial }));
     const f = await render();
-    expect(text(f)).toContain('disponibles en el plan Pro');
+    expect(text(f)).toContain('resultado parcial');
+    expect(text(f)).not.toContain('Ranking disponible en el plan Pro');
+  });
+
+  it('C-16: en FREE muestra la elegibilidad por producto y la invitación al ranking Pro', async () => {
+    api.listarEvaluaciones.mockReturnValue(of({ items: [summary], total: 1 }));
+    api.obtenerEvaluacion.mockReturnValue(
+      of({
+        id: 'ev-1',
+        estado: EvaluacionEstadoEnum.RevisionManual,
+        banda: EvaluacionBandaEnum.B,
+        elegibilidad: [
+          {
+            productoId: 'p-1',
+            tipoProducto: ElegibilidadProductoTipoProductoEnum.Pyme,
+            moneda: ElegibilidadProductoMonedaEnum.Bob,
+            elegible: false,
+            criterios: [{ codigo: CriterioElegibilidadCodigoEnum.TipoTitular, cumple: false, detalle: 'PYME requiere empresa' }],
+          },
+        ],
+      }),
+    );
+    const f = await render();
+    expect(text(f)).toContain('Ranking disponible en el plan Pro');
+    expect(text(f)).toContain('Crédito PYME');
+    expect(text(f)).toContain('No elegible');
+    expect(text(f)).toContain('PYME requiere empresa');
+    expect(text(f)).toContain('no una aprobación');
   });
 
   it('sin evaluaciones muestra un estado vacío y no consulta ninguna evaluación', async () => {

@@ -82,6 +82,29 @@
 .list > li + li {
   border-top: var(--ds-hairline) solid var(--ds-border);
 }
+/* C-16: criterios de elegibilidad de un producto, con su marca de cumple / no cumple. */
+.criteria {
+  display: grid;
+  gap: var(--ds-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.criteria > li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-space-2);
+}
+.criteria > li[data-met='true'] .mark {
+  color: var(--ds-success);
+}
+.criteria > li[data-met='false'] .mark {
+  color: var(--ds-danger);
+}
+.reasons {
+  display: grid;
+  gap: var(--ds-space-1);
+}
 .code {
   margin: 0;
   padding: var(--ds-space-5);
